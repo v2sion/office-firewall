@@ -52,6 +52,10 @@
           </span>
         </div>
         <textarea id="message" maxlength="800" rows="7" placeholder="카카오톡 메시지, 이메일, 회의 대화록 등 받은 내용을 그대로 붙여넣으세요. 이름·연락처·금액은 전송 전에 브라우저에서 자동으로 가려집니다."></textarea>
+        <p class="field-hint">💡 <b>상대방이 보낸 부분만</b> 넣어주세요. 여러 번 대화가 오간 경우 내가 답장한 내용까지 같이 넣으면 진단이 부정확해질 수 있어요.</p>
+        <p class="thread-warning" id="thread-warning" hidden>
+          ⚠️ 여러 명의 대화가 섞인 것처럼 보여요. 상대방이 보낸 메시지만 남기면 더 정확하게 분석됩니다.
+        </p>
         <div class="under-input">
           <span class="counter"><b id="char-count">0</b> / 800자</span>
           <button type="button" class="linkish" id="toggle-preview" aria-expanded="false">전송될 내용 확인</button>
@@ -139,6 +143,7 @@
         <!-- ② 추천 답장 -->
         <article class="replies">
           <h2 class="section-title">추천 카운터 답장</h2>
+          <p class="replies-mode-note" id="replies-mode-note" hidden></p>
           <div id="replies"></div>
         </article>
 

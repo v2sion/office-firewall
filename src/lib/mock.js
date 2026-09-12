@@ -71,7 +71,33 @@ const TONE_OPEN = {
   '매운맛': { greet: '', close: '' },
 };
 
-function replyTemplates(ctx, maskedText, urgency) {
+/**
+ * 룰엔진이 이미 진단한 ambiguityType 을 "무엇이 비어 있는지"를 가리키는
+ * 명사구로 바꾼다. 답장이 subtext 의 진단 문구("범위와 기한이 비어 있다")를
+ * 그대로 반복하면 "내 메시지를 다르게 표현한 것" 처럼 읽힌다 — 그래서 답장
+ * 쪽은 항상 이 구체적인 명사구를 쓰고, subtext 의 문장을 그대로 재사용하지
+ * 않는다.
+ */
+function ambiguityFocus(ambiguityType) {
+  if (ambiguityType === 'R&R 미지정') return '담당 범위';
+  if (ambiguityType === '범위 불명') return '작업 범위';
+  if (ambiguityType === '기한 불명') return '마감 기한';
+  return '세부 조건';
+}
+
+/** 마지막 음절에 받침이 있는지 (한글 완성형 코드포인트 기준). 조사 선택용. */
+function hasBatchim(word) {
+  const code = word.charCodeAt(word.length - 1) - 0xac00;
+  if (code < 0 || code > 11171) return true; // 한글이 아니면 안전하게 받침 있는 쪽 취급
+  return code % 28 !== 0;
+}
+const josaI = (w) => (hasBatchim(w) ? '이' : '가');
+const josaEul = (w) => (hasBatchim(w) ? '을' : '를');
+
+function replyTemplates(ctx, maskedText, urgency, ambiguity) {
+  const focus = ambiguityFocus(ambiguity);
+  const focusI = focus + josaI(focus); // 예: "담당 범위가", "마감 기한이"
+  const focusEul = focus + josaEul(focus); // 예: "담당 범위를", "마감 기한을"
   const tone = TONE_OPEN[ctx.tone] || TONE_OPEN['보통맛'];
   const spicy = ctx.tone === '매운맛';
   const mild = ctx.tone === '순한맛';
@@ -97,10 +123,10 @@ function replyTemplates(ctx, maskedText, urgency) {
         ? '요청 주신 내용 확인했습니다. 정확히 보려면 범위를 조금만 좁혀 주시면 좋겠습니다. 확인이 필요한 항목과 희망 기한을 알려 주시면, 가능한 일정으로 회신드리겠습니다.'
         : '요청 확인했습니다. 검토 범위와 기한을 먼저 확정하고 싶습니다. 확인이 필요한 항목과 마감 시각을 알려 주시면 소요 일정을 산정해 회신하겠습니다.',
     '공넘기기': spicy
-      ? '이 건은 선행 조건이 충족되어야 착수 가능합니다. 요구사항 정의가 완료된 시점부터 저희 작업이 시작됩니다. 정의 문서를 공유해 주시면 그 시점 기준으로 일정을 회신하겠습니다.'
+      ? `이 건은 ${focusI} 정리되어야 저희가 착수할 수 있습니다. ${focusEul} 확정해 문서로 공유해 주시면 그 시점 기준으로 일정을 회신하겠습니다.`
       : mild
-        ? '말씀 주신 방향은 이해했습니다. 다만 저희가 착수하려면 요구사항 정의가 먼저 정리되어야 합니다. 해당 부분 정리해서 공유해 주시면 바로 이어받아 진행하겠습니다.'
-        : '해당 건은 요구사항 정의가 선행되어야 착수 가능합니다. 정의된 문서를 공유해 주시면 수령 시점 기준으로 일정을 산정해 회신하겠습니다.',
+        ? `말씀 주신 방향은 이해했습니다. 다만 저희가 착수하려면 ${focus}부터 먼저 정리되어야 할 것 같아요. 해당 부분 정리해서 공유해 주시면 바로 이어받아 진행할게요.`
+        : `요청 확인했습니다. 다만 ${focusI} 아직 정리되지 않아 저희 쪽에서 바로 착수하기는 어렵습니다. ${focusEul} 먼저 정리해 공유해 주시면 수령 시점 기준으로 일정을 산정해 회신하겠습니다.`,
     '관계보존': spicy
       ? '진행하겠습니다. 다만 범위를 한정하겠습니다. 요청하신 항목 중 핵심 지표만 우선 확인하고, 나머지는 다음 차수로 넘기겠습니다.'
       : mild
@@ -113,16 +139,16 @@ function replyTemplates(ctx, maskedText, urgency) {
   const first = addressee + tone.greet + (defense[ctx.goal] || defense['관계보존']) + tone.close;
 
   const agenda = spicy
-    ? '진행 전에 기준부터 맞추겠습니다. (1) 이번 요청의 최종 산출물, (2) 확인 범위, (3) 마감 시각, (4) 이 건의 담당 주체 — 네 가지를 명확히 해 주십시오. 기준이 정해지면 그에 맞춰 일정을 회신하겠습니다.'
+    ? `특히 ${focusI} 불명확해 진행 전에 기준부터 맞추겠습니다. (1) 이번 요청의 최종 산출물, (2) 확인 범위, (3) 마감 시각, (4) 이 건의 담당 주체 — 네 가지를 명확히 해 주십시오. 기준이 정해지면 그에 맞춰 일정을 회신하겠습니다.`
     : mild
-      ? '요청 주신 건, 제가 정확히 도와드리려면 몇 가지만 확인하면 좋을 것 같습니다. (1) 최종 산출물이 무엇인지, (2) 어디까지 보면 되는지, (3) 언제까지 필요한지, (4) 이 건의 담당은 어느 쪽인지 — 알려 주시면 그 기준으로 바로 진행하겠습니다.'
-      : '진행 전 네 가지만 확정하고 싶습니다. (1) 최종 산출물, (2) 확인 범위, (3) 마감 시각, (4) 담당 주체. 위 항목이 정해지면 그 기준으로 일정을 회신하겠습니다.';
+      ? `요청 주신 건, ${focusI} 아직 안 정해진 것 같아서 몇 가지만 확인하면 좋을 것 같습니다. (1) 최종 산출물이 무엇인지, (2) 어디까지 보면 되는지, (3) 언제까지 필요한지, (4) 이 건의 담당은 어느 쪽인지 — 알려 주시면 그 기준으로 바로 진행하겠습니다.`
+      : `${focusI} 명확하지 않아 진행 전 네 가지만 확정하고 싶습니다. (1) 최종 산출물, (2) 확인 범위, (3) 마감 시각, (4) 담당 주체. 위 항목이 정해지면 그 기준으로 일정을 회신하겠습니다.`;
 
   const laundered = spicy
-    ? '이번 요청은 범위와 기한이 정해지지 않은 상태로 전달됐습니다. 이 상태로 착수하면 결과물이 어긋날 가능성이 높고, 그 비용은 다시 저희가 부담하게 됩니다. 기준을 먼저 정해 주시면 그에 맞춰 정확히 진행하겠습니다.'
+    ? `이번 요청은 ${focusI} 정해지지 않은 상태로 전달됐습니다. 이 상태로 착수하면 결과물이 어긋날 가능성이 높고, 그 비용은 다시 저희가 부담하게 됩니다. ${focus}부터 먼저 정해 주시면 그에 맞춰 정확히 진행하겠습니다.`
     : mild
-      ? '이번 요청, 범위와 기한이 아직 정해지지 않아서 저도 어디서부터 시작해야 할지 조금 막막했어요. 편하실 때 어디까지 필요하신지, 언제까지면 좋을지만 살짝 알려주시면 그 안에서 최대한 맞춰서 진행해볼게요.'
-      : '이번 요청은 범위와 기한이 비어 있어, 이대로 진행하면 다시 작업하게 될 가능성이 큽니다. 서로 시간을 아끼기 위해 기준을 먼저 맞췄으면 합니다. 필요한 항목과 기한을 정해 주시면 그 범위 안에서 정확히 처리하겠습니다.';
+      ? `이번 요청, ${focusI} 아직 정해지지 않아서 저도 어디서부터 시작해야 할지 조금 막막했어요. 편하실 때 ${focus}만 살짝 알려주시면 그 안에서 최대한 맞춰서 진행해볼게요.`
+      : `이번 요청은 ${focusI} 정해지지 않은 채로 왔습니다. 이대로 진행하면 나중에 다시 손봐야 할 가능성이 커서, 서로 시간을 아끼는 차원에서 ${focus}부터 여쭤봅니다. 알려주시면 그 안에서 정확히 처리하겠습니다.`;
 
   return [
     { label: '목적 맞춤형 정밀 방어', text: first },
@@ -166,6 +192,6 @@ export function buildMockAnalysis(maskedText, context = {}) {
     hasNumbers: signals.hasNumbers,
     hasDeadline: signals.hasDeadline,
     avoidsDecision: signals.avoidsDecision,
-    replies: replyTemplates(ctx, maskedText, urgencyType),
+    replies: replyTemplates(ctx, maskedText, urgencyType, ambiguityType),
   };
 }

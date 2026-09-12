@@ -220,6 +220,36 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 }
 .mask-note { font-size: 10.5px; color: var(--text-faint); margin: 8px 0 0; }
 
+.field-hint {
+  font-size: 11px;
+  color: var(--text-faint);
+  line-height: 1.5;
+  margin: 6px 0 0;
+}
+.field-hint b { color: var(--text-dim); font-weight: 600; }
+
+.thread-warning {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(242, 199, 68, 0.1);
+  border: 1px solid rgba(242, 199, 68, 0.32);
+  color: #e6c15a;
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+
+.replies-mode-note {
+  font-size: 11px;
+  color: var(--text-faint);
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 0 0 10px;
+  line-height: 1.55;
+}
+
 .tone-warning {
   margin: 8px 0 0;
   padding: 9px 11px;

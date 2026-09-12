@@ -9,6 +9,7 @@ import { maskFields, unmask, summarizeMask } from './lib/mask.js';
 import { buildMockAnalysis } from './lib/mock.js';
 import { buildResult } from './lib/normalize.js';
 import { buildReceiptData } from './lib/receipt.js';
+import { looksLikeMultiTurnThread } from './lib/thread-hint.js';
 import golden from './data/golden.json';
 import presetWeekend from './data/presets/weekend.json';
 import presetAislop from './data/presets/aislop.json';
@@ -125,6 +126,7 @@ const el = {
   maskPreview: $('mask-preview'),
   maskPreviewBody: $('mask-preview-body'),
   maskSummary: $('mask-summary'),
+  threadWarning: $('thread-warning'),
   run: $('run'),
   runHint: $('run-hint'),
   standby: $('standby'),
@@ -141,6 +143,7 @@ const el = {
   stats: $('stats'),
   evidenceBody: $('evidence-body'),
   replies: $('replies'),
+  repliesModeNote: $('replies-mode-note'),
   usageLine: $('usage-line'),
   receiptOpen: $('receipt-open'),
   receiptModal: $('receipt-modal'),
@@ -255,6 +258,7 @@ function onInput() {
   const counter = el.charCount.parentElement;
   counter.classList.toggle('warn', len > MAX_CHARS * 0.9 && len <= MAX_CHARS);
   counter.classList.toggle('over', len > MAX_CHARS);
+  el.threadWarning.hidden = !looksLikeMultiTurnThread(el.message.value);
   if (!el.maskPreview.hidden) updateMaskPreview();
 }
 
@@ -413,6 +417,7 @@ function render(result, elapsedMs, context) {
   renderStats(xray);
   renderEvidence(xray, risk);
   renderReplies(replies);
+  renderRepliesModeNote(meta.mode);
 
   const tokens = usage?.input_tokens || usage?.output_tokens
     ? ` · in ${usage.input_tokens} / out ${usage.output_tokens} tokens`
@@ -496,6 +501,22 @@ function renderEvidence(xray, risk) {
     </p>
     <p class="evidence-formula">이 점수는 AI가 아니라 코드가 계산합니다. 같은 입력이면 항상 같은 값이 나옵니다.</p>
   `;
+}
+
+/**
+ * LIVE(실제 Claude 호출) 가 아니면 답장이 메시지 내용을 깊이 읽고 쓴 게 아니라
+ * 목적×완곡도로 갈라지는 규칙 기반 근사치라는 걸 명시한다. 이 설명이 없으면
+ * "답장이 왜 내 메시지를 다르게 표현한 것처럼 느껴지지" 하고 오해하기 쉽다.
+ */
+function renderRepliesModeNote(mode) {
+  if (mode === 'live') {
+    el.repliesModeNote.hidden = true;
+    return;
+  }
+  el.repliesModeNote.hidden = false;
+  el.repliesModeNote.textContent = mode === 'cached'
+    ? 'ℹ️ 캐시된 예시 답장입니다 — 상황 카드 원본 그대로일 때만 나오는 미리 준비된 결과예요.'
+    : 'ℹ️ 지금은 규칙 기반 예시 답장입니다(모델 미연동/MOCK). 목적·완곡도에 따라 갈라지긴 하지만 메시지 내용을 세세히 읽고 쓰진 않아요 — 그대로 보내기보다 초안으로 참고해 다듬어 주세요.';
 }
 
 function renderReplies(replies) {
