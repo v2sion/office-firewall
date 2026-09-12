@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      # 룰엔진·마스킹·영수증·LIVE 경로까지 전부 여기서 막는다.
+      - run: npm test
+
+      # 빌드가 깨진 채로 머지되면 시연 당일에야 발견된다.
+      - run: npm run build
+
+      # 상황 카드 프리셋 캐시는 mock.js 에서 생성된다 —
+      # mock.js 를 고치고 재생성을 잊으면 캐시가 조용히 낡는다.
+      - name: 프리셋 캐시가 최신인지 확인
+        run: |
+          node scripts/gen-presets.mjs
+          if ! git diff --quiet -- src/data/presets; then
+            echo "::error::프리셋 캐시가 낡았습니다. 'node scripts/gen-presets.mjs' 를 실행하고 커밋하세요."
+            git diff -- src/data/presets
+            exit 1
+          fi

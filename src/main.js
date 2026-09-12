@@ -409,7 +409,11 @@ async function postAnalyze(payload) {
   }
   if (!res.ok) {
     const message = body?.error?.message || '분석에 실패했습니다.';
-    if (body?.error?.code === 'UPSTREAM_FAILED') throw recoverable('모델 호출이 실패해 로컬 룰엔진으로 분석했습니다.');
+    // 400대(EMPTY_INPUT·TOO_LONG·RAW_PII_DETECTED)는 사용자가 고칠 수 있는 문제라
+    // 메시지를 그대로 보여준다. 500대는 모델·인프라 쪽 실패이므로 화면을 비우지 않고
+    // 로컬 룰엔진으로 넘긴다 — 코드가 늘어나도(MODEL_REFUSED, MODEL_OUTPUT_TRUNCATED 등)
+    // 목록을 따라 고칠 필요가 없게 상태코드로 판단한다.
+    if (res.status >= 500) throw recoverable('모델 호출이 실패해 로컬 룰엔진으로 분석했습니다.');
     throw new Error(message);
   }
   return body;
