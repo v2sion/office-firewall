@@ -722,18 +722,27 @@ async function saveReceiptImage() {
 }
 
 async function copyReceiptImage() {
+  if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
+    setReceiptStatus('이 브라우저에서는 이미지 복사가 지원되지 않습니다. "이미지로 저장"을 이용해 주세요.');
+    return;
+  }
   setReceiptStatus('이미지 생성 중…');
   try {
-    if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
-      throw new Error('clipboard-unsupported');
-    }
-    await new Promise((r) => requestAnimationFrame(r));
-    const blob = await toBlob(el.receiptCard, { pixelRatio: 2, cacheBust: true });
-    if (!blob) throw new Error('blob-failed');
-    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+    // Safari/iOS 는 클립보드 쓰기가 사용자 제스처와 "같은 턴"에서 시작돼야 한다.
+    // blob 을 await 한 뒤에 write() 를 부르면 제스처 컨텍스트가 끊겨
+    // NotAllowedError 로 실패한다 — 화면에는 "브라우저 미지원"으로 잘못 표시된다.
+    // ClipboardItem 에 Promise 를 그대로 넘기면 생성이 동기적으로 일어나 이를 피한다.
+    const png = new Promise((resolve) => requestAnimationFrame(resolve))
+      .then(() => toBlob(el.receiptCard, { pixelRatio: 2, cacheBust: true }))
+      .then((blob) => {
+        if (!blob) throw new Error('blob-failed');
+        return blob;
+      });
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
     setReceiptStatus('클립보드에 복사했습니다.');
   } catch {
-    setReceiptStatus('이 브라우저에서는 이미지 복사가 지원되지 않습니다. "이미지로 저장"을 이용해 주세요.');
+    // 미지원과 실패를 구분한다 — 전자는 위에서 이미 걸러졌다.
+    setReceiptStatus('이미지 복사에 실패했습니다. "이미지로 저장"을 이용해 주세요.');
   }
 }
 
