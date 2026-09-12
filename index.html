@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>OFFICE FIREWALL — 직장 메시지 방화벽</title>
+  <meta name="description" content="직장에서 받은 애매한 메시지의 숨은 요구를 진단하고, 원하는 톤으로 답장을 만들어 주는 도구. AI는 추출하고, 판정은 규칙이 한다." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0f16'/%3E%3Cpath d='M16 5l9 3.2v7.1c0 5.6-3.7 10.3-9 11.7-5.3-1.4-9-6.1-9-11.7V8.2z' fill='%233ddc97'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/src/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">OFFICE FIREWALL</span>
+      <span class="brand-sub">90od · MENTAL SAFEGUARD</span>
+    </div>
+    <div class="brand-claim">AI는 추출하고, 판정은 규칙이 한다</div>
+  </header>
+
+  <main class="layout">
+    <!-- ─────────────────  좌: 입력 패널  ───────────────── -->
+    <section class="panel panel-input" aria-label="입력 패널">
+      <!-- ① 퀵 프리셋 -->
+      <div class="block">
+        <h2 class="block-title">① 퀵 프리셋</h2>
+        <div class="preset-grid" id="preset-grid"></div>
+      </div>
+
+      <!-- ② 맥락 매트릭스 -->
+      <div class="block">
+        <h2 class="block-title">② 맥락 매트릭스</h2>
+        <div class="selector" data-field="job">
+          <span class="selector-label">내 직군</span>
+          <div class="chips" role="radiogroup" aria-label="내 직군"></div>
+        </div>
+        <div class="selector" data-field="level">
+          <span class="selector-label">내 연차</span>
+          <div class="chips" role="radiogroup" aria-label="내 연차"></div>
+        </div>
+        <div class="selector" data-field="counterpart">
+          <span class="selector-label">상대방과의 관계</span>
+          <div class="chips" role="radiogroup" aria-label="상대방과의 관계"></div>
+        </div>
+      </div>
+
+      <!-- ③ 받은 메시지 -->
+      <div class="block">
+        <div class="block-head">
+          <h2 class="block-title">③ 받은 메시지</h2>
+          <span class="shield-badge" id="shield-badge" title="원문은 브라우저에서 마스킹된 뒤에만 서버로 전송됩니다">
+            🛡️ 선-마스킹 보호 가동
+          </span>
+        </div>
+        <textarea id="message" maxlength="800" rows="7" placeholder="받은 메시지를 그대로 붙여넣으세요. 이름·연락처·금액은 전송 전에 브라우저에서 자동으로 가려집니다."></textarea>
+        <div class="under-input">
+          <span class="counter"><b id="char-count">0</b> / 800자</span>
+          <button type="button" class="linkish" id="toggle-preview" aria-expanded="false">전송될 내용 확인</button>
+        </div>
+        <div class="mask-preview" id="mask-preview" hidden>
+          <div class="mask-preview-head">서버로 실제 전송되는 텍스트 <span class="mask-summary" id="mask-summary">검출 없음</span></div>
+          <pre id="mask-preview-body"></pre>
+          <p class="mask-note">토큰 맵(어떤 토큰이 누구인지)은 이 브라우저 메모리에만 있으며 전송·저장되지 않습니다.</p>
+        </div>
+      </div>
+
+      <!-- ④ 숨은 속사정 -->
+      <div class="block">
+        <h2 class="block-title">④ 나의 숨은 속사정 <span class="optional">선택</span></h2>
+        <input type="text" id="hidden-context" maxlength="120" placeholder="예) 가족 행사로 외지에 있음 / 계약서상 수정은 2회까지" />
+      </div>
+
+      <!-- ⑤ 방어 목적 -->
+      <div class="block">
+        <h2 class="block-title">⑤ 방어 목적</h2>
+        <div class="selector" data-field="goal">
+          <div class="chips" role="radiogroup" aria-label="방어 목적"></div>
+        </div>
+      </div>
+
+      <!-- ⑥ 완곡도 -->
+      <div class="block">
+        <h2 class="block-title">⑥ 완곡도</h2>
+        <div class="selector" data-field="tone">
+          <div class="chips chips-tone" role="radiogroup" aria-label="완곡도"></div>
+        </div>
+        <p class="tone-warning" id="tone-warning" hidden>
+          ⚠️ 관계 비용 경고: 이 톤은 사내 갈등이 증폭될 위험이 있습니다. 감정이 가라앉은 후 신중히 전송하세요.
+        </p>
+      </div>
+
+      <!-- ⑦ 실행 -->
+      <div class="block">
+        <button type="button" class="run" id="run">방화벽 X-Ray 분석 &amp; 카운터 답장 생성</button>
+        <p class="run-hint" id="run-hint">분석은 5초에 한 번 실행됩니다.</p>
+      </div>
+    </section>
+
+    <!-- ─────────────────  우: 결과 패널 (X-Ray 먼저, 답장 나중)  ───────────────── -->
+    <section class="panel panel-result" aria-label="결과 패널" aria-live="polite">
+      <div class="standby" id="standby">
+        <div class="standby-icon">🛡️</div>
+        <p class="standby-title">방화벽 대기 중</p>
+        <p class="standby-copy">AI는 추출하고, 판정은 규칙이 한다</p>
+      </div>
+
+      <div class="result" id="result" hidden>
+        <!-- ① X-Ray 리포트 -->
+        <article class="xray" id="xray">
+          <div class="xray-head">
+            <span class="alert-header" id="alert-header">🚨 고위험 독박 경보</span>
+            <span class="mode-badge" id="mode-badge">MOCK</span>
+          </div>
+
+          <div class="score-row">
+            <div class="score-figure">
+              <span class="score-value" id="score-value">0</span><span class="score-max">/ 100</span>
+            </div>
+            <div class="score-meta">
+              <span class="score-name">Social Risk Index</span>
+              <span class="score-label" id="score-label">—</span>
+              <span class="score-action" id="score-action">—</span>
+            </div>
+          </div>
+          <div class="score-bar"><div class="score-bar-fill" id="score-bar-fill"></div></div>
+
+          <div class="subtext">
+            <span class="subtext-icon">💡</span>
+            <p id="subtext">—</p>
+          </div>
+
+          <div class="stats" id="stats"></div>
+
+          <details class="evidence">
+            <summary>판정 근거 보기 (규칙 계산 내역)</summary>
+            <div id="evidence-body"></div>
+          </details>
+        </article>
+
+        <!-- ② 추천 답장 -->
+        <article class="replies">
+          <h2 class="section-title">추천 카운터 답장</h2>
+          <div id="replies"></div>
+        </article>
+
+        <p class="usage-line" id="usage-line"></p>
+      </div>
+
+      <div class="error-box" id="error-box" hidden></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>원티드 AI CHAMPIONSHIP 2026 · 팀 90od</span>
+    <span class="dot">·</span>
+    <span>원문은 서버에 저장되지 않습니다</span>
+  </footer>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

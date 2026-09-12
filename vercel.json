@@ -1,0 +1,7 @@
+{
+  "installCommand": "npm install",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/analyze.js": { "maxDuration": 15 }
+  }
+}

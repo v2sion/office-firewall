@@ -1,0 +1,20 @@
+{
+  "name": "office-firewall",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:api": "vercel dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test test/*.test.js",
+    "serve:local": "node scripts/dev-server.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.0"
+  },
+  "devDependencies": {
+    "vite": "^8.1.4"
+  }
+}

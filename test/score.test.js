@@ -1,0 +1,87 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { calcRisk, substanceGap, riskLabel, GREEN_CAP } from '../src/lib/score.js';
+import { extractSubstanceSignals, findCliches, hasDeadline, hasNumbers, avoidsDecision } from '../src/lib/cliche.js';
+
+const base = {
+  powerAsymmetry: 1,
+  urgencyType: '없음',
+  ambiguityType: '없음',
+  clicheHits: [],
+  sentenceCount: 3,
+  hasNumbers: true,
+  hasDeadline: true,
+  avoidsDecision: false,
+};
+
+test('가이드 §6.2 공식대로 가중치가 적용된다', () => {
+  // 권력 4(32) + 주말 침범(20) + R&R 미지정(20) + 결여율 1.0(20) = 92
+  const xray = {
+    ...base,
+    powerAsymmetry: 4,
+    urgencyType: '주말 침범',
+    ambiguityType: 'R&R 미지정',
+    clicheHits: ['시간 날 때', '가볍게', '급한 건 아니'],
+    hasNumbers: false,
+    hasDeadline: false,
+    avoidsDecision: true,
+  };
+  assert.equal(substanceGap(xray), 1);
+  assert.equal(calcRisk(xray), 92);
+});
+
+test('권력 비대칭만 높고 나머지가 깨끗하면 Green 상한을 넘지 않는다', () => {
+  const xray = { ...base, powerAsymmetry: 5 };
+  assert.equal(substanceGap(xray), 0);
+  assert.ok(calcRisk(xray) <= GREEN_CAP, '정상 업무 대조군에 과잉 경보가 붙었다');
+  assert.equal(riskLabel(calcRisk(xray)).level, 'green');
+});
+
+test('결여율은 0~1 범위를 벗어나지 않는다', () => {
+  const many = { ...base, clicheHits: new Array(20).fill('가볍게'), sentenceCount: 1, hasNumbers: false, hasDeadline: false, avoidsDecision: true };
+  assert.equal(substanceGap(many), 1);
+  assert.ok(calcRisk(many) <= 100);
+});
+
+test('점수는 같은 입력에 항상 같은 값을 낸다 (재현성)', () => {
+  const xray = { ...base, powerAsymmetry: 3, urgencyType: '당일 마감', clicheHits: ['가볍게'], sentenceCount: 4 };
+  const runs = new Set(Array.from({ length: 50 }, () => calcRisk(xray)));
+  assert.equal(runs.size, 1);
+});
+
+test('등급 경계', () => {
+  assert.equal(riskLabel(20).level, 'green');
+  assert.equal(riskLabel(21).level, 'lime');
+  assert.equal(riskLabel(60).level, 'amber');
+  assert.equal(riskLabel(81).level, 'red');
+});
+
+test('신호 추출기: 정상 업무 메시지', () => {
+  const t = '안녕하세요. 9/15(월) 14시 스프린트 리뷰 안건으로 로그인 개선안 공유드립니다. 의견은 9/14(일) 18시까지 코멘트로 남겨주시면 반영하겠습니다.';
+  const s = extractSubstanceSignals(t);
+  assert.deepEqual(s.clicheHits, []);
+  assert.equal(s.hasNumbers, true);
+  assert.equal(s.hasDeadline, true);
+  assert.equal(s.avoidsDecision, false);
+  assert.equal(substanceGap(s), 0);
+});
+
+test('신호 추출기: "월요일 오전 보고"는 기한이 아니다', () => {
+  assert.equal(hasDeadline('월요일 오전에 대표님 보고가 잡혀서요'), false);
+  assert.equal(hasDeadline('내일까지 보내주세요'), true);
+  assert.equal(hasNumbers('숫자 없는 문장'), false);
+  assert.equal(hasNumbers('{{PHONE_1}} 만 있는 문장'), false, '마스킹 토큰 내부 숫자를 세면 안 된다');
+});
+
+test('한글 음절 조합을 넘어 어간으로 매칭한다', () => {
+  // "아니" 는 "아닙니다" 의 부분문자열이 아니다 — 자모 분해 매칭이 없으면 놓친다
+  assert.ok(findCliches('급한 건 아닙니다!').includes('급한 건 아니'));
+  assert.ok(findCliches('급한 건 아니에요').includes('급한 건 아니'));
+  assert.equal(avoidsDecision('검토해보았습니다'), true);
+});
+
+test('신호 추출기: 클리셰/의사결정 회피', () => {
+  assert.deepEqual(findCliches('시간 날 때 가볍게 봐주세요').sort(), ['가볍게', '시간 날 때']);
+  assert.equal(avoidsDecision('검토해보고 말씀드리겠습니다'), true);
+  assert.equal(avoidsDecision('9/15까지 완료하겠습니다'), false);
+});
