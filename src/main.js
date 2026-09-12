@@ -133,8 +133,13 @@ function renderPresets() {
 }
 
 /**
- * 상황 카드는 폼 값(맥락·메시지)만 채운다. 결과로 바로 넘어가지 않고
- * 사용자가 ③ 받은 메시지에서 내용을 확인·수정한 뒤 ⑦ 버튼으로 직접 실행한다.
+ * 상황 카드는 ③ 받은 메시지 딱 하나만 채운다.
+ *
+ * ① 맥락 매트릭스(내 직군·연차)는 "나"에 대한 정보라 상황과 무관하게 유지돼야
+ * 하고, ⑤ 방어 목적·⑥ 완곡도는 사용자가 메시지를 읽고 스스로 정해야 할
+ * 몫이라 카드가 대신 정하면 안 된다. 상황 카드가 이 값들까지 덮어써 버리면
+ * "예시 상황 보여주기"가 아니라 "데모 세트 통째로 불러오기"가 되어버린다.
+ * 결과로 바로 넘어가지도 않는다 — ⑦ 버튼으로 사용자가 직접 실행한다.
  */
 function applyPreset(g, btn) {
   el.presetGrid.querySelectorAll('.preset').forEach((b) => {
@@ -143,12 +148,6 @@ function applyPreset(g, btn) {
   });
 
   el.message.value = g.text;
-  el.hiddenContext.value = g.context.hiddenContext || '';
-  selectByApiValue('job', g.context.job);
-  selectByApiValue('level', g.context.level);
-  selectByApiValue('counterpart', g.context.counterpart);
-  selectByApiValue('goal', g.context.goal);
-  selectByApiValue('tone', g.context.tone);
   onInput();
 
   // 바로 실행하지 않는다 — 사용자가 채워진 내용을 눈으로 확인/수정하게 한다.
@@ -158,15 +157,6 @@ function applyPreset(g, btn) {
   void el.message.offsetWidth;
   el.message.classList.add('just-filled');
   setHint('메시지를 확인한 뒤 실행 버튼을 눌러주세요.');
-}
-
-function selectByApiValue(field, value) {
-  const match = OPTIONS[field].find((o) => apiValue(o) === value);
-  if (!match) return;
-  state[field] = match;
-  const wrap = document.querySelector(`.selector[data-field="${field}"]`);
-  wrap?.querySelectorAll('.chip').forEach((c) => c.setAttribute('aria-checked', String(c.dataset.value === value)));
-  if (field === 'tone') el.toneWarning.hidden = value !== '매운맛';
 }
 
 /**
