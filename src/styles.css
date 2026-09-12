@@ -111,6 +111,12 @@ html, body {
 .preset:hover { border-color: var(--accent-dim); transform: translateY(-1px); }
 .preset:active { transform: translateY(0); }
 .preset .emoji { font-size: 16px; }
+.preset.selected {
+  background: rgba(61, 220, 151, 0.12);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
 
 /* ── 셀렉터 칩 ─────────────────────────────── */
 .selector { margin-bottom: 10px; }
@@ -155,6 +161,18 @@ textarea, input[type="text"] {
 }
 textarea:focus, input[type="text"]:focus { outline: none; border-color: var(--accent-dim); }
 textarea::placeholder, input::placeholder { color: var(--text-faint); }
+
+/* 상황 카드로 메시지가 채워졌을 때: 어디가 바뀌었는지 한 번 눈에 띄게 알려준다 */
+@media (prefers-reduced-motion: no-preference) {
+  #message.just-filled { animation: fill-pulse 1s ease-out; }
+  @keyframes fill-pulse {
+    0% { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(61, 220, 151, 0.22); }
+    100% { border-color: var(--line); box-shadow: 0 0 0 0 rgba(61, 220, 151, 0); }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #message.just-filled { border-color: var(--accent); }
+}
 
 .shield-badge {
   font-size: 11px;

@@ -20,15 +20,9 @@
   <main class="layout">
     <!-- ─────────────────  좌: 입력 패널  ───────────────── -->
     <section class="panel panel-input" aria-label="입력 패널">
-      <!-- ① 퀵 프리셋 -->
+      <!-- ① 맥락 매트릭스 -->
       <div class="block">
-        <h2 class="block-title">① 퀵 프리셋</h2>
-        <div class="preset-grid" id="preset-grid"></div>
-      </div>
-
-      <!-- ② 맥락 매트릭스 -->
-      <div class="block">
-        <h2 class="block-title">② 맥락 매트릭스</h2>
+        <h2 class="block-title">① 맥락 매트릭스</h2>
         <div class="selector" data-field="job">
           <span class="selector-label">내 직군</span>
           <div class="chips" role="radiogroup" aria-label="내 직군"></div>
@@ -41,6 +35,12 @@
           <span class="selector-label">상대방과의 관계</span>
           <div class="chips" role="radiogroup" aria-label="상대방과의 관계"></div>
         </div>
+      </div>
+
+      <!-- ② 구체적인 상황 -->
+      <div class="block">
+        <h2 class="block-title">② 구체적인 상황 <span class="optional">비슷하면 클릭 · 직접 입력해도 됨</span></h2>
+        <div class="preset-grid" id="preset-grid"></div>
       </div>
 
       <!-- ③ 받은 메시지 -->

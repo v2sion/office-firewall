@@ -112,13 +112,24 @@ function renderPresets() {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'preset';
+    btn.dataset.id = p.id;
+    btn.setAttribute('aria-pressed', 'false');
     btn.innerHTML = `<span class="emoji">${p.emoji}</span><span>${p.label}</span>`;
-    btn.addEventListener('click', () => applyPreset(g));
+    btn.addEventListener('click', () => applyPreset(g, btn));
     el.presetGrid.appendChild(btn);
   }
 }
 
-function applyPreset(g) {
+/**
+ * 상황 카드는 폼 값(맥락·메시지)만 채운다. 결과로 바로 넘어가지 않고
+ * 사용자가 ③ 받은 메시지에서 내용을 확인·수정한 뒤 ⑦ 버튼으로 직접 실행한다.
+ */
+function applyPreset(g, btn) {
+  el.presetGrid.querySelectorAll('.preset').forEach((b) => {
+    b.classList.toggle('selected', b === btn);
+    b.setAttribute('aria-pressed', String(b === btn));
+  });
+
   el.message.value = g.text;
   el.hiddenContext.value = g.context.hiddenContext || '';
   selectByApiValue('job', g.context.job);
@@ -127,7 +138,14 @@ function applyPreset(g) {
   selectByApiValue('goal', g.context.goal);
   selectByApiValue('tone', g.context.tone);
   onInput();
-  run({ fromPreset: true });
+
+  // 바로 실행하지 않는다 — 사용자가 채워진 내용을 눈으로 확인/수정하게 한다.
+  el.message.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  el.message.classList.remove('just-filled');
+  // 리플로우를 강제해 같은 프리셋을 연속 클릭해도 애니메이션이 다시 재생되게 한다.
+  void el.message.offsetWidth;
+  el.message.classList.add('just-filled');
+  setHint('메시지를 확인한 뒤 실행 버튼을 눌러주세요.');
 }
 
 function selectByApiValue(field, value) {
@@ -213,7 +231,7 @@ async function run() {
     cooldownUntil = Date.now() + COOLDOWN_MS;
     startCooldownTimer();
   } catch (err) {
-    showError(err.message || '분석에 실패했습니다. 잠시 후 다시 시도하거나 좌측 퀵 프리셋을 사용하세요.');
+    showError(err.message || '분석에 실패했습니다. 잠시 후 다시 시도하거나 좌측 상황 카드를 사용하세요.');
   } finally {
     busy = false;
     setBusy(false);
