@@ -466,6 +466,13 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 .receipt-row span { color: #6b6455; }
 .receipt-row b { font-weight: 700; text-align: right; }
 .receipt-nudge-title { font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; margin-bottom: 6px; }
+.receipt-section-label {
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: #8a8272;
+  margin-bottom: 8px;
+}
 .receipt-nudge-body { font-size: 12px; line-height: 1.7; margin: 0; color: #3a352c; }
 .receipt-eap { font-size: 10.5px; line-height: 1.7; color: #6b6455; margin: 0; }
 .receipt-disclaimer { font-size: 9.5px; color: #9a927e; margin: 10px 0 0; }
