@@ -4,7 +4,7 @@
  * 흐름: 입력 → (브라우저) 선-마스킹 → /api/analyze → (브라우저) 역치환 → 렌더
  * 토큰 맵(sessionTokenMap)은 이 모듈의 지역 변수로만 존재한다. 저장·전송하지 않는다.
  */
-import { mask, unmask, summarizeMask } from './lib/mask.js';
+import { maskFields, unmask, summarizeMask } from './lib/mask.js';
 import { buildMockAnalysis } from './lib/mock.js';
 import { buildResult } from './lib/normalize.js';
 import golden from './data/golden.json';
@@ -169,21 +169,24 @@ function onInput() {
 }
 
 function updateMaskPreview() {
-  const { maskedText, counts } = mask(el.message.value);
-  el.maskPreviewBody.textContent = maskedText || '(입력 없음)';
+  // ④ 나의 숨은 속사정도 자유 입력 필드라서 여기 실명·연락처를 적으면
+  // 마스킹 우회 경로가 된다 — 메시지와 함께 마스킹해 실제 전송본을 그대로 보여준다.
+  const { maskedMessage, maskedHiddenContext, counts } = maskFields(el.message.value, el.hiddenContext.value.trim());
+  const parts = [maskedMessage || '(입력 없음)'];
+  if (maskedHiddenContext) parts.push(`\n— 숨은 속사정 —\n${maskedHiddenContext}`);
+  el.maskPreviewBody.textContent = parts.join('');
   el.maskSummary.textContent = summarizeMask(counts);
 }
 
 /* ── 실행 ───────────────────────────── */
 
-function currentContext() {
+function contextFields() {
   return {
     job: apiValue(state.job),
     level: apiValue(state.level),
     counterpart: apiValue(state.counterpart),
     goal: apiValue(state.goal),
     tone: apiValue(state.tone),
-    hiddenContext: el.hiddenContext.value.trim(),
   };
 }
 
@@ -204,8 +207,9 @@ async function run() {
     return;
   }
 
-  // 선-마스킹: 이 시점 이후로 원문은 네트워크를 타지 않는다.
-  const { maskedText, map } = mask(text);
+  // 선-마스킹: 이 시점 이후로 원문(메시지 + 숨은 속사정)은 네트워크를 타지 않는다.
+  const hiddenContextRaw = el.hiddenContext.value.trim();
+  const { maskedMessage, maskedHiddenContext, map } = maskFields(text, hiddenContextRaw);
   sessionTokenMap = map;
 
   busy = true;
@@ -214,7 +218,7 @@ async function run() {
   const startedAt = Date.now();
 
   try {
-    const payload = { maskedText, context: currentContext() };
+    const payload = { maskedText: maskedMessage, context: { ...contextFields(), hiddenContext: maskedHiddenContext } };
     let result;
     try {
       result = await postAnalyze(payload);

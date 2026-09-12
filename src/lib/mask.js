@@ -119,6 +119,35 @@ export function detectRawPII(text) {
   return hits;
 }
 
+/** 화면에 노출되지 않는 구분자. 정규식 패턴(숫자·한글·이메일 등) 어디와도 겹치지 않는다. */
+const FIELD_SEP = '\n␞\n';
+
+/**
+ * 메시지와 "숨은 속사정"을 한 번에 마스킹한다 (설계원칙 1.2).
+ *
+ * ④ 나의 숨은 속사정은 자유 입력 필드라서 사용자가 실명·연락처를 적을 수 있는데,
+ * 이 필드만 마스킹을 거치지 않고 그대로 서버로 보내면 원문 우회 경로가 된다.
+ * 두 필드를 한 번에 마스킹해 토큰 번호도 공유되게 한다
+ * (메시지와 속사정에 같은 이름이 나오면 같은 {{PERSON_n}} 이 된다).
+ *
+ * @param {string} message
+ * @param {string} hiddenContext
+ * @param {{ customTerms?: string[] }} [opts]
+ */
+export function maskFields(message, hiddenContext, opts = {}) {
+  if (!hiddenContext) {
+    const { maskedText, map, counts } = mask(message, opts);
+    return { maskedMessage: maskedText, maskedHiddenContext: '', map, counts };
+  }
+  const combined = `${message}${FIELD_SEP}${hiddenContext}`;
+  const { maskedText, map, counts } = mask(combined, opts);
+  // FIELD_SEP 은 숫자·한글·이메일 패턴 어디와도 겹치지 않으므로 마스킹을 그대로 통과한다.
+  const idx = maskedText.indexOf(FIELD_SEP);
+  const maskedMessage = idx === -1 ? maskedText : maskedText.slice(0, idx);
+  const maskedHiddenContext = idx === -1 ? '' : maskedText.slice(idx + FIELD_SEP.length);
+  return { maskedMessage, maskedHiddenContext, map, counts };
+}
+
 /** 마스킹 결과 요약 배지용 문자열 */
 export function summarizeMask(counts) {
   const labels = {

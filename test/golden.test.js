@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { mask, unmask } from '../src/lib/mask.js';
+import { mask, unmask, maskFields } from '../src/lib/mask.js';
 import { runAnalyze } from '../api/_lib/analyze-core.js';
 import { calcRisk } from '../src/lib/score.js';
 
@@ -66,6 +66,27 @@ test('원시 PII 가 섞이면 서버가 거부한다', async () => {
     () => runAnalyze({ maskedText: '연락처는 010-1234-5678 입니다.', context: {} }, MOCK_ENV),
     (e) => e.code === 'RAW_PII_DETECTED',
   );
+});
+
+test('④ 숨은 속사정(context.hiddenContext)에 원시 PII 가 섞여도 서버가 거부한다', async () => {
+  // 마스킹 우회 경로 방지 — 메시지는 깨끗해도 hiddenContext 에 원시 연락처가 있으면 막는다.
+  await assert.rejects(
+    () => runAnalyze(
+      { maskedText: '{{PERSON_1}}님 확인 부탁드립니다.', context: { hiddenContext: '급하면 010-1234-5678 로 연락주세요.' } },
+      MOCK_ENV,
+    ),
+    (e) => e.code === 'RAW_PII_DETECTED',
+  );
+});
+
+test('마스킹된 hiddenContext 는 정상적으로 통과한다', async () => {
+  const g = golden.find((x) => x.id === 'weekend');
+  const { maskedMessage, maskedHiddenContext } = maskFields(g.text, '박지훈 팀장이 저번에도 이랬어요.');
+  const res = await runAnalyze(
+    { maskedText: maskedMessage, context: { ...g.context, hiddenContext: maskedHiddenContext } },
+    MOCK_ENV,
+  );
+  assert.ok(res.risk.score > 0);
 });
 
 test('800자 초과 입력은 거부한다', async () => {

@@ -105,7 +105,10 @@ export async function runAnalyze(input, env = process.env) {
   }
 
   // 설계원칙 1.2 가드 — 브라우저 선-마스킹을 통과하지 않은 원시 PII 는 받지 않는다.
-  const raw = detectRawPII(maskedText);
+  // ④ 나의 숨은 속사정(context.hiddenContext)도 자유 입력 필드라 마스킹 우회 경로가 될 수 있어 함께 검사한다.
+  const rawInMessage = detectRawPII(maskedText);
+  const rawInHiddenContext = detectRawPII(typeof context.hiddenContext === 'string' ? context.hiddenContext : '');
+  const raw = Array.from(new Set([...rawInMessage, ...rawInHiddenContext]));
   if (raw.length) {
     throw new AnalyzeError(400, 'RAW_PII_DETECTED', `마스킹되지 않은 개인정보가 감지되었습니다(${raw.join(', ')}). 브라우저 마스킹을 거쳐 다시 요청하세요.`);
   }

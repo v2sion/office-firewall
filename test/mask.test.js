@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { mask, unmask, detectRawPII } from '../src/lib/mask.js';
+import { mask, unmask, detectRawPII, maskFields } from '../src/lib/mask.js';
 
 const golden = JSON.parse(readFileSync(new URL('../src/data/golden.json', import.meta.url), 'utf8'));
 
@@ -69,4 +69,23 @@ test('마스킹 결과에는 원시 PII 가 남지 않는다', () => {
 
 test('맵에 없는 토큰은 그대로 둔다 (모델 환각 방어)', () => {
   assert.equal(unmask('{{PERSON_9}}님 안녕', { '{{PERSON_1}}': '박지훈' }), '{{PERSON_9}}님 안녕');
+});
+
+test('maskFields: 메시지와 숨은 속사정을 함께 마스킹하고 토큰 번호를 공유한다', () => {
+  const { maskedMessage, maskedHiddenContext, map } = maskFields(
+    '박지훈님 주말에 미안한데 확인 부탁드려요.',
+    '사실 박지훈님이 저번에도 이런 식이었어요. 010-1234-5678로 항의했었습니다.',
+  );
+  assert.equal(maskedMessage, '{{PERSON_1}}님 주말에 미안한데 확인 부탁드려요.');
+  assert.equal(maskedHiddenContext, '사실 {{PERSON_1}}님이 저번에도 이런 식이었어요. {{PHONE_1}}로 항의했었습니다.');
+  assert.equal(map['{{PERSON_1}}'], '박지훈');
+  assert.equal(map['{{PHONE_1}}'], '010-1234-5678');
+  // round-trip
+  assert.equal(unmask(maskedMessage, map), '박지훈님 주말에 미안한데 확인 부탁드려요.');
+});
+
+test('maskFields: 숨은 속사정이 비어 있으면 그대로 빈 문자열을 반환한다', () => {
+  const { maskedMessage, maskedHiddenContext } = maskFields('박지훈님 안녕하세요', '');
+  assert.equal(maskedMessage, '{{PERSON_1}}님 안녕하세요');
+  assert.equal(maskedHiddenContext, '');
 });
