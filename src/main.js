@@ -776,7 +776,7 @@ function renderHistory() {
       const date = new Date(e.ts);
       const dateStr = `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
       return `<div class="history-item">
-        <span class="history-item-score" style="color:${LEVEL_COLOR[e.level] || 'var(--text-dim)'}">${e.score}</span>
+        <span class="history-item-score" style="color:${LEVEL_COLOR[e.level] || 'var(--text-dim)'}">${escapeHtml(e.score)}</span>
         <div class="history-item-body">
           <div class="history-item-villain">${escapeHtml(e.villain)}</div>
           <div class="history-item-meta">${dateStr} · ${escapeHtml(e.job)} · ${escapeHtml(e.defenseMode)}</div>

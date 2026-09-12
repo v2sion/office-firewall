@@ -6,11 +6,25 @@
  * 로그에 남기는 것은 길이·지연시간·토큰 사용량뿐이다.
  */
 import { runAnalyze, AnalyzeError } from './_lib/analyze-core.js';
+import { checkRateLimit, clientIp } from './_lib/rate-limit.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: { code: 'METHOD_NOT_ALLOWED', message: 'POST 만 허용합니다.' } });
+  }
+
+  // 호출마다 모델 비용이 나가는 엔드포인트다 — 클라이언트 쿨다운은 curl 로 우회되므로
+  // 서버에서도 막는다(자세한 한계는 _lib/rate-limit.js 주석 참고).
+  const limit = checkRateLimit(clientIp(req));
+  if (!limit.ok) {
+    res.setHeader('Retry-After', String(limit.retryAfterSec));
+    return res.status(429).json({
+      error: {
+        code: 'RATE_LIMITED',
+        message: `요청이 너무 많습니다. ${limit.retryAfterSec}초 후에 다시 시도해 주세요.`,
+      },
+    });
   }
 
   let body = req.body;

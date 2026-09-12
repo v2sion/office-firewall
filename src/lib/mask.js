@@ -13,7 +13,13 @@ export const PATTERNS = {
   PHONE: /01[016789]-?\d{3,4}-?\d{4}/g,
   ACCOUNT: /\b\d{2,6}-\d{2,6}-\d{2,8}\b/g,
   AMOUNT: /\d{1,3}(?:,\d{3})+\s?(?:원|만원|억|억원)|\d+\s?(?:만원|억원|억)/g,
-  PERSON: /([가-힣]{2,4})(님|팀장님|책임님|프로님|매니저님|선임님|수석님|대리님|과장님|차장님|부장님|이사님|대표님)/g,
+  PERSON: /([가-힣]{2,4})(님|씨|군|양|팀장님|책임님|프로님|매니저님|선임님|수석님|대리님|과장님|차장님|부장님|이사님|대표님)/g,
+  /**
+   * 호칭 "님" 없이 직급만 붙는 형태("박지훈 팀장", "김수진 책임이") — 실무에서 매우 흔한데
+   * 기존 PERSON 패턴은 이걸 통째로 놓쳤다. 직급 뒤에 조사·구두점·문장끝이 오는 경우만
+   * 잡아서 "마케팅 대리점" 같은 합성어 오탐을 피한다. 직급 자체는 남긴다(권력 신호 보존).
+   */
+  PERSON_TITLE: /([가-힣]{2,4})(\s?)(팀장|부장|과장|차장|대리|주임|선임|책임|수석|매니저|이사|대표)(?=[\s,.!?)님은는이가을를와과께도로에의]|$)/g,
   QUOTED: /["'“”‘’]([^"'“”‘’]{2,30})["'“”‘’]|「([^「」]{2,30})」|『([^『』]{2,30})』/g,
 };
 
@@ -92,6 +98,10 @@ export function mask(text, opts = {}) {
   // 1단계: 사람 이름 (호칭은 남기고 이름만 치환 — "{{PERSON_1}}님" 형태가 유지된다)
   out = out.replace(PATTERNS.PERSON, (full, name, honorific) =>
     (ROLE_WORDS.has(name) ? full : tokenFor('PERSON', name) + honorific));
+
+  // 1-b단계: "이름 + 직급"(님 없음). 직급은 남긴다 — 권력 비대칭 신호이기 때문이다.
+  out = out.replace(PATTERNS.PERSON_TITLE, (full, name, space, title) =>
+    (ROLE_WORDS.has(name) ? full : tokenFor('PERSON', name) + space + title));
 
   const counts = {};
   for (const [type, n] of Object.entries(counters)) counts[type] = n;
