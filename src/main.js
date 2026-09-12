@@ -41,11 +41,62 @@ const VALUE_OF = {
 const strip = (s) => s.replace(/^[^\p{L}\p{N}]+/u, '').trim();
 const apiValue = (raw) => VALUE_OF[raw] || strip(raw);
 
+/**
+ * 구체적인 상황 카드 — 예시 문구를 담고 있을 뿐, 폼을 채우지 않는다
+ * (applyPreset 참고). 골든 4종(weekend/aislop/pingpong/client)은 텍스트를
+ * 자동화 테스트 코퍼스(src/data/golden.json)와 같은 문구를 쓰지만, 이제는
+ * 순수 UI 예시 갤러리라서 골든 데이터에 종속되지 않는다 — 새 카드를
+ * 추가할 때 테스트 픽스처를 함께 만들 필요가 없다.
+ */
 const PRESETS = [
-  { id: 'weekend', emoji: '📅', label: '상사의 주말 업무' },
-  { id: 'aislop', emoji: '🤖', label: '무지성 AI 복붙' },
-  { id: 'pingpong', emoji: '🏓', label: '타부서 R&R 핑퐁' },
-  { id: 'client', emoji: '👑', label: '클라이언트 갑질' },
+  {
+    id: 'weekend',
+    emoji: '📅',
+    label: '상사의 주말 업무',
+    text: '박지훈님 주말에 미안한데, 월요일 오전에 대표님 보고가 잡혀서요. 시간 날 때 가볍게 한번 봐주시면 좋을 것 같아요. 급한 건 아닙니다!',
+  },
+  {
+    id: 'aislop',
+    emoji: '🤖',
+    label: '무지성 AI 복붙',
+    text: '안녕하세요! 말씀해주신 사항에 대해 검토해보았습니다. 전반적으로 긍정적인 방향으로 보이며, 추가적인 논의를 통해 더 나은 결과를 도출할 수 있을 것으로 사료됩니다. 관련하여 지속적인 커뮤니케이션을 이어가면 좋겠습니다. 감사합니다.',
+  },
+  {
+    id: 'pingpong',
+    emoji: '🏓',
+    label: '타부서 R&R 핑퐁',
+    text: '이 건은 저희 쪽 R&R은 아닌 것 같은데요, 아무래도 기획 단계에서 정리되는 게 맞을 것 같습니다. 혹시 먼저 정리해서 공유해주실 수 있을까요? 저희는 그거 받고 나서 진행하겠습니다.',
+  },
+  {
+    id: 'client',
+    emoji: '👑',
+    label: '클라이언트 갑질',
+    text: '이거 처음 얘기했던 거랑 좀 다른데요? 저희가 원한 건 이게 아니었습니다. 내일까지 다시 작업해서 보내주세요. 추가 비용 얘기는 없던 걸로 알고 있습니다.',
+  },
+  {
+    id: 'nightowl',
+    emoji: '🌙',
+    label: '퇴근 후 야간 톡',
+    text: '이렇게 늦은 시간에 톡해서 미안한데 자기 전에 하나만 부탁해도 될까요? 내일 오전 회의자료에 지난달 지표 슬라이드 하나만 껴주면 좋을 것 같아요. 급한 건 아니니까 편하실 때 봐주세요~',
+  },
+  {
+    id: 'emailcreep',
+    emoji: '✉️',
+    label: '이메일 무한 수정요청',
+    text: '안녕하세요, 지난번에 말씀드린 배너 시안 관련해서요. 죄송한데 색감을 조금만 더 밝게, 폰트도 살짝 키워주시고, 로고 위치도 다시 한 번 검토 부탁드려요. 예산 안에서 진행 가능할 것 같아서 말씀드립니다!',
+  },
+  {
+    id: 'groupchat',
+    emoji: '📢',
+    label: '단톡방 공개 저격',
+    text: '다들 보고 계시죠? 이번 프로젝트 일정 늦어진 거 이 자리에서 한번 정리하고 갑시다. 담당자분 답변 부탁드려요.',
+  },
+  {
+    id: 'passthebuck',
+    emoji: '🤐',
+    label: '책임 떠넘기는 지시',
+    text: '이 부분은 담당자님이 알아서 잘 판단해서 진행해 주세요. 저는 큰 그림만 보고 있어서 세부적인 건 믿고 맡기겠습니다. 결과만 잘 나오면 될 것 같아요!',
+  },
 ];
 
 const state = {
@@ -119,44 +170,42 @@ function renderChips() {
 
 function renderPresets() {
   for (const p of PRESETS) {
-    const g = golden.find((x) => x.id === p.id);
-    if (!g) continue;
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'preset';
     btn.dataset.id = p.id;
     btn.setAttribute('aria-pressed', 'false');
     btn.innerHTML = `<span class="emoji">${p.emoji}</span><span>${p.label}</span>`;
-    btn.addEventListener('click', () => applyPreset(g, btn));
+    btn.addEventListener('click', () => applyPreset(p, btn));
     el.presetGrid.appendChild(btn);
   }
 }
 
 /**
- * 상황 카드는 ③ 받은 메시지 딱 하나만 채운다.
+ * 상황 카드는 실제로 아무 값도 채우지 않는다 — ③ 입력창의 placeholder 를
+ * 예시 문구로 바꿔서 "이런 느낌의 내용" 을 미리 보여줄 뿐이다. 입력을
+ * 시작하는 순간 브라우저가 알아서 지워준다(placeholder 의 기본 동작).
  *
- * ① 맥락 매트릭스(내 직군·연차)는 "나"에 대한 정보라 상황과 무관하게 유지돼야
- * 하고, ⑤ 방어 목적·⑥ 완곡도는 사용자가 메시지를 읽고 스스로 정해야 할
- * 몫이라 카드가 대신 정하면 안 된다. 상황 카드가 이 값들까지 덮어써 버리면
- * "예시 상황 보여주기"가 아니라 "데모 세트 통째로 불러오기"가 되어버린다.
- * 결과로 바로 넘어가지도 않는다 — ⑦ 버튼으로 사용자가 직접 실행한다.
+ * 전에는 메시지를 실제로 채워 넣었는데, 그래도 여전히 "프리셋처럼 다
+ * 채워지는 느낌" 이라는 피드백을 받았다 — 예시는 예시일 뿐, 사용자가
+ * 직접 자기 상황을 입력하게 유도하는 편이 이 도구의 실제 사용 방식에
+ * 더 가깝다. ① 맥락 매트릭스·④ 숨은 속사정·⑤ 방어 목적·⑥ 완곡도는
+ * 여전히 손대지 않는다(이전 수정 그대로).
  */
-function applyPreset(g, btn) {
+function applyPreset(p, btn) {
   el.presetGrid.querySelectorAll('.preset').forEach((b) => {
     b.classList.toggle('selected', b === btn);
     b.setAttribute('aria-pressed', String(b === btn));
   });
 
-  el.message.value = g.text;
-  onInput();
+  el.message.placeholder = p.text;
 
-  // 바로 실행하지 않는다 — 사용자가 채워진 내용을 눈으로 확인/수정하게 한다.
   el.message.scrollIntoView({ behavior: 'smooth', block: 'center' });
   el.message.classList.remove('just-filled');
-  // 리플로우를 강제해 같은 프리셋을 연속 클릭해도 애니메이션이 다시 재생되게 한다.
+  // 리플로우를 강제해 같은 카드를 연속 클릭해도 애니메이션이 다시 재생되게 한다.
   void el.message.offsetWidth;
   el.message.classList.add('just-filled');
-  setHint('메시지를 확인한 뒤 실행 버튼을 눌러주세요.');
+  setHint('예시를 참고해 실제 내용을 입력한 뒤 실행 버튼을 눌러주세요.');
 }
 
 /**
@@ -218,7 +267,7 @@ async function run() {
   }
   const text = el.message.value.trim();
   if (!text) {
-    showError('분석할 메시지를 먼저 붙여넣어 주세요.');
+    showError('분석할 내용을 먼저 입력해 주세요. ② 상황 카드는 예시일 뿐, 직접 입력해야 분석됩니다.');
     return;
   }
   if (text.length > MAX_CHARS) {

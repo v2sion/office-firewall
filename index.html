@@ -39,19 +39,19 @@
 
       <!-- ② 구체적인 상황 -->
       <div class="block">
-        <h2 class="block-title">② 구체적인 상황 <span class="optional">비슷하면 클릭 (메시지만 채워짐) · 직접 입력해도 됨</span></h2>
+        <h2 class="block-title">② 구체적인 상황 <span class="optional">비슷하면 클릭 (③에 예시 미리보기) · 직접 입력해도 됨</span></h2>
         <div class="preset-grid" id="preset-grid"></div>
       </div>
 
-      <!-- ③ 받은 메시지 -->
+      <!-- ③ 메시지·메일·대화 내용 -->
       <div class="block">
         <div class="block-head">
-          <h2 class="block-title">③ 받은 메시지</h2>
+          <h2 class="block-title">③ 메시지·메일·대화 내용</h2>
           <span class="shield-badge" id="shield-badge" title="원문은 브라우저에서 마스킹된 뒤에만 서버로 전송됩니다">
             🛡️ 선-마스킹 보호 가동
           </span>
         </div>
-        <textarea id="message" maxlength="800" rows="7" placeholder="받은 메시지를 그대로 붙여넣으세요. 이름·연락처·금액은 전송 전에 브라우저에서 자동으로 가려집니다."></textarea>
+        <textarea id="message" maxlength="800" rows="7" placeholder="카카오톡 메시지, 이메일, 회의 대화록 등 받은 내용을 그대로 붙여넣으세요. 이름·연락처·금액은 전송 전에 브라우저에서 자동으로 가려집니다."></textarea>
         <div class="under-input">
           <span class="counter"><b id="char-count">0</b> / 800자</span>
           <button type="button" class="linkish" id="toggle-preview" aria-expanded="false">전송될 내용 확인</button>
