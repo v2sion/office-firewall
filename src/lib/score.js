@@ -69,11 +69,11 @@ function clamp(n, min, max) {
 
 /** 점수 → 등급/헤더 카피 */
 export function riskLabel(score) {
-  if (score <= 20) return { level: 'green', label: '정상 업무 범위', header: '✅ 정상 업무 신호', action: '그대로 진행해도 좋습니다' };
-  if (score <= 40) return { level: 'lime', label: '경미한 압박', header: '🟢 경미한 압박 감지', action: '가볍게 확인만 하세요' };
-  if (score <= 60) return { level: 'amber', label: '조건 확인 필요', header: '⚠️ 모호한 요구 경보', action: '범위와 기한을 먼저 확정하세요' };
-  if (score <= 80) return { level: 'orange', label: '방어 필요', header: '🔶 과업 전가 경보', action: '수락 전 조건을 서면화하세요' };
-  return { level: 'red', label: '즉각 승인 금지', header: '🚨 고위험 독박 경보', action: '즉답하지 말고 조건부로 회신하세요' };
+  if (score <= 20) return { level: 'green', label: '정상 업무 범위', header: '정상 업무 신호', action: '그대로 진행해도 좋습니다' };
+  if (score <= 40) return { level: 'lime', label: '경미한 압박', header: '경미한 압박 감지', action: '가볍게 확인만 하세요' };
+  if (score <= 60) return { level: 'amber', label: '조건 확인 필요', header: '모호한 요구 경보', action: '범위와 기한을 먼저 확정하세요' };
+  if (score <= 80) return { level: 'orange', label: '방어 필요', header: '과업 전가 경보', action: '수락 전 조건을 서면화하세요' };
+  return { level: 'red', label: '즉각 승인 금지', header: '고위험 독박 경보', action: '즉답하지 말고 조건부로 회신하세요' };
 }
 
 /** 결여율 지표별 상세 (리포트 표시용) */

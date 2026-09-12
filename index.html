@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>OFFICE FIREWALL — 직장 메시지 방화벽</title>
   <meta name="description" content="직장에서 받은 애매한 메시지의 숨은 요구를 진단하고, 원하는 톤으로 답장을 만들어 주는 도구. AI는 추출하고, 판정은 규칙이 한다." />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0f16'/%3E%3Cpath d='M16 5l9 3.2v7.1c0 5.6-3.7 10.3-9 11.7-5.3-1.4-9-6.1-9-11.7V8.2z' fill='%233ddc97'/%3E%3C/svg%3E" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0f16'/%3E%3Cpath d='M16 5l9 3.2v7.1c0 5.6-3.7 10.3-9 11.7-5.3-1.4-9-6.1-9-11.7V8.2z' fill='%234f8cff'/%3E%3C/svg%3E" />
   <link rel="stylesheet" href="/src/styles.css" />
 </head>
 <body>
@@ -15,7 +15,7 @@
       <span class="brand-sub">90od · MENTAL SAFEGUARD</span>
     </div>
     <div class="topbar-right">
-      <button type="button" class="history-open" id="history-open">📁 나의 방어 기록</button>
+      <button type="button" class="history-open" id="history-open">나의 방어 기록</button>
       <div class="brand-claim">AI는 추출하고, 판정은 규칙이 한다</div>
     </div>
   </header>
@@ -26,7 +26,7 @@
       <div class="step-divider"><span class="step-num">1</span><span>상황 입력</span></div>
       <!-- ① 맥락 매트릭스 -->
       <div class="block">
-        <h2 class="block-title">① 맥락 매트릭스</h2>
+        <h2 class="block-title">맥락 매트릭스</h2>
         <div class="selector" data-field="job">
           <span class="selector-label">내 직군</span>
           <div class="chips" role="radiogroup" aria-label="내 직군"></div>
@@ -43,22 +43,23 @@
 
       <!-- ② 구체적인 상황 -->
       <div class="block">
-        <h2 class="block-title">② 구체적인 상황 <span class="optional">비슷하면 클릭 (③에 예시 미리보기) · ③에 입력하면 자동으로 추천(✨)됩니다</span></h2>
+        <h2 class="block-title">구체적인 상황 <span class="optional">비슷하면 클릭(예시 미리보기) · 아래에 입력하면 자동으로 추천됩니다</span></h2>
         <div class="preset-grid" id="preset-grid"></div>
       </div>
 
       <!-- ③ 메시지·메일·대화 내용 -->
       <div class="block">
         <div class="block-head">
-          <h2 class="block-title">③ 메시지·메일·대화 내용</h2>
+          <h2 class="block-title">메시지·메일·대화 내용</h2>
           <span class="shield-badge" id="shield-badge" title="원문은 브라우저에서 마스킹된 뒤에만 서버로 전송됩니다">
-            🛡️ 선-마스킹 보호 가동
+            <svg class="icon-shield" viewBox="0 0 32 32" width="12" height="12" aria-hidden="true"><path d="M16 5l9 3.2v7.1c0 5.6-3.7 10.3-9 11.7-5.3-1.4-9-6.1-9-11.7V8.2z" fill="currentColor"/></svg>
+            선-마스킹 보호 가동
           </span>
         </div>
         <textarea id="message" maxlength="800" rows="7" placeholder="카카오톡 메시지, 이메일, 회의 대화록 등 받은 내용을 그대로 붙여넣으세요. 이름·연락처·금액은 전송 전에 브라우저에서 자동으로 가려집니다."></textarea>
-        <p class="field-hint">💡 <b>상대방이 보낸 부분만</b> 넣어주세요. 여러 번 대화가 오간 경우 내가 답장한 내용까지 같이 넣으면 진단이 부정확해질 수 있어요.</p>
+        <p class="field-hint"><b>상대방이 보낸 부분만</b> 넣어주세요. 여러 번 대화가 오간 경우 내가 답장한 내용까지 같이 넣으면 진단이 부정확해질 수 있어요.</p>
         <p class="thread-warning" id="thread-warning" hidden>
-          ⚠️ 여러 명의 대화가 섞인 것처럼 보여요. 상대방이 보낸 메시지만 남기면 더 정확하게 분석됩니다.
+          <b>여러 화자 감지</b> — 상대방이 보낸 메시지만 남기면 더 정확하게 분석됩니다.
         </p>
         <div class="under-input">
           <span class="counter"><b id="char-count">0</b> / 800자</span>
@@ -74,13 +75,13 @@
       <div class="step-divider"><span class="step-num">2</span><span>답장 설정</span></div>
       <!-- ④ 숨은 속사정 -->
       <div class="block">
-        <h2 class="block-title">④ 나의 숨은 속사정 <span class="optional">선택</span></h2>
+        <h2 class="block-title">나의 숨은 속사정 <span class="optional">선택</span></h2>
         <input type="text" id="hidden-context" maxlength="120" placeholder="예) 가족 행사로 외지에 있음 / 계약서상 수정은 2회까지" />
       </div>
 
       <!-- ⑤ 방어 목적 -->
       <div class="block">
-        <h2 class="block-title">⑤ 방어 목적</h2>
+        <h2 class="block-title">방어 목적</h2>
         <div class="selector" data-field="goal">
           <div class="chips" role="radiogroup" aria-label="방어 목적"></div>
         </div>
@@ -88,12 +89,12 @@
 
       <!-- ⑥ 완곡도 -->
       <div class="block">
-        <h2 class="block-title">⑥ 완곡도</h2>
+        <h2 class="block-title">완곡도</h2>
         <div class="selector" data-field="tone">
           <div class="chips chips-tone" role="radiogroup" aria-label="완곡도"></div>
         </div>
         <p class="tone-warning" id="tone-warning" hidden>
-          ⚠️ 관계 비용 경고: 이 톤은 사내 갈등이 증폭될 위험이 있습니다. 감정이 가라앉은 후 신중히 전송하세요.
+          <b>관계 비용 경고</b> — 이 톤은 사내 갈등이 증폭될 위험이 있습니다. 감정이 가라앉은 후 신중히 전송하세요.
         </p>
       </div>
 
@@ -108,16 +109,16 @@
     <!-- ─────────────────  우: 결과 패널 (X-Ray 먼저, 답장 나중)  ───────────────── -->
     <section class="panel panel-result" aria-label="결과 패널" aria-live="polite">
       <div class="standby" id="standby">
-        <div class="standby-icon">🛡️</div>
+        <svg class="standby-icon" viewBox="0 0 32 32" width="40" height="40" aria-hidden="true"><path d="M16 5l9 3.2v7.1c0 5.6-3.7 10.3-9 11.7-5.3-1.4-9-6.1-9-11.7V8.2z" fill="currentColor"/></svg>
         <p class="standby-title">방화벽 대기 중</p>
         <p class="standby-copy">AI는 추출하고, 판정은 규칙이 한다</p>
       </div>
 
       <div class="result" id="result" hidden>
-        <!-- ① X-Ray 리포트 -->
+        <!-- X-Ray 리포트 -->
         <article class="xray" id="xray">
           <div class="xray-head">
-            <span class="alert-header" id="alert-header">🚨 고위험 독박 경보</span>
+            <span class="alert-header" id="alert-header">고위험 독박 경보</span>
             <span class="mode-badge" id="mode-badge">MOCK</span>
           </div>
 
@@ -134,7 +135,6 @@
           <div class="score-bar"><div class="score-bar-fill" id="score-bar-fill"></div></div>
 
           <div class="subtext">
-            <span class="subtext-icon">💡</span>
             <p id="subtext">—</p>
           </div>
 
@@ -155,7 +155,7 @@
 
         <!-- ③ 영수증 발급 -->
         <button type="button" class="receipt-btn" id="receipt-open">
-          🧾 오늘의 [오피스 방어 영수증] 발급받기 <span class="receipt-btn-sub">(공유용)</span>
+          오늘의 [오피스 방어 영수증] 발급받기 <span class="receipt-btn-sub">(공유용)</span>
         </button>
 
         <p class="usage-line" id="usage-line"></p>
@@ -210,7 +210,7 @@
           <div class="receipt-rule receipt-rule-light"></div>
 
           <p class="receipt-eap">
-            💬 힘든 날엔 혼자 참지 마세요.<br>
+            힘든 날엔 혼자 참지 마세요.<br>
             근로복지공단 EAP 무료 심리상담 — welfare.comwel.or.kr
           </p>
 
@@ -234,7 +234,7 @@
     <div class="history-modal-backdrop" id="history-backdrop"></div>
     <div class="history-modal-panel" role="dialog" aria-modal="true" aria-label="나의 방어 기록">
       <div class="history-head">
-        <h2>📁 나의 방어 기록</h2>
+        <h2>나의 방어 기록</h2>
         <button type="button" class="receipt-close" id="history-close" aria-label="닫기">✕</button>
       </div>
       <p class="history-note">이 브라우저에만 저장됩니다 — 서버로 전송되지 않고, 원문·실명은 남기지 않습니다.</p>
@@ -246,7 +246,7 @@
       </div>
 
       <div class="history-empty" id="history-empty">
-        아직 기록이 없습니다. ⑦ 실행 버튼으로 분석하면 여기 쌓입니다.
+        아직 기록이 없습니다. 실행 버튼으로 분석하면 여기 쌓입니다.
       </div>
 
       <div class="history-list" id="history-list"></div>

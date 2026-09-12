@@ -331,7 +331,7 @@ async function run() {
   }
   const text = el.message.value.trim();
   if (!text) {
-    showError('분석할 내용을 먼저 입력해 주세요. ② 상황 카드는 예시일 뿐, 직접 입력해야 분석됩니다.');
+    showError('분석할 내용을 먼저 입력해 주세요. 상황 카드는 예시일 뿐, 직접 입력해야 분석됩니다.');
     return;
   }
   if (text.length > MAX_CHARS) {
