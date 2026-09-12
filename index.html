@@ -14,7 +14,10 @@
       <span class="brand-mark">OFFICE FIREWALL</span>
       <span class="brand-sub">90od · MENTAL SAFEGUARD</span>
     </div>
-    <div class="brand-claim">AI는 추출하고, 판정은 규칙이 한다</div>
+    <div class="topbar-right">
+      <button type="button" class="history-open" id="history-open">📁 나의 방어 기록</button>
+      <div class="brand-claim">AI는 추출하고, 판정은 규칙이 한다</div>
+    </div>
   </header>
 
   <main class="layout">
@@ -220,6 +223,32 @@
         근로복지공단 EAP 무료 심리상담 신청 바로가기 →
       </a>
       <p class="receipt-status" id="receipt-status" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <!-- 나의 방어 기록 모달 -->
+  <div class="history-modal" id="history-modal" hidden>
+    <div class="history-modal-backdrop" id="history-backdrop"></div>
+    <div class="history-modal-panel" role="dialog" aria-modal="true" aria-label="나의 방어 기록">
+      <div class="history-head">
+        <h2>📁 나의 방어 기록</h2>
+        <button type="button" class="receipt-close" id="history-close" aria-label="닫기">✕</button>
+      </div>
+      <p class="history-note">이 브라우저에만 저장됩니다 — 서버로 전송되지 않고, 원문·실명은 남기지 않습니다.</p>
+
+      <div class="history-summary" id="history-summary" hidden>
+        <div class="history-stat"><span id="history-count">0</span><small>총 기록</small></div>
+        <div class="history-stat"><span id="history-avg">0</span><small>평균 위험 지수</small></div>
+        <div class="history-stat"><span id="history-top">—</span><small>가장 흔한 유형</small></div>
+      </div>
+
+      <div class="history-empty" id="history-empty">
+        아직 기록이 없습니다. ⑦ 실행 버튼으로 분석하면 여기 쌓입니다.
+      </div>
+
+      <div class="history-list" id="history-list"></div>
+
+      <button type="button" class="history-clear" id="history-clear" hidden>전체 삭제</button>
     </div>
   </div>
 

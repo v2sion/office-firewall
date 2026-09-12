@@ -10,6 +10,7 @@ import { buildMockAnalysis } from './lib/mock.js';
 import { buildResult } from './lib/normalize.js';
 import { buildReceiptData } from './lib/receipt.js';
 import { looksLikeMultiTurnThread } from './lib/thread-hint.js';
+import { entryFromResult, addEntry, getHistory, clearHistory, summarize } from './lib/history.js';
 import golden from './data/golden.json';
 import presetWeekend from './data/presets/weekend.json';
 import presetAislop from './data/presets/aislop.json';
@@ -162,6 +163,17 @@ const el = {
   rcHp: $('rc-hp'),
   rcRisk: $('rc-risk'),
   rcCount: $('rc-count'),
+  historyOpen: $('history-open'),
+  historyModal: $('history-modal'),
+  historyBackdrop: $('history-backdrop'),
+  historyClose: $('history-close'),
+  historySummary: $('history-summary'),
+  historyCount: $('history-count'),
+  historyAvg: $('history-avg'),
+  historyTop: $('history-top'),
+  historyEmpty: $('history-empty'),
+  historyList: $('history-list'),
+  historyClear: $('history-clear'),
 };
 
 /** 마지막으로 렌더링된 결과 — 영수증은 이 스냅샷에서만 값을 읽는다(원문 재접근 없음). */
@@ -399,6 +411,8 @@ function render(result, elapsedMs, context) {
 
   // 영수증은 이 스냅샷(xray/risk/context)에서만 값을 읽는다 — 원문·마스킹 토큰과는 무관하다.
   lastReceiptSource = { xray, risk, context };
+  // 나의 방어 기록에도 같은 원칙으로 카테고리·점수만 남긴다(원문 없음).
+  addEntry(entryFromResult(xray, risk, context));
 
   el.standby.hidden = true;
   el.result.hidden = false;
@@ -695,6 +709,58 @@ function setReceiptStatus(msg) {
   el.receiptStatus.textContent = msg;
 }
 
+/* ── 나의 방어 기록 ───────────────────────────── */
+
+const LEVEL_COLOR = { green: 'var(--green)', lime: 'var(--lime)', amber: 'var(--amber)', orange: 'var(--orange)', red: 'var(--red)' };
+
+function openHistoryModal() {
+  renderHistory();
+  el.historyModal.hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeHistoryModal() {
+  el.historyModal.hidden = true;
+  document.body.style.overflow = '';
+}
+
+function renderHistory() {
+  const history = getHistory();
+  const hasEntries = history.length > 0;
+
+  el.historySummary.hidden = !hasEntries;
+  el.historyEmpty.hidden = hasEntries;
+  el.historyClear.hidden = !hasEntries;
+
+  if (hasEntries) {
+    const s = summarize(history);
+    el.historyCount.textContent = String(s.count);
+    el.historyAvg.textContent = String(s.avgScore);
+    el.historyTop.textContent = s.topVillain || '—';
+  }
+
+  el.historyList.innerHTML = history
+    .map((e) => {
+      const date = new Date(e.ts);
+      const dateStr = `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+      return `<div class="history-item">
+        <span class="history-item-score" style="color:${LEVEL_COLOR[e.level] || 'var(--text-dim)'}">${e.score}</span>
+        <div class="history-item-body">
+          <div class="history-item-villain">${escapeHtml(e.villain)}</div>
+          <div class="history-item-meta">${dateStr} · ${escapeHtml(e.job)} · ${escapeHtml(e.defenseMode)}</div>
+        </div>
+      </div>`;
+    })
+    .join('');
+}
+
+function onClearHistory() {
+  // eslint-disable-next-line no-alert
+  if (!window.confirm('나의 방어 기록을 전부 삭제할까요? 이 작업은 되돌릴 수 없습니다.')) return;
+  clearHistory();
+  renderHistory();
+}
+
 /* ── 초기화 ───────────────────────────── */
 
 renderChips();
@@ -713,7 +779,13 @@ el.receiptClose.addEventListener('click', closeReceiptModal);
 el.receiptBackdrop.addEventListener('click', closeReceiptModal);
 el.receiptSave.addEventListener('click', saveReceiptImage);
 el.receiptCopy.addEventListener('click', copyReceiptImage);
+el.historyOpen.addEventListener('click', openHistoryModal);
+el.historyClose.addEventListener('click', closeHistoryModal);
+el.historyBackdrop.addEventListener('click', closeHistoryModal);
+el.historyClear.addEventListener('click', onClearHistory);
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && !el.receiptModal.hidden) closeReceiptModal();
+  if (e.key !== 'Escape') return;
+  if (!el.receiptModal.hidden) closeReceiptModal();
+  if (!el.historyModal.hidden) closeHistoryModal();
 });
 onInput();
