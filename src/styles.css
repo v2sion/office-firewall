@@ -117,6 +117,19 @@ html, body {
   color: var(--accent);
   font-weight: 600;
 }
+.preset .suggested-badge {
+  display: none;
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--amber);
+  white-space: nowrap;
+}
+.preset.suggested:not(.selected) {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 1px rgba(242, 199, 68, 0.25);
+}
+.preset.suggested .suggested-badge { display: inline; }
 
 /* ── 셀렉터 칩 ─────────────────────────────── */
 .selector { margin-bottom: 10px; }

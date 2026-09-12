@@ -8,14 +8,7 @@
  * 여기서 만드는 값은 "AI가 추출했을 법한 값"의 규칙 기반 근사치다.
  * 점수는 여기서도 만들지 않는다 — score.js 가 계산한다.
  */
-import { extractSubstanceSignals, containsKo } from './cliche.js';
-
-/** AI 슬롭(무내용 정형구) 마커 — 사람이 쓰는 구어체 클리셰와는 구분한다 */
-const AI_SLOP_MARKERS = [
-  '사료됩니다', '전반적으로', '긍정적인 방향', '추가적인 논의', '지속적인 커뮤니케이션',
-  '말씀해주신', '관련하여', '도출할 수 있을', '다음과 같습니다', '검토해보았습니다',
-  '적극적으로 검토', '원활한 진행', '유기적으로',
-];
+import { extractSubstanceSignals, detectUrgency, detectAmbiguity, aiSlopScore } from './cliche.js';
 
 const POWER_BY_COUNTERPART = {
   '직속상사': 4,
@@ -23,28 +16,6 @@ const POWER_BY_COUNTERPART = {
   '타부서 동료': 3,
   '팀원(AI복붙)': 2,
 };
-
-function detectUrgency(t) {
-  if (/(주말|토요일|일요일|토욜|일욜)/.test(t)) return '주말 침범';
-  if (/(새벽|밤\s*\d|퇴근\s*후|야근|자정|23시|22시|늦은\s*시간)/.test(t)) return '야간 침범';
-  if (/(오늘\s*중|오늘까지|내일까지|당일|금일\s*중|퇴근\s*전까지)/.test(t)) return '당일 마감';
-  return '없음';
-}
-
-function detectAmbiguity(t, signals) {
-  if (/(R&R|알앤알|롤앤롤|담당이|누가 하|소관|저희 쪽은)/i.test(t)) return 'R&R 미지정';
-  if (/(가볍게|간단히|한번 봐|전반적으로|대략|알아서|적당히|보완해서|다시 작업)/.test(t)) return '범위 불명';
-  if (!signals.hasDeadline && /(부탁|주세요|해주실|요청|보내주)/.test(t)) return '기한 불명';
-  return '없음';
-}
-
-function aiSlopScore(t, signals) {
-  const hits = AI_SLOP_MARKERS.filter((m) => containsKo(t, m)).length;
-  if (!hits) return 0;
-  const base = hits * 15;
-  const bonus = (!signals.hasNumbers && !signals.hasDeadline ? 20 : 0) + (signals.avoidsDecision ? 10 : 0);
-  return Math.min(100, base + bonus);
-}
 
 function buildSubtext(ctx, urgency, ambiguity, slop, signals) {
   if (slop >= 60) {

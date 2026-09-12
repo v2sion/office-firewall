@@ -10,6 +10,7 @@ import { buildMockAnalysis } from './lib/mock.js';
 import { buildResult } from './lib/normalize.js';
 import { buildReceiptData } from './lib/receipt.js';
 import { looksLikeMultiTurnThread } from './lib/thread-hint.js';
+import { matchSituationId } from './lib/situation-match.js';
 import { entryFromResult, addEntry, getHistory, clearHistory, summarize } from './lib/history.js';
 import golden from './data/golden.json';
 import presetWeekend from './data/presets/weekend.json';
@@ -27,6 +28,8 @@ const PRESET_CACHE = { weekend: presetWeekend, aislop: presetAislop, pingpong: p
 
 const MAX_CHARS = 800;
 const COOLDOWN_MS = 5000;
+const SUGGEST_MIN_CHARS = 8;
+const SUGGEST_DEBOUNCE_MS = 350;
 
 const OPTIONS = {
   job: ['기획·PM/PO', '개발(Dev)', '디자인', '비즈니스'],
@@ -115,6 +118,7 @@ const state = {
 let sessionTokenMap = Object.create(null);
 let cooldownUntil = 0;
 let busy = false;
+let suggestTimer = null;
 
 const $ = (id) => document.getElementById(id);
 const el = {
@@ -199,11 +203,15 @@ function renderChips() {
         box.querySelectorAll('.chip').forEach((c) => c.setAttribute('aria-checked', 'false'));
         btn.setAttribute('aria-checked', 'true');
         if (field === 'tone') el.toneWarning.hidden = apiValue(opt) !== '매운맛';
+        if (field === 'counterpart') updateSituationSuggestion();
       });
       box.appendChild(btn);
     }
   });
 }
+
+/** id → 카드 버튼. ③ 입력 내용 기반 추천 표시(updateSituationSuggestion)에 쓴다. */
+const presetButtons = new Map();
 
 function renderPresets() {
   for (const p of PRESETS) {
@@ -212,10 +220,26 @@ function renderPresets() {
     btn.className = 'preset';
     btn.dataset.id = p.id;
     btn.setAttribute('aria-pressed', 'false');
-    btn.innerHTML = `<span class="emoji">${p.emoji}</span><span>${p.label}</span>`;
+    btn.innerHTML = `<span class="emoji">${p.emoji}</span><span>${p.label}</span><span class="suggested-badge">✨ 비슷해요</span>`;
     btn.addEventListener('click', () => applyPreset(p, btn));
     el.presetGrid.appendChild(btn);
+    presetButtons.set(p.id, btn);
   }
+}
+
+/**
+ * ③ 입력창에 실제로 타이핑된(마스킹 전, 로컬 판단용) 내용을 규칙 기반으로
+ * 분석해 ②의 카드 중 하나에 "추천" 표시만 얹는다. 값을 채우거나 강제로
+ * 선택하지 않는다 — 사용자가 이미 손에 든 메시지를 붙여넣는 흐름에 맞춰,
+ * 카드를 먼저 고르지 않아도 자연스럽게 비슷한 상황을 알아볼 수 있게 하는
+ * 힌트일 뿐이다.
+ */
+function updateSituationSuggestion() {
+  const text = el.message.value;
+  const matchedId = text.trim().length >= SUGGEST_MIN_CHARS
+    ? matchSituationId(text, apiValue(state.counterpart))
+    : null;
+  presetButtons.forEach((btn, id) => btn.classList.toggle('suggested', id === matchedId));
 }
 
 /**
@@ -272,6 +296,8 @@ function onInput() {
   counter.classList.toggle('over', len > MAX_CHARS);
   el.threadWarning.hidden = !looksLikeMultiTurnThread(el.message.value);
   if (!el.maskPreview.hidden) updateMaskPreview();
+  clearTimeout(suggestTimer);
+  suggestTimer = setTimeout(updateSituationSuggestion, SUGGEST_DEBOUNCE_MS);
 }
 
 function updateMaskPreview() {
