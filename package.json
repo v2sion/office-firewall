@@ -12,7 +12,8 @@
     "serve:local": "node scripts/dev-server.mjs"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.71.0"
+    "@anthropic-ai/sdk": "^0.71.0",
+    "html-to-image": "^1.11.13"
   },
   "devDependencies": {
     "vite": "^8.1.4"

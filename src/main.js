@@ -4,9 +4,11 @@
  * 흐름: 입력 → (브라우저) 선-마스킹 → /api/analyze → (브라우저) 역치환 → 렌더
  * 토큰 맵(sessionTokenMap)은 이 모듈의 지역 변수로만 존재한다. 저장·전송하지 않는다.
  */
+import { toPng, toBlob } from 'html-to-image';
 import { maskFields, unmask, summarizeMask } from './lib/mask.js';
 import { buildMockAnalysis } from './lib/mock.js';
 import { buildResult } from './lib/normalize.js';
+import { buildReceiptData } from './lib/receipt.js';
 import golden from './data/golden.json';
 import presetWeekend from './data/presets/weekend.json';
 import presetAislop from './data/presets/aislop.json';
@@ -140,7 +142,27 @@ const el = {
   evidenceBody: $('evidence-body'),
   replies: $('replies'),
   usageLine: $('usage-line'),
+  receiptOpen: $('receipt-open'),
+  receiptModal: $('receipt-modal'),
+  receiptBackdrop: $('receipt-backdrop'),
+  receiptClose: $('receipt-close'),
+  receiptCard: $('receipt-card'),
+  receiptSave: $('receipt-save'),
+  receiptCopy: $('receipt-copy'),
+  receiptStatus: $('receipt-status'),
+  rcIssued: $('rc-issued'),
+  rcJob: $('rc-job'),
+  rcVillain: $('rc-villain'),
+  rcScore: $('rc-score'),
+  rcMode: $('rc-mode'),
+  rcHours: $('rc-hours'),
+  rcHp: $('rc-hp'),
+  rcRisk: $('rc-risk'),
+  rcCount: $('rc-count'),
 };
+
+/** 마지막으로 렌더링된 결과 — 영수증은 이 스냅샷에서만 값을 읽는다(원문 재접근 없음). */
+let lastReceiptSource = null;
 
 /* ── 셀렉터 / 프리셋 렌더 ───────────────────────────── */
 
@@ -287,7 +309,8 @@ async function run() {
 
   try {
     let result;
-    const presetId = matchPresetId(text, hiddenContextRaw, contextFields());
+    const context = contextFields();
+    const presetId = matchPresetId(text, hiddenContextRaw, context);
 
     if (presetId) {
       // 상황 카드 원본 그대로 — 네트워크·룰엔진 계산 없이 캐시를 바로 렌더링한다.
@@ -298,7 +321,7 @@ async function run() {
       });
       result.meta.note = '캐시된 프리셋 — API 호출 없음, 비용 $0';
     } else {
-      const payload = { maskedText: maskedMessage, context: { ...contextFields(), hiddenContext: maskedHiddenContext } };
+      const payload = { maskedText: maskedMessage, context: { ...context, hiddenContext: maskedHiddenContext } };
       try {
         result = await postAnalyze(payload);
       } catch (err) {
@@ -311,7 +334,7 @@ async function run() {
         }
       }
     }
-    render(result, Date.now() - startedAt);
+    render(result, Date.now() - startedAt, context);
     cooldownUntil = Date.now() + COOLDOWN_MS;
     startCooldownTimer();
   } catch (err) {
@@ -367,8 +390,11 @@ function localFallback(payload, startedAt) {
 
 /* ── 렌더 ───────────────────────────── */
 
-function render(result, elapsedMs) {
+function render(result, elapsedMs, context) {
   const { xray, replies, risk, meta, usage } = result;
+
+  // 영수증은 이 스냅샷(xray/risk/context)에서만 값을 읽는다 — 원문·마스킹 토큰과는 무관하다.
+  lastReceiptSource = { xray, risk, context };
 
   el.standby.hidden = true;
   el.result.hidden = false;
@@ -554,6 +580,100 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+/* ── 오피스 방어 영수증 ───────────────────────────── *
+ * 원문·실명·탐지값(clicheHits, subtext 등)은 절대 참조하지 않는다.
+ * lastReceiptSource 에 담긴 xray/risk/context 중 receipt.js 가 실제로
+ * 읽는 필드(카테고리·점수)만 사용한다. */
+
+const RECEIPT_COUNT_KEY = 'ofw_receipt_count';
+
+/** 이번 달 발급 건수 — 브라우저 로컬에만 남는다. 서버로 전송되지 않고,
+ * 계정·기기 간 동기화도 되지 않는다(로그인이 없으므로). */
+function bumpMonthlyReceiptCount() {
+  const monthKey = new Date().toISOString().slice(0, 7); // "2026-09"
+  let store;
+  try {
+    store = JSON.parse(localStorage.getItem(RECEIPT_COUNT_KEY) || '{}');
+  } catch {
+    store = {};
+  }
+  store[monthKey] = (store[monthKey] || 0) + 1;
+  try {
+    localStorage.setItem(RECEIPT_COUNT_KEY, JSON.stringify(store));
+  } catch {
+    // 프라이빗 브라우징 등으로 저장이 막혀도 발급 자체는 계속 동작해야 한다.
+  }
+  return store[monthKey];
+}
+
+function openReceiptModal() {
+  if (!lastReceiptSource) return;
+  const { xray, risk, context } = lastReceiptSource;
+  const data = buildReceiptData(xray, risk, context);
+  const count = bumpMonthlyReceiptCount();
+
+  el.rcIssued.textContent = data.issuedAt;
+  el.rcJob.textContent = data.job;
+  el.rcVillain.textContent = data.villain;
+  el.rcScore.textContent = `${data.score} / 100`;
+  el.rcMode.textContent = data.defenseMode;
+  el.rcHours.textContent = `+${data.hoursSaved} Hours`;
+  el.rcHp.textContent = `+${data.mentalHp} HP`;
+  el.rcRisk.textContent = `${data.politicalRiskPercent}% (${data.politicalRiskNote})`;
+  el.rcCount.textContent = String(count);
+
+  el.receiptStatus.textContent = '';
+  el.receiptModal.hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeReceiptModal() {
+  el.receiptModal.hidden = true;
+  document.body.style.overflow = '';
+}
+
+async function captureReceiptPng() {
+  // 폰트 로딩 등으로 인한 첫 캡처 오차를 줄이기 위해 한 프레임 양보한다.
+  await new Promise((r) => requestAnimationFrame(r));
+  return toPng(el.receiptCard, { pixelRatio: 2, cacheBust: true });
+}
+
+async function saveReceiptImage() {
+  setReceiptStatus('이미지 생성 중…');
+  try {
+    const dataUrl = await captureReceiptPng();
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = `office-firewall-receipt-${Date.now()}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setReceiptStatus('저장했습니다.');
+  } catch (err) {
+    setReceiptStatus('이미지 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+  }
+}
+
+async function copyReceiptImage() {
+  setReceiptStatus('이미지 생성 중…');
+  try {
+    if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
+      throw new Error('clipboard-unsupported');
+    }
+    await new Promise((r) => requestAnimationFrame(r));
+    const blob = await toBlob(el.receiptCard, { pixelRatio: 2, cacheBust: true });
+    if (!blob) throw new Error('blob-failed');
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+    setReceiptStatus('클립보드에 복사했습니다.');
+  } catch {
+    setReceiptStatus('이 브라우저에서는 이미지 복사가 지원되지 않습니다. "이미지로 저장"을 이용해 주세요.');
+  }
+}
+
+function setReceiptStatus(msg) {
+  el.receiptStatus.textContent = msg;
+}
+
 /* ── 초기화 ───────────────────────────── */
 
 renderChips();
@@ -566,5 +686,13 @@ el.togglePreview.addEventListener('click', () => {
   el.togglePreview.setAttribute('aria-expanded', String(show));
   el.togglePreview.textContent = show ? '전송될 내용 닫기' : '전송될 내용 확인';
   if (show) updateMaskPreview();
+});
+el.receiptOpen.addEventListener('click', openReceiptModal);
+el.receiptClose.addEventListener('click', closeReceiptModal);
+el.receiptBackdrop.addEventListener('click', closeReceiptModal);
+el.receiptSave.addEventListener('click', saveReceiptImage);
+el.receiptCopy.addEventListener('click', copyReceiptImage);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !el.receiptModal.hidden) closeReceiptModal();
 });
 onInput();

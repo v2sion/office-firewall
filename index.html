@@ -142,6 +142,11 @@
           <div id="replies"></div>
         </article>
 
+        <!-- ③ 영수증 발급 -->
+        <button type="button" class="receipt-btn" id="receipt-open">
+          🧾 오늘의 [오피스 방어 영수증] 발급받기 <span class="receipt-btn-sub">(공유용)</span>
+        </button>
+
         <p class="usage-line" id="usage-line"></p>
       </div>
 
@@ -154,6 +159,63 @@
     <span class="dot">·</span>
     <span>원문은 서버에 저장되지 않습니다</span>
   </footer>
+
+  <!-- 오피스 방어 영수증 모달 -->
+  <div class="receipt-modal" id="receipt-modal" hidden>
+    <div class="receipt-modal-backdrop" id="receipt-backdrop"></div>
+    <div class="receipt-modal-panel" role="dialog" aria-modal="true" aria-label="오피스 방어 영수증">
+      <button type="button" class="receipt-close" id="receipt-close" aria-label="닫기">✕</button>
+
+      <!-- 이 안쪽(#receipt-card)만 이미지로 캡처된다. 원문·실명·탐지값은 어디에도 없다. -->
+      <div class="receipt-card" id="receipt-card">
+        <div class="receipt-card-inner">
+          <div class="receipt-brand">OFFICE FIREWALL</div>
+          <div class="receipt-brand-sub">90od · MENTAL SAFEGUARD</div>
+          <div class="receipt-issued">ISSUED AT: <span id="rc-issued">—</span></div>
+
+          <div class="receipt-rule"></div>
+
+          <div class="receipt-row"><span>방어 대상 직무</span><b id="rc-job">—</b></div>
+          <div class="receipt-row"><span>상대 빌런 유형</span><b id="rc-villain">—</b></div>
+          <div class="receipt-row"><span>위험 지수</span><b id="rc-score">— / 100</b></div>
+          <div class="receipt-row"><span>적용 방어 모드</span><b id="rc-mode">—</b></div>
+
+          <div class="receipt-rule"></div>
+
+          <div class="receipt-row"><span>절약한 야근 시간</span><b id="rc-hours">+0 Hours</b></div>
+          <div class="receipt-row"><span>보존한 멘탈 에너지</span><b id="rc-hp">+0 HP</b></div>
+          <div class="receipt-row"><span>사내 정치 리스크</span><b id="rc-risk">0%</b></div>
+
+          <div class="receipt-rule"></div>
+
+          <div class="receipt-nudge-title">[원티드 커리어 세이프]</div>
+          <p class="receipt-nudge-body">
+            이번 달 발급한 방어 영수증: <b id="rc-count">1</b>건<br>
+            멘탈이 소진되기 전에 원티드에서<br>
+            나를 인정해 주는 팀을 찾아보세요.
+          </p>
+
+          <div class="receipt-rule receipt-rule-light"></div>
+
+          <p class="receipt-eap">
+            💬 힘든 날엔 혼자 참지 마세요.<br>
+            근로복지공단 EAP 무료 심리상담 — welfare.comwel.or.kr
+          </p>
+
+          <p class="receipt-disclaimer">* 절약 시간·멘탈 에너지·정치 리스크는 재미로 보는 지표입니다</p>
+        </div>
+      </div>
+
+      <div class="receipt-actions">
+        <button type="button" class="receipt-action" id="receipt-save">이미지로 저장</button>
+        <button type="button" class="receipt-action" id="receipt-copy">이미지 복사</button>
+      </div>
+      <a class="receipt-eap-link" href="https://welfare.comwel.or.kr" target="_blank" rel="noopener noreferrer">
+        근로복지공단 EAP 무료 심리상담 신청 바로가기 →
+      </a>
+      <p class="receipt-status" id="receipt-status" aria-live="polite"></p>
+    </div>
+  </div>
 
   <script type="module" src="/src/main.js"></script>
 </body>
