@@ -8,6 +8,18 @@ import { maskFields, unmask, summarizeMask } from './lib/mask.js';
 import { buildMockAnalysis } from './lib/mock.js';
 import { buildResult } from './lib/normalize.js';
 import golden from './data/golden.json';
+import presetWeekend from './data/presets/weekend.json';
+import presetAislop from './data/presets/aislop.json';
+import presetPingpong from './data/presets/pingpong.json';
+import presetClient from './data/presets/client.json';
+
+/**
+ * 가이드 §9 데모 안전장치: 입력이 상황 카드 원본과 정확히 같으면
+ * 네트워크·룰엔진 계산 없이 미리 구운 JSON 을 그대로 렌더링한다.
+ * (0.1초 · $0 — 시연 중 API/룰엔진에 무슨 일이 생겨도 흔들리지 않는다)
+ * scripts/gen-presets.mjs 로 생성/갱신한다.
+ */
+const PRESET_CACHE = { weekend: presetWeekend, aislop: presetAislop, pingpong: presetPingpong, client: presetClient };
 
 const MAX_CHARS = 800;
 const COOLDOWN_MS = 5000;
@@ -157,6 +169,23 @@ function selectByApiValue(field, value) {
   if (field === 'tone') el.toneWarning.hidden = value !== '매운맛';
 }
 
+/**
+ * 현재 폼이 상황 카드 원본과 완전히 같은지 확인한다 — 하나라도 수정했으면
+ * 사용자의 편집을 반영해야 하므로 캐시를 쓰지 않고 정상 분석 경로로 보낸다.
+ * @returns {string|null} 일치하는 프리셋 id, 없으면 null
+ */
+function matchPresetId(text, hiddenContextRaw, ctx) {
+  for (const id of Object.keys(PRESET_CACHE)) {
+    const g = golden.find((x) => x.id === id);
+    if (!g) continue;
+    const sameContext = ['job', 'level', 'counterpart', 'goal', 'tone'].every((k) => g.context[k] === ctx[k]);
+    if (g.text === text && (g.context.hiddenContext || '') === hiddenContextRaw && sameContext) {
+      return id;
+    }
+  }
+  return null;
+}
+
 /* ── 입력 ───────────────────────────── */
 
 function onInput() {
@@ -218,17 +247,29 @@ async function run() {
   const startedAt = Date.now();
 
   try {
-    const payload = { maskedText: maskedMessage, context: { ...contextFields(), hiddenContext: maskedHiddenContext } };
     let result;
-    try {
-      result = await postAnalyze(payload);
-    } catch (err) {
-      // 시연 안전장치: 서버리스 함수가 없거나(vite 단독 실행) 실패하면 로컬 룰엔진으로 폴백한다.
-      if (err.recoverable) {
-        result = localFallback(payload, startedAt);
-        result.meta.note = err.message;
-      } else {
-        throw err;
+    const presetId = matchPresetId(text, hiddenContextRaw, contextFields());
+
+    if (presetId) {
+      // 상황 카드 원본 그대로 — 네트워크·룰엔진 계산 없이 캐시를 바로 렌더링한다.
+      result = buildResult(PRESET_CACHE[presetId], maskedMessage, {
+        mode: 'cached',
+        model: 'preset-cache',
+        latencyMs: Date.now() - startedAt,
+      });
+      result.meta.note = '캐시된 프리셋 — API 호출 없음, 비용 $0';
+    } else {
+      const payload = { maskedText: maskedMessage, context: { ...contextFields(), hiddenContext: maskedHiddenContext } };
+      try {
+        result = await postAnalyze(payload);
+      } catch (err) {
+        // 시연 안전장치: 서버리스 함수가 없거나(vite 단독 실행) 실패하면 로컬 룰엔진으로 폴백한다.
+        if (err.recoverable) {
+          result = localFallback(payload, startedAt);
+          result.meta.note = err.message;
+        } else {
+          throw err;
+        }
       }
     }
     render(result, Date.now() - startedAt);
@@ -295,7 +336,7 @@ function render(result, elapsedMs) {
 
   el.xray.className = `xray level-${risk.level}`;
   el.alertHeader.textContent = risk.header;
-  el.modeBadge.textContent = { live: 'LIVE', mock: 'MOCK', local: 'LOCAL' }[meta.mode] || meta.mode;
+  el.modeBadge.textContent = { live: 'LIVE', mock: 'MOCK', local: 'LOCAL', cached: 'PRESET · $0' }[meta.mode] || meta.mode;
   el.modeBadge.title = meta.note || `model: ${meta.model}`;
 
   animateScore(risk.score);

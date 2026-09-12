@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calcRisk, substanceGap, riskLabel, GREEN_CAP } from '../src/lib/score.js';
+import { calcRisk, substanceGap, riskLabel, GREEN_CAP, SUBSTANCE_METRICS } from '../src/lib/score.js';
 import { extractSubstanceSignals, findCliches, hasDeadline, hasNumbers, avoidsDecision } from '../src/lib/cliche.js';
 
 const base = {
@@ -84,4 +84,24 @@ test('신호 추출기: 클리셰/의사결정 회피', () => {
   assert.deepEqual(findCliches('시간 날 때 가볍게 봐주세요').sort(), ['가볍게', '시간 날 때']);
   assert.equal(avoidsDecision('검토해보고 말씀드리겠습니다'), true);
   assert.equal(avoidsDecision('9/15까지 완료하겠습니다'), false);
+});
+
+test('컷 우선순위 §11 1번: 의사결정 회피율 지표를 끄면 3중 → 2중 결여율로 축소된다', () => {
+  const xray = {
+    ...base,
+    hasNumbers: false,
+    hasDeadline: false,
+    avoidsDecision: true, // 결정 회피 표현이 있지만
+  };
+  const before = substanceGap(xray); // 3중: (0 + 1 + 1) / 3
+  assert.equal(before, 2 / 3);
+
+  SUBSTANCE_METRICS.avoidsDecision = false; // 시간 부족 시 1순위 컷 (§11)
+  try {
+    const after = substanceGap(xray); // 2중: (0 + 1) / 2
+    assert.equal(after, 0.5);
+    assert.ok(after < before, '컷 이후 결여율이 낮아져야 한다(회피 신호가 더 이상 반영되지 않음)');
+  } finally {
+    SUBSTANCE_METRICS.avoidsDecision = true; // 다른 테스트에 영향 주지 않게 원복
+  }
 });
