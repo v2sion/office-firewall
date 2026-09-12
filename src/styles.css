@@ -77,6 +77,31 @@ html, body {
   padding: 16px;
 }
 .panel-result { min-height: 420px; }
+@media (min-width: 921px) {
+  /* 데스크톱 2컬럼에서 입력 폼을 내려서 채우는 동안 결과 패널이 항상 시야에
+     머물게 한다 — 입력 폼이 훨씬 길어서 스크롤해야 하는 구조라, 고정해두지
+     않으면 실행 버튼을 누르기 전엔 결과 패널이 화면 밖으로 밀려난다. */
+  .panel-result { position: sticky; top: 18px; }
+}
+
+/* ── 단계 구분(시각적 그루핑, 페이지 분리는 아님) ─────────────
+   ①②③ / ④⑤⑥ / ⑦ 을 묶어 진행 단계처럼 보이게 한다. 실제로는 페이지
+   이동 없이 한 화면에 이어져 있다 — ③에 입력하면 ②를 실시간으로
+   추천해주는 상호작용이 페이지 분리와 상성이 안 맞기 때문(README 참고). */
+.step-divider {
+  display: flex; align-items: center; gap: 8px;
+  margin: 22px 0 14px;
+  font-size: 11px; font-weight: 700; letter-spacing: .08em;
+  color: var(--text-faint); text-transform: uppercase;
+}
+.step-divider:first-child { margin-top: 0; }
+.step-divider::after { content: ''; flex: 1; height: 1px; background: var(--line); margin-left: 2px; }
+.step-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 999px; flex-shrink: 0;
+  background: var(--accent); color: #05231a;
+  font-family: var(--mono); font-weight: 800; font-size: 11px;
+}
 
 .block { margin-bottom: 18px; }
 .block:last-child { margin-bottom: 0; }
@@ -437,21 +462,24 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 .is-loading .run { pointer-events: none; }
 
 /* ── 영수증 발급 버튼 ─────────────────────────────── */
+/* 점선 테두리는 "덜 중요한 옵션"으로 읽힌다 — 실제로는 공유·바이럴 루프의
+   핵심 CTA라서 실행 버튼에 준하는 무게로 격상한다(점선 → 실선 + 강조색). */
 .receipt-btn {
   width: 100%;
   margin-top: 14px;
-  padding: 12px 14px;
+  padding: 13px 14px;
   border-radius: 10px;
-  border: 1px dashed var(--line);
-  background: var(--bg-soft);
-  color: var(--text);
+  border: 1px solid var(--accent-dim);
+  background: rgba(61, 220, 151, 0.1);
+  color: var(--accent);
   font-family: var(--font);
-  font-size: 13.5px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
-  transition: border-color .12s, background .12s;
+  transition: border-color .12s, background .12s, transform .12s;
 }
-.receipt-btn:hover { border-color: var(--accent); background: rgba(61, 220, 151, 0.06); }
+.receipt-btn:hover { border-color: var(--accent); background: rgba(61, 220, 151, 0.16); transform: translateY(-1px); }
+.receipt-btn:active { transform: translateY(0); }
 .receipt-btn-sub { font-weight: 400; color: var(--text-faint); font-size: 12px; }
 
 /* ── 영수증 모달 ─────────────────────────────── */

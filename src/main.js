@@ -463,7 +463,9 @@ function render(result, elapsedMs, context) {
     ? ` · in ${usage.input_tokens} / out ${usage.output_tokens} tokens`
     : '';
   el.usageLine.textContent = `${meta.model} · ${elapsedMs}ms${tokens}`;
-  el.result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  // 결과 패널이 아니라 X-Ray 카드(점수·경보) 기준으로 스크롤한다 — 'nearest' 로
+  // 패널 전체를 기준 삼으면 가장 중요한 점수/경보가 화면 위로 잘려 나갈 수 있다.
+  el.xray.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function animateScore(target) {
