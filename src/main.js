@@ -647,6 +647,58 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+/* ── 모달 포커스 관리 (접근성) ─────────────────────────────
+ * 다이얼로그가 떠 있는데 Tab 이 배경으로 빠져나가면, 키보드·스크린리더 사용자는
+ * 오버레이에 가려 보이지도 않는 컨트롤을 조작하게 된다. 실측으로 세 가지가
+ * 확인돼서 함께 고친다: (1) 열어도 포커스가 안으로 안 들어감,
+ * (2) Tab 이 배경으로 탈출, (3) 닫은 뒤 호출한 버튼으로 안 돌아옴. */
+
+const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+let lastFocusedBeforeModal = null;
+
+function focusablesIn(root) {
+  return [...root.querySelectorAll(FOCUSABLE)].filter((n) => !n.hidden && n.offsetParent !== null);
+}
+
+function openModal(modal) {
+  lastFocusedBeforeModal = document.activeElement;
+  modal.hidden = false;
+  document.body.style.overflow = 'hidden';
+  const first = focusablesIn(modal)[0];
+  if (first) first.focus();
+}
+
+function closeModal(modal) {
+  modal.hidden = true;
+  document.body.style.overflow = '';
+  // 열기 전 위치로 포커스를 돌려준다 — 안 그러면 문서 맨 앞으로 튄다.
+  if (lastFocusedBeforeModal && document.contains(lastFocusedBeforeModal)) {
+    lastFocusedBeforeModal.focus();
+  }
+  lastFocusedBeforeModal = null;
+}
+
+/** 열려 있는 모달 안에 Tab 순환을 가둔다. */
+function trapTabInModal(e) {
+  if (e.key !== 'Tab') return;
+  const modal = [el.receiptModal, el.historyModal].find((m) => !m.hidden);
+  if (!modal) return;
+  const items = focusablesIn(modal);
+  if (!items.length) return;
+  const first = items[0];
+  const last = items[items.length - 1];
+  const onFirst = document.activeElement === first;
+  const onLast = document.activeElement === last;
+  const outside = !modal.contains(document.activeElement);
+  if (e.shiftKey && (onFirst || outside)) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && (onLast || outside)) {
+    e.preventDefault();
+    first.focus();
+  }
+}
+
 /* ── 오피스 방어 영수증 ───────────────────────────── *
  * 원문·실명·탐지값(clicheHits, subtext 등)은 절대 참조하지 않는다.
  * lastReceiptSource 에 담긴 xray/risk/context 중 receipt.js 가 실제로
@@ -690,13 +742,11 @@ function openReceiptModal() {
   el.rcCount.textContent = String(count);
 
   el.receiptStatus.textContent = '';
-  el.receiptModal.hidden = false;
-  document.body.style.overflow = 'hidden';
+  openModal(el.receiptModal);
 }
 
 function closeReceiptModal() {
-  el.receiptModal.hidden = true;
-  document.body.style.overflow = '';
+  closeModal(el.receiptModal);
 }
 
 async function captureReceiptPng() {
@@ -756,13 +806,11 @@ const LEVEL_COLOR = { green: 'var(--green)', lime: 'var(--lime)', amber: 'var(--
 
 function openHistoryModal() {
   renderHistory();
-  el.historyModal.hidden = false;
-  document.body.style.overflow = 'hidden';
+  openModal(el.historyModal);
 }
 
 function closeHistoryModal() {
-  el.historyModal.hidden = true;
-  document.body.style.overflow = '';
+  closeModal(el.historyModal);
 }
 
 function renderHistory() {
@@ -825,6 +873,7 @@ el.historyClose.addEventListener('click', closeHistoryModal);
 el.historyBackdrop.addEventListener('click', closeHistoryModal);
 el.historyClear.addEventListener('click', onClearHistory);
 document.addEventListener('keydown', (e) => {
+  trapTabInModal(e);
   if (e.key !== 'Escape') return;
   if (!el.receiptModal.hidden) closeReceiptModal();
   if (!el.historyModal.hidden) closeHistoryModal();
