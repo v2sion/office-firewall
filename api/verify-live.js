@@ -112,5 +112,11 @@ export default async function handler(req, res) {
   });
 
   res.setHeader('Cache-Control', 'no-store');
-  return res.status(200).json({ allOk: results.every((r) => r.ok), results });
+  // 어느 빌드에서 잰 수치인지 응답만 보고 알 수 있어야 한다 — 배포가 여러 개
+  // 겹치면서 "직전 커밋 기준"이라고 착각한 측정으로 잘못된 결론을 냈었다.
+  return res.status(200).json({
+    commit: (process.env.VERCEL_GIT_COMMIT_SHA || 'unknown').slice(0, 7),
+    allOk: results.every((r) => r.ok),
+    results,
+  });
 }
