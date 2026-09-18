@@ -401,7 +401,9 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 .score-value { font-family: var(--mono); font-size: 46px; font-weight: 700; line-height: 1; }
 .score-max { font-family: var(--mono); font-size: 14px; color: var(--text-faint); }
 .score-meta { display: flex; flex-direction: column; gap: 1px; padding-bottom: 3px; }
-.score-name { font-size: 10.5px; letter-spacing: .1em; color: var(--text-faint); font-family: var(--mono); }
+/* 영문 'Social Risk Index' 를 전제로 모노 + 넓은 자간을 썼던 자리다. 한국어
+   '위험 지수' 로 통일하면서 본문 글꼴로 되돌린다. */
+.score-name { font-size: 11px; letter-spacing: 0; color: var(--text-faint); font-family: var(--font); }
 .score-label { font-size: 14px; font-weight: 700; }
 .score-action { font-size: 12px; color: var(--text-dim); }
 
