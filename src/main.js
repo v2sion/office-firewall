@@ -589,7 +589,7 @@ function renderRepliesModeNote(mode) {
   el.repliesModeNote.hidden = false;
   el.repliesModeNote.textContent = mode === 'cached'
     ? 'ℹ️ 캐시된 예시 답장입니다 — 상황 카드 원본 그대로일 때만 나오는 미리 준비된 결과예요.'
-    : 'ℹ️ 지금은 규칙 기반 예시 답장입니다(모델 미연동). 목적·완곡도에 따라 갈라지긴 하지만 메시지 내용을 세세히 읽고 쓰진 않아요 — 그대로 보내기보다 초안으로 참고해 다듬어 주세요.';
+    : 'ℹ️ 지금은 규칙 기반 예시 답장입니다(모델 미연동). 목적·말투에 따라 갈라지긴 하지만 메시지 내용을 세세히 읽고 쓰진 않아요 — 그대로 보내기보다 초안으로 참고해 다듬어 주세요.';
 }
 
 function renderReplies(replies) {
@@ -637,7 +637,7 @@ async function copyText(text, btn) {
 
 function setBusy(on) {
   el.run.disabled = on;
-  el.run.textContent = on ? '분석 중…' : '방화벽 X-Ray 분석 & 카운터 답장 생성하기';
+  el.run.textContent = on ? '분석 중…' : '분석하고 답장 만들기';
   document.body.classList.toggle('is-loading', on);
 }
 

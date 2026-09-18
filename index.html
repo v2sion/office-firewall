@@ -19,7 +19,7 @@
   <header class="topbar">
     <div class="brand">
       <span class="brand-mark">OFFICE FIREWALL</span>
-      <span class="brand-sub">90od · MENTAL SAFEGUARD</span>
+      <span class="brand-sub">팀 90od · 직장 메시지 위험도 진단</span>
     </div>
     <div class="topbar-right">
       <button type="button" class="history-open" id="history-open">나의 방어 기록 보기</button>
@@ -31,9 +31,9 @@
     <!-- ─────────────────  좌: 입력 패널  ───────────────── -->
     <section class="panel panel-input" aria-label="입력 패널">
       <div class="step-divider"><span class="step-num">1</span><span>상황 입력</span></div>
-      <!-- ① 맥락 매트릭스 -->
+      <!-- ① 내 상황 -->
       <div class="block">
-        <h2 class="block-title">맥락 매트릭스</h2>
+        <h2 class="block-title">내 상황</h2>
         <div class="selector" data-field="job">
           <span class="selector-label">내 직군</span>
           <div class="chips" role="radiogroup" aria-label="내 직군"></div>
@@ -60,7 +60,7 @@
           <h2 class="block-title">메시지·메일·대화 내용</h2>
           <span class="shield-badge" id="shield-badge" title="원문은 브라우저에서 마스킹된 뒤에만 서버로 전송됩니다">
             <svg class="icon-shield" viewBox="0 0 32 32" width="12" height="12" aria-hidden="true"><path d="M16 5l9 3.2v7.1c0 5.6-3.7 10.3-9 11.7-5.3-1.4-9-6.1-9-11.7V8.2z" fill="currentColor"/></svg>
-            선-마스킹 보호 가동
+            전송 전 자동 가림
           </span>
         </div>
         <textarea id="message" maxlength="800" rows="7" placeholder="카카오톡 메시지, 이메일, 회의 대화록 등 받은 내용을 그대로 붙여넣으세요. 연락처·이메일·금액과 대부분의 이름은 전송 전에 브라우저에서 가려집니다 — 아래 '전송될 내용 확인하기'에서 실제 전송본을 직접 보실 수 있어요."></textarea>
@@ -94,11 +94,11 @@
         </div>
       </div>
 
-      <!-- ⑥ 완곡도 -->
+      <!-- ⑥ 말투 세기 -->
       <div class="block">
-        <h2 class="block-title">완곡도</h2>
+        <h2 class="block-title">말투 세기</h2>
         <div class="selector" data-field="tone">
-          <div class="chips chips-tone" role="radiogroup" aria-label="완곡도"></div>
+          <div class="chips chips-tone" role="radiogroup" aria-label="말투 세기"></div>
         </div>
         <p class="tone-warning" id="tone-warning" hidden>
           <b>관계 비용 경고</b> — 이 톤은 사내 갈등이 증폭될 위험이 있습니다. 감정이 가라앉은 후 신중히 전송하세요.
@@ -108,7 +108,7 @@
       <div class="step-divider"><span class="step-num">3</span><span>실행</span></div>
       <!-- ⑦ 실행 -->
       <div class="block">
-        <button type="button" class="run" id="run">방화벽 X-Ray 분석 &amp; 카운터 답장 생성하기</button>
+        <button type="button" class="run" id="run">분석하고 답장 만들기</button>
         <p class="run-hint" id="run-hint">분석은 5초에 한 번 실행됩니다.</p>
       </div>
     </section>
@@ -155,7 +155,7 @@
 
         <!-- ② 추천 답장 -->
         <article class="replies">
-          <h2 class="section-title">추천 카운터 답장</h2>
+          <h2 class="section-title">추천 대응 답장</h2>
           <p class="replies-mode-note" id="replies-mode-note" hidden></p>
           <div id="replies"></div>
         </article>
@@ -190,7 +190,7 @@
         <span class="hiw-tab-step">Step 03</span><span class="hiw-tab-label">규칙 판정</span>
       </button>
       <button type="button" class="hiw-tab" role="tab" id="hiw-tab-4" aria-controls="hiw-panel-4" aria-selected="false" tabindex="-1">
-        <span class="hiw-tab-step">Step 04</span><span class="hiw-tab-label">카운터 답장</span>
+        <span class="hiw-tab-step">Step 04</span><span class="hiw-tab-label">대응 답장</span>
       </button>
     </div>
 
@@ -230,8 +230,8 @@
 
       <article class="hiw-panel" role="tabpanel" id="hiw-panel-4" aria-labelledby="hiw-tab-4" tabindex="0" hidden>
         <span class="hiw-panel-eyebrow">Step 04</span>
-        <h3>목적과 완곡도에 맞는 답장 3종</h3>
-        <p>방어 목적(칼차단·시간벌기·공넘기기·관계보존)과 완곡도(순한맛·보통맛·매운맛)를 고르면 그에 맞춘 답장 3개가 나옵니다. 마음에 들면 복사해서 바로 쓰세요.</p>
+        <h3>목적과 말투에 맞는 답장 3종</h3>
+        <p>방어 목적(칼차단·시간벌기·공넘기기·관계보존)과 말투 세기(순한맛·보통맛·매운맛)를 고르면 그에 맞춘 답장 3개가 나옵니다. 마음에 들면 복사해서 바로 쓰세요.</p>
         <ul class="hiw-tips">
           <li><b>Tip 1</b><span>관계 비용이 큰 톤은 경고 문구로 한 번 더 확인시켜줍니다.</span></li>
           <li><b>Tip 2</b><span>오늘의 방어 영수증은 이미지로 저장·복사만 되고 서버에 남지 않습니다.</span></li>
@@ -270,8 +270,8 @@
           <div class="receipt-rule"></div>
 
           <div class="receipt-section-label">— 심리적 체감 지표 —</div>
-          <div class="receipt-row"><span>절약한 야근 시간</span><b id="rc-hours">+0 Hours</b></div>
-          <div class="receipt-row"><span>보존한 멘탈 에너지</span><b id="rc-hp">+0 HP</b></div>
+          <div class="receipt-row"><span>막아낸 야근(환산)</span><b id="rc-hours">+0 Hours</b></div>
+          <div class="receipt-row"><span>지킨 멘탈(환산)</span><b id="rc-hp">+0 HP</b></div>
           <div class="receipt-row"><span>사내 정치 리스크</span><b id="rc-risk">0%</b></div>
 
           <div class="receipt-rule"></div>
