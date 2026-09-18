@@ -19,7 +19,7 @@ export const PATTERNS = {
    * 기존 PERSON 패턴은 이걸 통째로 놓쳤다. 직급 뒤에 조사·구두점·문장끝이 오는 경우만
    * 잡아서 "마케팅 대리점" 같은 합성어 오탐을 피한다. 직급 자체는 남긴다(권력 신호 보존).
    */
-  PERSON_TITLE: /([가-힣]{2,4})(\s?)(팀장|부장|과장|차장|대리|주임|선임|책임|수석|매니저|이사|대표)(?=[\s,.!?)님은는이가을를와과께도로에의]|$)/g,
+  PERSON_TITLE: /([가-힣]{2,4})(\s?)(팀장|부장|과장|차장|대리|주임|선임|책임|수석|매니저|이사|대표)(?=[\s,.!?)님은는이가을를와과께도의]|한테|에게|에서|에|로|$)/g,
   QUOTED: /["'“”‘’]([^"'“”‘’]{2,30})["'“”‘’]|「([^「」]{2,30})」|『([^『』]{2,30})』/g,
 };
 
@@ -38,6 +38,30 @@ const ROLE_WORDS = new Set([
   '팀장', '부장', '차장', '과장', '대리', '주임', '선임', '책임', '수석', '매니저',
   '담당자', '고객', '사수', '선배', '후배', '동료', '기획자', '개발자', '디자이너',
 ]);
+
+/**
+ * 이름 자리에 왔지만 이름일 수 없는 말 — "월요일 오전에 대표님" 의 "오전에" 처럼
+ * 시간·지시어에 조사가 붙은 형태가 직급 앞에 오면 사람 이름으로 오인된다.
+ */
+const NOT_A_NAME = new Set([
+  // 시간
+  '오전', '오후', '아침', '점심', '저녁', '새벽', '오늘', '내일', '모레', '어제',
+  '이번', '지난', '다음', '당일', '금일', '작년', '올해', '내년', '매주', '매일',
+  '분기', '반기', '상반기', '하반기', '연간', '월간', '주간', '차기',
+  // 조직·범위 수식어 ("지난 분기 이사", "전사 대표" 처럼 직급 앞에 자주 온다)
+  '전사', '전체', '신규', '기존', '해당', '관련', '담당', '부서', '본부', '소속',
+]);
+/**
+ * 이름 뒤에 바로 직급이 오는 자리("박지훈 팀장")에서는 이름에 조사가 붙지 않는다.
+ * 단 은/는/이/가 는 제외한다 — "지은", "하은", "다은" 같은 실제 이름의 끝글자다.
+ */
+const NAME_TAIL_PARTICLE = /[에의로와과]$/;
+
+function looksLikeName(candidate) {
+  if (ROLE_WORDS.has(candidate)) return false;
+  if (NOT_A_NAME.has(candidate)) return false;
+  return !NAME_TAIL_PARTICLE.test(candidate);
+}
 
 /** 날짜(2026-09-12)를 계좌번호로 오탐하지 않도록 걸러낸다 */
 function looksLikeDate(s) {
@@ -97,11 +121,11 @@ export function mask(text, opts = {}) {
 
   // 1단계: 사람 이름 (호칭은 남기고 이름만 치환 — "{{PERSON_1}}님" 형태가 유지된다)
   out = out.replace(PATTERNS.PERSON, (full, name, honorific) =>
-    (ROLE_WORDS.has(name) ? full : tokenFor('PERSON', name) + honorific));
+    (looksLikeName(name) ? tokenFor('PERSON', name) + honorific : full));
 
   // 1-b단계: "이름 + 직급"(님 없음). 직급은 남긴다 — 권력 비대칭 신호이기 때문이다.
   out = out.replace(PATTERNS.PERSON_TITLE, (full, name, space, title) =>
-    (ROLE_WORDS.has(name) ? full : tokenFor('PERSON', name) + space + title));
+    (looksLikeName(name) ? tokenFor('PERSON', name) + space + title : full));
 
   const counts = {};
   for (const [type, n] of Object.entries(counters)) counts[type] = n;

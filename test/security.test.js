@@ -110,3 +110,38 @@ test('오래된 기록은 정리된다 — 카운터가 무한히 자라면 그 
   // 창이 지난 뒤 새 요청이 들어오면 옛 엔트리는 비워지고 정상 통과해야 한다.
   assert.equal(checkRateLimit('172.16.0.99', now + 120_000).ok, true);
 });
+
+/* ── 데모 준비 중 발견한 오탐/누락 (회귀 고정) ───────────────────────────── */
+
+test('시간·지시어에 조사가 붙은 말을 이름으로 오인하지 않는다', () => {
+  // "월요일 오전에 대표님" 의 "오전에" 가 {{PERSON_2}} 로 가려지던 버그
+  const { maskedText } = mask('박지훈 팀장님 주말에 미안한데, 월요일 오전에 대표님 보고가 잡혀서요.');
+  assert.ok(!maskedText.includes('{{PERSON_2}}'), `오탐: ${maskedText}`);
+  assert.ok(maskedText.includes('오전에'), `시간 표현이 지워졌다: ${maskedText}`);
+  assert.ok(!maskedText.includes('박지훈'), `실명이 남았다: ${maskedText}`);
+});
+
+test('직급 뒤에 한테·에게·에서가 와도 이름을 가린다', () => {
+  for (const [input, name] of [
+    ['김수진 대리한테 이미 확인함', '김수진'],
+    ['이수진 팀장에게 전달했습니다', '이수진'],
+    ['최영호 부장에서 승인', '최영호'],
+  ]) {
+    const { maskedText } = mask(input);
+    assert.ok(!maskedText.includes(name), `실명이 남았다: ${maskedText}`);
+  }
+});
+
+test('은/는 로 끝나는 실제 이름은 계속 가린다 (지은·하은·다은)', () => {
+  for (const name of ['지은', '하은', '다은']) {
+    const { maskedText } = mask(`${name} 팀장이 확인했습니다`);
+    assert.ok(!maskedText.includes(name), `실명이 남았다: ${maskedText}`);
+  }
+});
+
+test('시간·지시어 자체는 직급 앞에 와도 가리지 않는다', () => {
+  for (const s of ['오늘 오후 대표님 보고', '이번 주 팀장 회의', '지난 분기 이사 보고']) {
+    const { maskedText } = mask(s);
+    assert.equal(maskedText, s, `오탐: ${maskedText}`);
+  }
+});
