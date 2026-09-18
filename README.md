@@ -234,7 +234,7 @@ npm test
 | 변수 | 설명 |
 |---|---|
 | `GROQ_API_KEY` | 비어 있으면 MOCK 모드 |
-| `GROQ_MODEL` | 기본 `openai/gpt-oss-20b` |
+| `GROQ_MODEL` | 기본 `llama-3.3-70b-versatile` |
 | `OFW_FORCE_MOCK` | `1` 이면 키가 있어도 LLM 을 호출하지 않는다 |
 
 > Sprint 0~2 는 Anthropic Claude(`claude-opus-5`) 기준으로 만들어졌다. 제출 마감을
@@ -975,7 +975,7 @@ chat.completions API(`client.chat.completions.create`, `choices[0].message.conte
 | | 이전(Claude) | 이후(Groq) |
 |---|---|---|
 | SDK | `@anthropic-ai/sdk` | `groq-sdk` |
-| 기본 모델 | `claude-opus-5` | `openai/gpt-oss-20b` (env: `GROQ_MODEL`) |
+| 기본 모델 | `claude-opus-5` | `llama-3.3-70b-versatile` (env: `GROQ_MODEL`) |
 | 환경변수 | `ANTHROPIC_API_KEY` | `GROQ_API_KEY` |
 | 출력 형식 강제 | 프롬프트 지시만 | `response_format: { type: 'json_object' }` (API 레벨 보장) |
 | 사용량 필드 | `usage.input_tokens`/`output_tokens` | `usage.prompt_tokens`/`completion_tokens` (내부적으로 같은 이름으로 매핑해 프론트는 무영향) |
@@ -1002,10 +1002,39 @@ Groq 무료 티어의 강한 모델(qwen3 계열, gpt-oss 계열)은 추론 모�
 단위 테스트는 가짜 클라이언트로 요청·응답 형태(파라미터가 맞게 나가는지,
 다양한 응답 형태에 안전하게 대응하는지)만 고정했다 — 실제 모델이 이 프롬프트로
 기대한 JSON 스키마를 안정적으로 내는지는 **배포 후 실제 키로 처음 검증**하게
-된다. `DEFAULT_MODEL`(`openai/gpt-oss-20b`)은 `groq-sdk` 패키지의 공식 README
-예제가 그대로 쓰는 값이라는 것 외에는 별도로 검증하지 못했다. 배포 직후
-STEP 3(LIVE 실측)에서 골든 5종을 반드시 먼저 돌려보고, 점수 구간이 어긋나거나
-JSON 파싱이 자주 실패하면 `GROQ_MODEL` 을 다른 값으로 바꿔 재시도할 것.
+된다. 배포 직후 STEP 3(LIVE 실측)에서 골든 5종을 반드시 먼저 돌려보고, 점수
+구간이 어긋나거나 JSON 파싱이 자주 실패하면 `GROQ_MODEL` 을 다른 값으로
+바꿔 재시도할 것.
+
+`DEFAULT_MODEL` 선정 근거: `api.groq.com` 은 막혀 있지만 `groq-sdk` 가 물고 있는
+공개 저장소(`github.com/groq/groq-typescript`, npm 은 접근 허용)는 클론할 수 있어서,
+그 안의 타입 정의(`src/resources/chat/completions.ts`)에 박힌 **현재 지원 모델
+전체 목록**을 직접 확인했다 — Groq 의 실제 API 스펙에서 자동 생성된 타입이라
+이 환경에서 얻을 수 있는 가장 신뢰도 높은 소스였다.
+
+```
+compound-beta, compound-beta-mini, gemma2-9b-it,
+llama-3.1-8b-instant, llama-3.3-70b-versatile,
+meta-llama/llama-4-maverick-17b-128e-instruct,
+meta-llama/llama-4-scout-17b-16e-instruct, meta-llama/llama-guard-4-12b,
+moonshotai/kimi-k2-instruct, openai/gpt-oss-120b, openai/gpt-oss-20b,
+qwen/qwen3-32b, qwen/qwen3.6-27b, qwen/qwen3.8-27b
+```
+
+처음엔 `groq-sdk` README 예제가 쓰는 `openai/gpt-oss-20b` 를 기본값으로 뒀는데,
+이건 추론(reasoning) 모델이라 위의 `<think>` 노출 방어 코드가 필요했던 대상
+그 자체였다. `llama-3.3-70b-versatile` 로 바꾼 이유는 셋이다:
+
+- 추론 모델이 아니라서 `<think>` 노출 리스크가 코드 방어 없이도 원천적으로 없다.
+- Groq 무료 티어에서 가장 오래·널리 검증된 플래그십 모델이라(목록 두 번째 항목),
+  최근 추가된 gpt-oss·qwen3.6/3.8·kimi-k2 보다 안정성 신뢰도가 높다.
+- 추론 토큰을 안 쓰므로 응답이 더 빠르다 — `CALL_TIMEOUT_MS`(9초) 안에 여유
+  있게 들어올 가능성이 높아진다.
+
+`reasoning_format: 'hidden'` 파라미터는 비추론 모델에는 그냥 무시될 가능성이
+높아 안전장치로 남겨뒀다(문서상 에러 케이스가 없음) — 나중에 `GROQ_MODEL` 을
+qwen3/gpt-oss 계열로 되돌려도 이중 방어(API 파라미터 + `stripReasoning()`)가
+그대로 작동한다.
 
 ### 왜 굳이 바꿨는가 — 비용 비교
 

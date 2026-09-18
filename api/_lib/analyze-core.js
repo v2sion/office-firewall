@@ -8,9 +8,11 @@ import { SYSTEM_PROMPT, buildUserMessage } from './prompt.js';
 import { buildMockAnalysis } from '../../src/lib/mock.js';
 
 export const MAX_INPUT_CHARS = 800;
-/** groq-sdk 의 README 예제가 그대로 쓰는 모델 — 무료 티어에서 안정적으로 확인된 값.
- *  다른 모델(예: qwen/qwen3.8-27b)로 바꾸고 싶으면 GROQ_MODEL 환경변수로 덮어쓴다. */
-export const DEFAULT_MODEL = 'openai/gpt-oss-20b';
+/** groq-sdk(groq/groq-typescript) 타입 정의에 실제로 나열된 모델 중 하나 —
+ *  추론(reasoning) 모델이 아니라서(gpt-oss·qwen3 계열과 달리) <think> 노출
+ *  리스크가 원천적으로 없고, Groq 무료 티어에서 가장 오래 검증된 플래그십이다.
+ *  다른 모델로 바꾸고 싶으면 GROQ_MODEL 환경변수로 덮어쓴다. */
+export const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
 
 /**
  * SDK 는 타임아웃도 재시도한다 — 최악의 벽시계 시간이 timeout × (maxRetries + 1) 이다.

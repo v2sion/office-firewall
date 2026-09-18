@@ -41,7 +41,7 @@ GitHub(`v2sion/office-firewall`, production branch `main`)에 연결해 뒀다 �
 1. https://vercel.com/v2sioninmymind-4818s-projects/office-firewall/settings/environment-variables
 2. **Production** 환경에 추가:
    - `GROQ_API_KEY` = (본인 키, console.groq.com 에서 발급)
-   - `GROQ_MODEL` = `openai/gpt-oss-20b` (검증 안 된 기본값 — STEP 3 에서 실패하면 교체)
+   - `GROQ_MODEL` = `llama-3.3-70b-versatile` (검증 안 된 기본값 — STEP 3 에서 실패하면 교체)
 3. 저장 후 재배포 트리거 (`main` 에 새 커밋을 푸시하거나, 대시보드에서 Redeploy)
 
 CLI 로 처음부터 하고 싶으면 대안:
@@ -50,7 +50,7 @@ CLI 로 처음부터 하고 싶으면 대안:
 cd office-firewall
 npx vercel link --project office-firewall --yes
 npx vercel env add GROQ_API_KEY production
-npx vercel env add GROQ_MODEL production        # 값: openai/gpt-oss-20b
+npx vercel env add GROQ_MODEL production        # 값: llama-3.3-70b-versatile
 npx vercel --prod
 ```
 
@@ -129,7 +129,7 @@ npx vercel --prod
 **AI 활용 방식 및 결과 (379자, 그대로 붙여넣기):**
 
 ```
-메시지에서 숨은 요구·마감·톤 같은 사실만 LLM(Groq API, openai/gpt-oss-20b)이 추출하고,
+메시지에서 숨은 요구·마감·톤 같은 사실만 LLM(Groq API, llama-3.3-70b-versatile)이 추출하고,
 위험도 점수(Social Risk Index)는 결정론적 규칙 엔진이 계산합니다. AI가 점수를 매기지
 않으므로 같은 입력이면 항상 같은 결과가 나오고, 판정 근거를 화면에서 그대로 펼쳐 볼 수
 있습니다.
@@ -150,7 +150,7 @@ npx vercel --prod
 
 | 항목 | 값 |
 |---|---|
-| 사용 모델 | `openai/gpt-oss-20b` (env: `GROQ_MODEL`, **배포 후 미검증** — README "AI 제공자 전환" 참고) |
+| 사용 모델 | `llama-3.3-70b-versatile` (env: `GROQ_MODEL`, **배포 후 미검증** — README "AI 제공자 전환" 참고) |
 | 실제 스택 | Vite + Vanilla JS · Vercel Serverless Functions · groq-sdk |
 | 저장소 | https://github.com/v2sion/office-firewall |
 | 품질 근거 | 자동화 테스트 132개, 골든 5종 고정(정상 업무 대조군 포함), 보안·접근성 검토 완료 |
