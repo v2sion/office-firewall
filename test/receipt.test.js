@@ -13,7 +13,7 @@ test('빌런 유형: 골든 ① 주말 침범 → "주말 도둑형 상사" (가
 
 test('빌런 유형: AI 슬롭이 가장 먼저 판정된다 (다른 신호보다 우선)', () => {
   const xray = { urgencyType: '주말 침범', ambiguityType: 'R&R 미지정', aiSlopScore: 80, avoidsDecision: true };
-  assert.equal(villainType(xray, { counterpart: '팀원(AI복붙)' }), 'AI 복붙형 동료');
+  assert.equal(villainType(xray, { counterpart: '팀원(AI복붙)' }), '영혼 없이 복붙형 동료');
 });
 
 test('빌런 유형: 신호가 전혀 없으면 "평범한 ○○"', () => {

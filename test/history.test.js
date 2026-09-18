@@ -61,7 +61,7 @@ test('summarize: 평균 점수와 최다 빌런 유형을 계산한다', () => {
   const history = [
     { score: 90, villain: '주말 도둑형 상사' },
     { score: 50, villain: '주말 도둑형 상사' },
-    { score: 70, villain: 'AI 복붙형 동료' },
+    { score: 70, villain: '영혼 없이 복붙형 동료' },
   ];
   const s = summarize(history);
   assert.equal(s.count, 3);

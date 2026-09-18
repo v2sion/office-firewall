@@ -30,7 +30,10 @@ export function villainType(xray, context) {
   const who = WHO_LABEL[context?.counterpart] || '상대';
   const { urgencyType, ambiguityType, aiSlopScore, avoidsDecision } = xray || {};
 
-  if ((aiSlopScore ?? 0) >= 60) return `AI 복붙형 ${who}`;
+  // aiSlopScore 가 실제로 재는 건 "누가 썼나"가 아니라 "알맹이가 몇 % 비었나"다
+  // (score.js·스탯카드의 '내용 공허도'와 같은 값). '복붙'이라는 행동 묘사는
+  // 남기되 AI 단정만 뺐다 — 사람이 쓴 성의 없는 메일에 붙어도 억울하지 않다.
+  if ((aiSlopScore ?? 0) >= 60) return `영혼 없이 복붙형 ${who}`;
   if (urgencyType === '주말 침범') return `주말 도둑형 ${who}`;
   if (urgencyType === '야간 침범') return `야간 침입형 ${who}`;
   if (urgencyType === '당일 마감') return `벼락 마감형 ${who}`;
