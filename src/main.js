@@ -26,6 +26,14 @@ import presetClient from './data/presets/client.json';
  */
 const PRESET_CACHE = { weekend: presetWeekend, aislop: presetAislop, pingpong: presetPingpong, client: presetClient };
 
+/** 결과가 어떤 경로로 나왔는지 알리는 배지 문구. 값은 meta.mode 와 1:1 이다. */
+const MODE_BADGE = {
+  live: 'AI 분석',        // 실제 모델 호출
+  mock: '규칙 분석',      // 서버에 모델 미연동 — 서버측 룰엔진
+  local: '오프라인 분석', // 서버 도달 실패 — 브라우저 룰엔진 폴백
+  cached: '저장된 예시',  // 상황 카드 프리셋 캐시(호출 없음)
+};
+
 const MAX_CHARS = 800;
 const COOLDOWN_MS = 5000;
 const SUGGEST_MIN_CHARS = 8;
@@ -449,7 +457,11 @@ function render(result, elapsedMs, context) {
 
   el.xray.className = `xray level-${risk.level}`;
   el.alertHeader.textContent = risk.header;
-  el.modeBadge.textContent = { live: 'LIVE', mock: 'MOCK', local: 'LOCAL', cached: 'PRESET · $0' }[meta.mode] || meta.mode;
+  // 배지는 개발 모드가 아니라 "이 결과가 어떻게 나왔는지"를 알리는 사용자 문구다.
+  // 예전엔 LIVE/MOCK/LOCAL 을 그대로 노출했는데, MOCK 은 정상 폴백인데도
+  // "아직 안 만들어진 데모"로 읽히고 LIVE 는 생방송으로 읽힐 소지가 있었다.
+  // 상세(모델명·비용·폴백 사유)는 title 툴팁에 그대로 남는다.
+  el.modeBadge.textContent = MODE_BADGE[meta.mode] || meta.mode;
   el.modeBadge.title = meta.note || `model: ${meta.model}`;
 
   animateScore(risk.score);
@@ -562,7 +574,7 @@ function renderRepliesModeNote(mode) {
   el.repliesModeNote.hidden = false;
   el.repliesModeNote.textContent = mode === 'cached'
     ? 'ℹ️ 캐시된 예시 답장입니다 — 상황 카드 원본 그대로일 때만 나오는 미리 준비된 결과예요.'
-    : 'ℹ️ 지금은 규칙 기반 예시 답장입니다(모델 미연동/MOCK). 목적·완곡도에 따라 갈라지긴 하지만 메시지 내용을 세세히 읽고 쓰진 않아요 — 그대로 보내기보다 초안으로 참고해 다듬어 주세요.';
+    : 'ℹ️ 지금은 규칙 기반 예시 답장입니다(모델 미연동). 목적·완곡도에 따라 갈라지긴 하지만 메시지 내용을 세세히 읽고 쓰진 않아요 — 그대로 보내기보다 초안으로 참고해 다듬어 주세요.';
 }
 
 function renderReplies(replies) {

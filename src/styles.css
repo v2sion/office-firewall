@@ -391,8 +391,9 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   vertical-align: middle;
 }
 .mode-badge {
-  font-family: var(--mono); font-size: 10px; letter-spacing: .08em;
-  color: var(--text-faint); border: 1px solid var(--line); border-radius: 5px; padding: 2px 6px;
+  /* 한국어 문구로 바뀌면서 모노 + 넓은 자간은 오히려 읽기 나빠져 본문 글꼴로 돌린다. */
+  font-family: var(--font); font-size: 10.5px; letter-spacing: 0;
+  color: var(--text-faint); border: 1px solid var(--line); border-radius: 5px; padding: 2px 7px;
 }
 
 .score-row { display: flex; align-items: flex-end; gap: 14px; margin-top: 12px; flex-wrap: wrap; }
