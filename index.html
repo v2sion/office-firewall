@@ -15,7 +15,7 @@
       <span class="brand-sub">90od · MENTAL SAFEGUARD</span>
     </div>
     <div class="topbar-right">
-      <button type="button" class="history-open" id="history-open">나의 방어 기록</button>
+      <button type="button" class="history-open" id="history-open">나의 방어 기록 보기</button>
       <div class="brand-claim">AI는 추출하고, 판정은 규칙이 한다</div>
     </div>
   </header>
@@ -56,14 +56,14 @@
             선-마스킹 보호 가동
           </span>
         </div>
-        <textarea id="message" maxlength="800" rows="7" placeholder="카카오톡 메시지, 이메일, 회의 대화록 등 받은 내용을 그대로 붙여넣으세요. 연락처·이메일·금액과 대부분의 이름은 전송 전에 브라우저에서 가려집니다 — 아래 '전송될 내용 확인'에서 실제 전송본을 직접 보실 수 있어요."></textarea>
+        <textarea id="message" maxlength="800" rows="7" placeholder="카카오톡 메시지, 이메일, 회의 대화록 등 받은 내용을 그대로 붙여넣으세요. 연락처·이메일·금액과 대부분의 이름은 전송 전에 브라우저에서 가려집니다 — 아래 '전송될 내용 확인하기'에서 실제 전송본을 직접 보실 수 있어요."></textarea>
         <p class="field-hint"><b>상대방이 보낸 부분만</b> 넣어주세요. 여러 번 대화가 오간 경우 내가 답장한 내용까지 같이 넣으면 진단이 부정확해질 수 있어요.</p>
         <p class="thread-warning" id="thread-warning" hidden>
           <b>여러 화자 감지</b> — 상대방이 보낸 메시지만 남기면 더 정확하게 분석됩니다.
         </p>
         <div class="under-input">
           <span class="counter"><b id="char-count">0</b> / 800자</span>
-          <button type="button" class="linkish" id="toggle-preview" aria-expanded="false">전송될 내용 확인</button>
+          <button type="button" class="linkish" id="toggle-preview" aria-expanded="false">전송될 내용 확인하기</button>
         </div>
         <div class="mask-preview" id="mask-preview" hidden>
           <div class="mask-preview-head">서버로 실제 전송되는 텍스트 <span class="mask-summary" id="mask-summary">검출 없음</span></div>
@@ -101,7 +101,7 @@
       <div class="step-divider"><span class="step-num">3</span><span>실행</span></div>
       <!-- ⑦ 실행 -->
       <div class="block">
-        <button type="button" class="run" id="run">방화벽 X-Ray 분석 &amp; 카운터 답장 생성</button>
+        <button type="button" class="run" id="run">방화벽 X-Ray 분석 &amp; 카운터 답장 생성하기</button>
         <p class="run-hint" id="run-hint">분석은 5초에 한 번 실행됩니다.</p>
       </div>
     </section>
@@ -165,6 +165,75 @@
     </section>
   </main>
 
+  <!-- ─────────────────  어떻게 작동하나요 (스텝 탭 설명)  ───────────────── -->
+  <section class="hiw" aria-labelledby="hiw-heading">
+    <div class="hiw-intro">
+      <h2 id="hiw-heading">어떻게 작동하나요</h2>
+      <p>AI는 신호를 뽑아내고, 위험도는 정해진 규칙이 채점합니다 — 4단계로 나눠서 봅니다.</p>
+    </div>
+
+    <div class="hiw-tabbar" role="tablist" aria-label="작동 방식 4단계" id="hiw-tabbar">
+      <button type="button" class="hiw-tab" role="tab" id="hiw-tab-1" aria-controls="hiw-panel-1" aria-selected="true" tabindex="0">
+        <span class="hiw-tab-step">Step 01</span><span class="hiw-tab-label">상황 입력</span>
+      </button>
+      <button type="button" class="hiw-tab" role="tab" id="hiw-tab-2" aria-controls="hiw-panel-2" aria-selected="false" tabindex="-1">
+        <span class="hiw-tab-step">Step 02</span><span class="hiw-tab-label">AI 추출</span>
+      </button>
+      <button type="button" class="hiw-tab" role="tab" id="hiw-tab-3" aria-controls="hiw-panel-3" aria-selected="false" tabindex="-1">
+        <span class="hiw-tab-step">Step 03</span><span class="hiw-tab-label">규칙 판정</span>
+      </button>
+      <button type="button" class="hiw-tab" role="tab" id="hiw-tab-4" aria-controls="hiw-panel-4" aria-selected="false" tabindex="-1">
+        <span class="hiw-tab-step">Step 04</span><span class="hiw-tab-label">카운터 답장</span>
+      </button>
+    </div>
+
+    <div class="hiw-panels">
+      <article class="hiw-panel" role="tabpanel" id="hiw-panel-1" aria-labelledby="hiw-tab-1" tabindex="0">
+        <span class="hiw-panel-eyebrow">Step 01</span>
+        <h3>받은 메시지를 그대로 붙여넣으세요</h3>
+        <p>맥락(직군·연차·관계)을 고르고 메시지를 넣으면, 이름·연락처·금액처럼 민감한 부분은 서버로 보내기 전에 브라우저에서 먼저 가려집니다.</p>
+        <ul class="hiw-tips">
+          <li><b>Tip 1</b><span>상대방이 보낸 부분만 넣으세요 — 내가 쓴 답장까지 섞이면 진단이 흐려집니다.</span></li>
+          <li><b>Tip 2</b><span>'전송될 내용 확인'으로 실제 전송본을 직접 볼 수 있습니다.</span></li>
+          <li><b>Tip 3</b><span>비슷한 상황이면 프리셋을 눌러 예시부터 감을 잡아보세요.</span></li>
+        </ul>
+      </article>
+
+      <article class="hiw-panel" role="tabpanel" id="hiw-panel-2" aria-labelledby="hiw-tab-2" tabindex="0" hidden>
+        <span class="hiw-panel-eyebrow">Step 02</span>
+        <h3>AI는 판단하지 않고, 구조화만 합니다</h3>
+        <p>AI(LLM)는 메시지에서 숨은 요구·마감·톤 같은 신호만 뽑아 값으로 만듭니다. 점수를 매기는 건 AI 몫이 아닙니다.</p>
+        <ul class="hiw-tips">
+          <li><b>Tip 1</b><span>추출값은 근거로 남아 '판정 근거 보기'에서 확인할 수 있습니다.</span></li>
+          <li><b>Tip 2</b><span>서버 API 가 꺼져 있어도 로컬 규칙 폴백(MOCK)으로 계속 동작합니다.</span></li>
+          <li><b>Tip 3</b><span>원문 자체는 서버에 저장되지 않습니다.</span></li>
+        </ul>
+      </article>
+
+      <article class="hiw-panel" role="tabpanel" id="hiw-panel-3" aria-labelledby="hiw-tab-3" tabindex="0" hidden>
+        <span class="hiw-panel-eyebrow">Step 03</span>
+        <h3>위험도는 정해진 규칙이 계산합니다</h3>
+        <p>권력 비대칭·시간적 긴급도·요구 모호성·AI 복붙 냄새 4가지를 규칙 엔진이 계산해 Social Risk Index 로 합칩니다. 같은 입력이면 항상 같은 점수가 나옵니다.</p>
+        <ul class="hiw-tips">
+          <li><b>Tip 1</b><span>정상~고위험 5단계로 색이 나뉩니다.</span></li>
+          <li><b>Tip 2</b><span>점수만이 아니라 근거 문장도 함께 보여줍니다.</span></li>
+          <li><b>Tip 3</b><span>판정 근거는 언제든 펼쳐볼 수 있습니다.</span></li>
+        </ul>
+      </article>
+
+      <article class="hiw-panel" role="tabpanel" id="hiw-panel-4" aria-labelledby="hiw-tab-4" tabindex="0" hidden>
+        <span class="hiw-panel-eyebrow">Step 04</span>
+        <h3>목적과 완곡도에 맞는 답장 3종</h3>
+        <p>방어 목적(칼차단·시간벌기·공넘기기·관계보존)과 완곡도(순한맛·보통맛·매운맛)를 고르면 그에 맞춘 답장 3개가 나옵니다. 마음에 들면 복사해서 바로 쓰세요.</p>
+        <ul class="hiw-tips">
+          <li><b>Tip 1</b><span>관계 비용이 큰 톤은 경고 문구로 한 번 더 확인시켜줍니다.</span></li>
+          <li><b>Tip 2</b><span>오늘의 방어 영수증은 이미지로 저장·복사만 되고 서버에 남지 않습니다.</span></li>
+          <li><b>Tip 3</b><span>기록은 이 브라우저에만 남습니다('나의 방어 기록').</span></li>
+        </ul>
+      </article>
+    </div>
+  </section>
+
   <footer class="footer">
     <span>원티드 AI CHAMPIONSHIP 2026 · 팀 90od</span>
     <span class="dot">·</span>
@@ -219,8 +288,8 @@
       </div>
 
       <div class="receipt-actions">
-        <button type="button" class="receipt-action" id="receipt-save">이미지로 저장</button>
-        <button type="button" class="receipt-action" id="receipt-copy">이미지 복사</button>
+        <button type="button" class="receipt-action" id="receipt-save">이미지로 저장하기</button>
+        <button type="button" class="receipt-action" id="receipt-copy">이미지 복사하기</button>
       </div>
       <a class="receipt-eap-link" href="https://welfare.comwel.or.kr" target="_blank" rel="noopener noreferrer">
         근로복지공단 EAP 무료 심리상담 신청 바로가기 →
@@ -251,7 +320,7 @@
 
       <div class="history-list" id="history-list"></div>
 
-      <button type="button" class="history-clear" id="history-clear" hidden>전체 삭제</button>
+      <button type="button" class="history-clear" id="history-clear" hidden>전체 삭제하기</button>
     </div>
   </div>
 

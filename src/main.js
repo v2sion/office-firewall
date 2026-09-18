@@ -577,7 +577,7 @@ function renderReplies(replies) {
         <span class="reply-index">${text.length}자</span>
       </div>
       <p class="reply-text"></p>
-      <button type="button" class="copy">복사</button>`;
+      <button type="button" class="copy">복사하기</button>`;
     card.querySelector('.reply-text').textContent = text;
     const btn = card.querySelector('.copy');
     btn.addEventListener('click', () => copyText(text, btn));
@@ -601,7 +601,7 @@ async function copyText(text, btn) {
   btn.textContent = '복사됨 ✓';
   btn.classList.add('done');
   setTimeout(() => {
-    btn.textContent = '복사';
+    btn.textContent = '복사하기';
     btn.classList.remove('done');
   }, 1600);
 }
@@ -610,7 +610,7 @@ async function copyText(text, btn) {
 
 function setBusy(on) {
   el.run.disabled = on;
-  el.run.textContent = on ? '분석 중…' : '방화벽 X-Ray 분석 & 카운터 답장 생성';
+  el.run.textContent = on ? '분석 중…' : '방화벽 X-Ray 분석 & 카운터 답장 생성하기';
   document.body.classList.toggle('is-loading', on);
 }
 
@@ -773,7 +773,7 @@ async function saveReceiptImage() {
 
 async function copyReceiptImage() {
   if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
-    setReceiptStatus('이 브라우저에서는 이미지 복사가 지원되지 않습니다. "이미지로 저장"을 이용해 주세요.');
+    setReceiptStatus('이 브라우저에서는 이미지 복사가 지원되지 않습니다. "이미지로 저장하기"를 이용해 주세요.');
     return;
   }
   setReceiptStatus('이미지 생성 중…');
@@ -792,7 +792,7 @@ async function copyReceiptImage() {
     setReceiptStatus('클립보드에 복사했습니다.');
   } catch {
     // 미지원과 실패를 구분한다 — 전자는 위에서 이미 걸러졌다.
-    setReceiptStatus('이미지 복사에 실패했습니다. "이미지로 저장"을 이용해 주세요.');
+    setReceiptStatus('이미지 복사에 실패했습니다. "이미지로 저장하기"를 이용해 주세요.');
   }
 }
 
@@ -802,7 +802,9 @@ function setReceiptStatus(msg) {
 
 /* ── 나의 방어 기록 ───────────────────────────── */
 
-const LEVEL_COLOR = { green: 'var(--green)', lime: 'var(--lime)', amber: 'var(--amber)', orange: 'var(--orange)', red: 'var(--red)' };
+// amber/red 는 흰 배경 위 작은 텍스트로 쓰면 대비가 약하다(styles.css :root 주석 참고) —
+// 틴트 배경용 원색 대신 accent.foreground 변형(--amber-text/--red-text)을 쓴다.
+const LEVEL_COLOR = { green: 'var(--green)', lime: 'var(--lime)', amber: 'var(--amber-text)', orange: 'var(--orange)', red: 'var(--red-text)' };
 
 function openHistoryModal() {
   renderHistory();
@@ -850,17 +852,47 @@ function onClearHistory() {
   renderHistory();
 }
 
+/* ── 어떻게 작동하나요 (스텝 탭) ───────────────── */
+
+function initHowItWorks() {
+  const tabs = Array.from(document.querySelectorAll('.hiw-tab'));
+  const panels = Array.from(document.querySelectorAll('.hiw-panel'));
+  if (!tabs.length) return;
+
+  function activate(index) {
+    tabs.forEach((tab, i) => {
+      const on = i === index;
+      tab.setAttribute('aria-selected', String(on));
+      tab.tabIndex = on ? 0 : -1;
+      panels[i].hidden = !on;
+    });
+  }
+
+  tabs.forEach((tab, i) => {
+    tab.addEventListener('click', () => activate(i));
+    // role="tablist" 표준 동작 — 화살표로 탭 이동, 포커스도 같이 옮긴다.
+    tab.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      e.preventDefault();
+      const next = e.key === 'ArrowRight' ? (i + 1) % tabs.length : (i - 1 + tabs.length) % tabs.length;
+      activate(next);
+      tabs[next].focus();
+    });
+  });
+}
+
 /* ── 초기화 ───────────────────────────── */
 
 renderChips();
 renderPresets();
+initHowItWorks();
 el.message.addEventListener('input', onInput);
 el.run.addEventListener('click', () => run());
 el.togglePreview.addEventListener('click', () => {
   const show = el.maskPreview.hidden;
   el.maskPreview.hidden = !show;
   el.togglePreview.setAttribute('aria-expanded', String(show));
-  el.togglePreview.textContent = show ? '전송될 내용 닫기' : '전송될 내용 확인';
+  el.togglePreview.textContent = show ? '전송될 내용 닫기' : '전송될 내용 확인하기';
   if (show) updateMaskPreview();
 });
 el.receiptOpen.addEventListener('click', openReceiptModal);
