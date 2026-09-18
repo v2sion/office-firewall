@@ -2,7 +2,6 @@
   "installCommand": "npm install",
   "outputDirectory": "dist",
   "functions": {
-    "api/analyze.js": { "maxDuration": 25 },
-    "api/verify-live.js": { "maxDuration": 25 }
+    "api/analyze.js": { "maxDuration": 25 }
   }
 }
