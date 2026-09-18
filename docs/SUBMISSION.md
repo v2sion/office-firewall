@@ -10,7 +10,10 @@
 - [x] **제출 페이지**: https://event.wanted.co.kr/ai-championship/2026/apply
 - [x] **제출 마감**: 2026-09-20. 마감 전엔 자유 수정 가능, **임시저장만으로는 제출 인정 안 됨** —
       반드시 "과제 제출하기"까지 눌러야 한다. 마감 후엔 열람만 가능(수정 불가).
-- [ ] **Anthropic API 키** — 아래 STEP 2·3이 전부 여기에 걸려 있다
+- [ ] **Groq API 키** (console.groq.com, 무료 티어) — 아래 STEP 2·3이 전부 여기에 걸려 있다.
+      원래 Anthropic Claude 로 만들었다가 비용 절감을 위해 Groq 로 전환했다
+      (README "AI 제공자 전환" 절 참고) — 이 전환은 배포 후 실제 키로 처음
+      검증되므로, STEP 3 을 절대 건너뛰지 말 것
 
 > 심사 유의사항 요약: 서비스 링크는 **심사 기간 내내 접속 가능**해야 한다(안 되면 심사 제외
 > 가능) — Vercel 배포를 방치하지 말 것. 재직 회사 업무 결과물·제3자 저작권 침해물은 제출
@@ -30,20 +33,24 @@
 
 ## STEP 2 — 배포 (키 필요)
 
-Vercel 개인 계정이라 자동화 도구로는 프로젝트를 만들 수 없다. 직접 실행한다.
+Vercel 팀(`v2sioninmymind-4818s-projects`)을 만들고 `office-firewall` 프로젝트를
+GitHub(`v2sion/office-firewall`, production branch `main`)에 연결해 뒀다 — 이제
+`main` 에 푸시하면 자동으로 배포된다. **환경변수는 대시보드에서 직접 넣을 것**
+(API 키를 채팅 세션에 노출하지 않기 위해 의도적으로 이렇게 함):
+
+1. https://vercel.com/v2sioninmymind-4818s-projects/office-firewall/settings/environment-variables
+2. **Production** 환경에 추가:
+   - `GROQ_API_KEY` = (본인 키, console.groq.com 에서 발급)
+   - `GROQ_MODEL` = `openai/gpt-oss-20b` (검증 안 된 기본값 — STEP 3 에서 실패하면 교체)
+3. 저장 후 재배포 트리거 (`main` 에 새 커밋을 푸시하거나, 대시보드에서 Redeploy)
+
+CLI 로 처음부터 하고 싶으면 대안:
 
 ```bash
 cd office-firewall
-
-# 1) 별칭 선점 — 프로젝트 생성 "즉시" 할 것
-#    (이전 운영 앱에서 alias 를 뺏긴 사고가 있었다)
 npx vercel link --project office-firewall --yes
-
-# 2) 환경변수 (Production)
-npx vercel env add ANTHROPIC_API_KEY production
-npx vercel env add OFW_MODEL production        # 값: claude-opus-5
-
-# 3) 배포
+npx vercel env add GROQ_API_KEY production
+npx vercel env add GROQ_MODEL production        # 값: openai/gpt-oss-20b
 npx vercel --prod
 ```
 
@@ -61,12 +68,13 @@ npx vercel --prod
 
 지금까지 모든 수치는 MOCK 기준이다. 아래는 **키를 꽂고 한 번 돌려야만** 나온다.
 
-- [ ] 골든 5종을 배포본에서 한 번씩 실행
+- [ ] 골든 5종을 배포본에서 한 번씩 실행 — **Groq 전환 후 첫 실제 검증**이다. 5종 모두
+      JSON 파싱이 성공하고 점수 구간이 `src/data/golden.json` 의 `expect` 범위 안에
+      드는지 반드시 확인할 것. 실패하면 `GROQ_MODEL` 을 다른 값으로 바꿔 재시도
+      (README "AI 제공자 전환" 절의 검증 한계 참고)
 - [ ] 응답 지연시간 기록 (결과 패널 우하단에 `model · ms` 로 표시된다)
-- [ ] 토큰 사용량 기록 (같은 줄에 `in/out tokens`)
-- [ ] **프롬프트 캐시가 실제로 먹는지 확인** — 2회차 이후 `cache_read_input_tokens`
-      가 0 이면 시스템 프롬프트(~1K 토큰)가 모델의 최소 캐시 길이에 미달한 것이다.
-      0 이어도 동작에는 문제없다. 비용 계산에서 캐시 절감을 빼면 된다.
+- [ ] 토큰 사용량 기록 (같은 줄에 `in/out tokens`) — Groq 는 프롬프트 캐싱을 지원하지
+      않아 `cache_read_input_tokens` 는 항상 0 이다(정상, 확인 불필요)
 - [ ] README 의 "LIVE 모드 실측치는 API 키 투입 후 갱신한다" 문장을 실제 수치로 교체
 
 ---
@@ -113,39 +121,48 @@ npx vercel --prod
 | 대표 이미지 | 1장 | STEP 4 데모 스크린샷 중 X-Ray 결과 화면(고위험) 1장 사용 |
 | 제목 | ≤200자 | `오피스 방화벽(Office Firewall) — AI는 추출하고, 판정은 규칙이 한다` (47자) |
 | 해결하고자 한 문제 | ≤100자 | `직장에서 받는 애매한 메시지는 숨은 요구와 마감이 안 보여, 거절도 수락도 어렵고 뒤늦게 혼자 책임지기 쉽다.` (61자) |
-| AI 활용 방식 및 결과 | ≤500자 | 아래 박스 (360자) |
-| 사용 AI툴 및 기술 스택 | 다중 선택 | **Claude**, **Vercel** — 목록에 Vite/바닐라 JS 항목은 없음(실제 스택은 STEP 5 하단 참고) |
+| AI 활용 방식 및 결과 | ≤500자 | 아래 박스 (379자) |
+| 사용 AI툴 및 기술 스택 | 다중 선택 | **Vercel** 만 체크 — 목록에 Groq 항목이 없음(자유 서술 필드에 명시). Vite/바닐라 JS 항목도 없음 |
 | 서비스 링크 | ≤500자 | (STEP 2 배포 후 기입 — 심사 기간 내내 접속 가능 상태 유지) |
 | 스크린샷 | 최대 5장, 16:9 권장 | STEP 4 데모 스크린샷에서 5장 선정(대기/X-Ray 고위험/영수증/어떻게 작동하나요/모바일) |
 
-**AI 활용 방식 및 결과 (360자, 그대로 붙여넣기):**
+**AI 활용 방식 및 결과 (379자, 그대로 붙여넣기):**
 
 ```
-Claude는 메시지에서 숨은 요구·마감·톤 같은 사실만 추출하고, 위험도 점수(Social Risk
-Index)는 결정론적 규칙 엔진이 계산합니다. AI가 점수를 매기지 않으므로 같은 입력이면
-항상 같은 결과가 나오고, 판정 근거를 화면에서 그대로 펼쳐 볼 수 있습니다.
+메시지에서 숨은 요구·마감·톤 같은 사실만 LLM(Groq API, openai/gpt-oss-20b)이 추출하고,
+위험도 점수(Social Risk Index)는 결정론적 규칙 엔진이 계산합니다. AI가 점수를 매기지
+않으므로 같은 입력이면 항상 같은 결과가 나오고, 판정 근거를 화면에서 그대로 펼쳐 볼 수
+있습니다.
 
-답장 3종(칼차단/시간벌기/공넘기기/관계보존 × 완곡도 3단계)도 Claude가 생성하되, 목적·톤
-조합 12가지가 실제로 서로 다른 결과를 내는지 자동 테스트로 검증했습니다.
+답장 3종(칼차단/시간벌기/공넘기기/관계보존 × 완곡도 3단계)도 같은 모델이 생성하되,
+목적·톤 조합 12가지가 실제로 서로 다른 결과를 내는지 자동 테스트로 검증했습니다.
 
-원문은 브라우저에서 이름·연락처·금액을 먼저 마스킹한 뒤에만 Claude API로 전송됩니다
+원문은 브라우저에서 이름·연락처·금액을 먼저 마스킹한 뒤에만 API로 전송됩니다
 (선-마스킹). API 장애 시 로컬 규칙 엔진으로 자동 폴백해 심사 중 서비스가 끊기지 않습니다.
 ```
+
+> 개발은 Claude Code(Anthropic)로 진행했다 — 폼의 취지가 "과제 제작에 사용한 AI 도구"
+> 전반을 묻는 것이라면 이 사실도 자유 서술 어딘가에 한 줄 덧붙이는 걸 고려할 것
+> (예: "개발 도구로 Claude Code 사용"). 다만 위 문단은 글자수 제한이 빠듯해서
+> 기본안에는 넣지 않았다.
 
 참고용 (폼에는 없지만 대조해두는 값):
 
 | 항목 | 값 |
 |---|---|
-| 사용 모델 | `claude-opus-5` |
-| 실제 스택 | Vite + Vanilla JS · Vercel Serverless Functions · @anthropic-ai/sdk |
+| 사용 모델 | `openai/gpt-oss-20b` (env: `GROQ_MODEL`, **배포 후 미검증** — README "AI 제공자 전환" 참고) |
+| 실제 스택 | Vite + Vanilla JS · Vercel Serverless Functions · groq-sdk |
 | 저장소 | https://github.com/v2sion/office-firewall |
-| 품질 근거 | 자동화 테스트 130개, 골든 5종 고정(정상 업무 대조군 포함), 보안·접근성 검토 완료 |
+| 품질 근거 | 자동화 테스트 132개, 골든 5종 고정(정상 업무 대조군 포함), 보안·접근성 검토 완료 |
 
 ---
 
 ## STEP 6 — 제출 직전 최종 점검
 
-- [ ] `npm test` 130개 통과
+- [ ] `npm test` 132개 통과
+- [ ] **골든 5종을 배포된 LIVE 모드에서 실제로 돌려봤는가** — Groq 전환 후 처음
+      검증하는 것이므로 특히 중요. 점수 구간이 크게 어긋나거나 JSON 파싱이
+      자주 실패하면 `GROQ_MODEL` 을 바꿔서 재시도(STEP 3 참고)
 - [ ] 배포 URL 에서 전체 플로우 1회 (모바일 포함)
 - [ ] 영수증 "이미지로 저장하기" · "이미지 복사하기" 실기기 확인
       (**iOS Safari 는 여기서 확인해야 한다** — 클립보드 제약이 있어 코드는 고쳤지만
@@ -154,7 +171,7 @@ Index)는 결정론적 규칙 엔진이 계산합니다. AI가 점수를 매기�
 - [ ] 기본 브랜치가 `main` 인가
 - [ ] 배포 URL·저장소 링크가 폼에 정확히 들어갔는가
 - [ ] 대표 이미지 1장 + 스크린샷 최대 5장(16:9) 업로드했는가
-- [ ] 기술 스택 체크박스에 Claude·Vercel 선택했는가
+- [ ] 기술 스택 체크박스에 Vercel 선택했는가(Groq 는 목록에 없어 자유 서술로만 명시)
 - [ ] **"임시저장"이 아니라 "과제 제출하기"까지 눌렀는가** — 임시저장만으로는 심사 대상에서
       제외된다
 - [ ] 제출 후에도 배포 URL이 계속 살아 있는지 심사 기간 동안 주기적으로 확인할 것

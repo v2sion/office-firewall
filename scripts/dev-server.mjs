@@ -70,6 +70,6 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  const mode = process.env.ANTHROPIC_API_KEY && process.env.OFW_FORCE_MOCK !== '1' ? 'LIVE' : 'MOCK';
+  const mode = process.env.GROQ_API_KEY && process.env.OFW_FORCE_MOCK !== '1' ? 'LIVE' : 'MOCK';
   console.log(`office-firewall local server → http://localhost:${PORT}  (analyze: ${mode})`);
 });

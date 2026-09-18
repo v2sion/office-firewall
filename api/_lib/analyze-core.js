@@ -8,7 +8,9 @@ import { SYSTEM_PROMPT, buildUserMessage } from './prompt.js';
 import { buildMockAnalysis } from '../../src/lib/mock.js';
 
 export const MAX_INPUT_CHARS = 800;
-export const DEFAULT_MODEL = 'claude-opus-5';
+/** groq-sdk 의 README 예제가 그대로 쓰는 모델 — 무료 티어에서 안정적으로 확인된 값.
+ *  다른 모델(예: qwen/qwen3.8-27b)로 바꾸고 싶으면 GROQ_MODEL 환경변수로 덮어쓴다. */
+export const DEFAULT_MODEL = 'openai/gpt-oss-20b';
 
 /**
  * SDK 는 타임아웃도 재시도한다 — 최악의 벽시계 시간이 timeout × (maxRetries + 1) 이다.
@@ -19,12 +21,9 @@ export const DEFAULT_MODEL = 'claude-opus-5';
 const CALL_TIMEOUT_MS = 9_000;
 const MAX_RETRIES = 1;
 
-/**
- * Opus 5 는 thinking 이 기본으로 켜져 있고(adaptive), thinking 토큰도 max_tokens 를
- * 함께 소진한다. 기존 값(2048)이면 JSON 이 중간에 잘려 BAD_MODEL_OUTPUT 으로 떨어질
- * 수 있다 — 출력 상한은 "잘리지 않을 만큼" 넉넉히 두고, 실제 길이는 effort 로 조인다.
- */
-const MAX_OUTPUT_TOKENS = 16_000;
+/** 구조화된 JSON(답장 3개 포함) 출력 기준으로 넉넉히 잡은 상한. Groq 무료 티어 모델의
+ *  컨텍스트 한도를 넘지 않도록 Opus 시절(16,000)보다 보수적으로 낮췄다. */
+const MAX_OUTPUT_TOKENS = 4_000;
 
 export class AnalyzeError extends Error {
   constructor(status, code, message) {
@@ -35,7 +34,15 @@ export class AnalyzeError extends Error {
 }
 
 export function shouldUseMock(env = process.env) {
-  return env.OFW_FORCE_MOCK === '1' || !env.ANTHROPIC_API_KEY;
+  return env.OFW_FORCE_MOCK === '1' || !env.GROQ_API_KEY;
+}
+
+/** 추론 모델(qwen3, gpt-oss 등)이 reasoning_format 설정을 무시하고 <think> 블록을
+ *  content 에 흘려보내는 경우에 대비한 방어선. API 레벨에서 이미 막지만(reasoning_format:
+ *  'hidden') 이중 안전장치로 남겨둔다 — 실제 겪었던 사고(사고 과정이 답변에 그대로
+ *  노출됨)를 재발시키지 않기 위함. */
+export function stripReasoning(text) {
+  return String(text).replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 }
 
 /** 모델이 코드펜스나 잡담을 섞어 보내도 첫 번째 JSON 객체만 뽑아낸다 */
@@ -72,24 +79,17 @@ export function extractJSON(raw) {
 
 /** 기본 클라이언트 팩토리. 테스트에서 가짜 클라이언트를 주입하려고 분리해 둔다. */
 async function defaultClientFactory(env) {
-  const { default: Anthropic } = await import('@anthropic-ai/sdk');
-  return new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, maxRetries: MAX_RETRIES });
+  const { default: Groq } = await import('groq-sdk');
+  return new Groq({ apiKey: env.GROQ_API_KEY, maxRetries: MAX_RETRIES });
 }
 
 /**
- * 모델 응답 → 파싱된 객체. 실호출 없이 단위 테스트할 수 있도록 분리했다.
- * stop_reason 을 content 보다 먼저 본다 — 거절(refusal)이면 content 가 비어 있어서
- * 곧장 파싱에 들어가면 "JSON 을 찾지 못했습니다" 라는 엉뚱한 원인으로 보고된다.
+ * 모델 응답(OpenAI 호환 chat.completions 형식) → 파싱된 객체.
+ * 실호출 없이 단위 테스트할 수 있도록 분리했다.
  */
 export function parseModelResponse(response) {
-  if (response?.stop_reason === 'refusal') {
-    throw new AnalyzeError(502, 'MODEL_REFUSED', '모델이 이 메시지의 분석을 거절했습니다.');
-  }
-
-  const text = (response?.content || [])
-    .filter((b) => b?.type === 'text')
-    .map((b) => b.text)
-    .join('');
+  const choice = response?.choices?.[0];
+  const text = stripReasoning(choice?.message?.content || '');
 
   if (!text.trim()) {
     throw new AnalyzeError(502, 'EMPTY_MODEL_OUTPUT', '모델이 빈 응답을 반환했습니다.');
@@ -99,26 +99,29 @@ export function parseModelResponse(response) {
     return extractJSON(text);
   } catch (err) {
     // 출력 상한에 걸려 JSON 이 잘린 경우는 원인을 명확히 구분해 둔다.
-    if (response?.stop_reason === 'max_tokens') {
+    if (choice?.finish_reason === 'length') {
       throw new AnalyzeError(502, 'MODEL_OUTPUT_TRUNCATED', '모델 응답이 출력 상한에서 잘렸습니다.');
     }
     throw err;
   }
 }
 
-async function callAnthropic(maskedText, context, env, clientFactory = defaultClientFactory) {
+async function callGroq(maskedText, context, env, clientFactory = defaultClientFactory) {
   const client = await clientFactory(env);
-  const model = env.OFW_MODEL || DEFAULT_MODEL;
+  const model = env.GROQ_MODEL || DEFAULT_MODEL;
 
-  // effort 는 GA 파라미터다(output_config 안에 들어간다). 이 추출 작업은 정형화돼
-  // 있어서 low 로 충분하고, thinking 깊이도 같이 줄어 응답이 빨라진다.
-  const response = await client.messages.create(
+  const response = await client.chat.completions.create(
     {
       model,
       max_tokens: MAX_OUTPUT_TOKENS,
-      system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
-      messages: [{ role: 'user', content: buildUserMessage(maskedText, context) }],
-      output_config: { effort: 'low' },
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: buildUserMessage(maskedText, context) },
+      ],
+      response_format: { type: 'json_object' },
+      // qwen3/gpt-oss 계열은 추론 모델이라 사고 과정이 그대로 노출된 사고가 있었다 —
+      // API 레벨에서 아예 숨긴다(문서화된 파라미터). 지원하지 않는 모델에서는 무시된다.
+      reasoning_format: 'hidden',
     },
     { timeout: CALL_TIMEOUT_MS },
   );
@@ -158,13 +161,14 @@ export async function runAnalyze(input, env = process.env, deps = {}) {
   if (useMock) {
     aiOut = buildMockAnalysis(maskedText, context);
   } else {
-    const result = await callAnthropic(maskedText, context, env, deps.clientFactory || defaultClientFactory);
+    const result = await callGroq(maskedText, context, env, deps.clientFactory || defaultClientFactory);
     aiOut = result.parsed;
     usage = {
-      input_tokens: result.usage.input_tokens ?? 0,
-      output_tokens: result.usage.output_tokens ?? 0,
-      cache_creation_input_tokens: result.usage.cache_creation_input_tokens ?? 0,
-      cache_read_input_tokens: result.usage.cache_read_input_tokens ?? 0,
+      input_tokens: result.usage.prompt_tokens ?? 0,
+      output_tokens: result.usage.completion_tokens ?? 0,
+      // Groq 는 Anthropic 식 프롬프트 캐싱이 없다 — 필드는 하위 호환을 위해 유지.
+      cache_creation_input_tokens: 0,
+      cache_read_input_tokens: 0,
     };
     model = result.model;
   }

@@ -1,5 +1,5 @@
 /**
- * MOCK 경로 — ANTHROPIC_API_KEY 가 없거나 OFW_FORCE_MOCK=1 일 때 사용한다.
+ * MOCK 경로 — GROQ_API_KEY 가 없거나 OFW_FORCE_MOCK=1 일 때 사용한다.
  *
  * 목적은 두 가지다.
  *  1) 키 없이도 마스킹 → 룰엔진 → 렌더링 전 구간을 검증할 수 있게 한다.

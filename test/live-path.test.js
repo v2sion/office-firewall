@@ -4,12 +4,16 @@
  * 이 경로는 API 키가 없으면 아예 실행되지 않아서 그동안 한 번도 검증된 적이 없었다.
  * 실제 호출 대신 가짜 클라이언트를 주입해 "모델이 이렇게 답했을 때 우리가 어떻게
  * 되는가"를 고정한다 — 시연 당일 처음 겪으면 안 되는 경우들이다.
+ *
+ * Groq(OpenAI 호환 chat.completions) 기준. finish_reason 에는 Anthropic 의
+ * stop_reason: 'refusal' 같은 구조화된 거절 신호가 없다 — 모델이 거절하면 그냥
+ * 평범한 텍스트로 답하고, JSON 추출에 실패해 BAD_MODEL_OUTPUT 으로 떨어진다.
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { runAnalyze, extractJSON, parseModelResponse, DEFAULT_MODEL } from '../api/_lib/analyze-core.js';
+import { runAnalyze, extractJSON, parseModelResponse, stripReasoning, DEFAULT_MODEL } from '../api/_lib/analyze-core.js';
 
-const LIVE_ENV = { ANTHROPIC_API_KEY: 'test-key-not-used' };
+const LIVE_ENV = { GROQ_API_KEY: 'test-key-not-used' };
 
 /** 모델이 돌려줄 법한 정상 응답 본문 */
 const VALID_AI_JSON = {
@@ -29,24 +33,34 @@ const VALID_AI_JSON = {
   ],
 };
 
-/** client.messages.create 를 흉내내는 가짜. 호출 파라미터를 캡처해 둔다. */
+/** client.chat.completions.create 를 흉내내는 가짜. 호출 파라미터를 캡처해 둔다. */
 function fakeClient(response, capture = {}) {
   return async () => ({
-    messages: {
-      create: async (params, opts) => {
-        capture.params = params;
-        capture.opts = opts;
-        return response;
+    chat: {
+      completions: {
+        create: async (params, opts) => {
+          capture.params = params;
+          capture.opts = opts;
+          return response;
+        },
       },
     },
   });
 }
 
-const textResponse = (text, extra = {}) => ({
-  content: [{ type: 'text', text }],
-  usage: { input_tokens: 1200, output_tokens: 300 },
-  stop_reason: 'end_turn',
-  ...extra,
+const chatResponse = (content, extra = {}) => ({
+  choices: [{ message: { content }, finish_reason: 'stop', ...extra }],
+  usage: { prompt_tokens: 1200, completion_tokens: 300, total_tokens: 1500 },
+});
+
+/* ── stripReasoning ───────────────────────────── */
+
+test('stripReasoning: <think> 블록을 제거한다', () => {
+  assert.equal(stripReasoning('<think>이렇게 생각했다</think>{"a":1}'), '{"a":1}');
+});
+
+test('stripReasoning: <think> 블록이 없으면 그대로 둔다', () => {
+  assert.equal(stripReasoning('{"a":1}'), '{"a":1}');
 });
 
 /* ── extractJSON ───────────────────────────── */
@@ -77,20 +91,21 @@ test('extractJSON: 중간에 잘린 JSON 은 BAD_MODEL_OUTPUT', () => {
   assert.throws(() => extractJSON('{"subtext":"어쩌구 저쩌'), (e) => e.code === 'BAD_MODEL_OUTPUT');
 });
 
-/* ── parseModelResponse: stop_reason 분기 ───────────────────────────── */
-
-test('거절(refusal) 응답은 MODEL_REFUSED 로 구분된다', () => {
-  const res = { content: [], stop_reason: 'refusal', stop_details: { type: 'refusal', category: 'cyber' } };
-  assert.throws(() => parseModelResponse(res), (e) => e.code === 'MODEL_REFUSED');
-});
+/* ── parseModelResponse: finish_reason 분기 ───────────────────────────── */
 
 test('빈 응답은 EMPTY_MODEL_OUTPUT 으로 구분된다', () => {
-  assert.throws(() => parseModelResponse(textResponse('   ')), (e) => e.code === 'EMPTY_MODEL_OUTPUT');
+  assert.throws(() => parseModelResponse(chatResponse('   ')), (e) => e.code === 'EMPTY_MODEL_OUTPUT');
 });
 
 test('출력 상한에 걸려 잘린 응답은 MODEL_OUTPUT_TRUNCATED 로 구분된다', () => {
-  const res = textResponse('{"subtext":"여기서 잘림', { stop_reason: 'max_tokens' });
+  const res = chatResponse('{"subtext":"여기서 잘림', { finish_reason: 'length' });
   assert.throws(() => parseModelResponse(res), (e) => e.code === 'MODEL_OUTPUT_TRUNCATED');
+});
+
+test('reasoning 모델이 <think> 블록을 흘려도 JSON 은 정상 파싱된다', () => {
+  const res = chatResponse(`<think>점수를 매겨볼까... 아니 규칙이 한다고 했지</think>${JSON.stringify(VALID_AI_JSON)}`);
+  const parsed = parseModelResponse(res);
+  assert.equal(parsed.subtext, VALID_AI_JSON.subtext);
 });
 
 /* ── runAnalyze LIVE 경로 ───────────────────────────── */
@@ -100,7 +115,7 @@ test('LIVE: 모델 응답이 정상이면 mode=live 로 결과를 조립한다',
   const res = await runAnalyze(
     { maskedText: '{{PERSON_1}}님 주말에 가볍게 한번 봐주세요.', context: { tone: '보통맛' } },
     LIVE_ENV,
-    { clientFactory: fakeClient(textResponse(JSON.stringify(VALID_AI_JSON)), capture) },
+    { clientFactory: fakeClient(chatResponse(JSON.stringify(VALID_AI_JSON)), capture) },
   );
 
   assert.equal(res.meta.mode, 'live');
@@ -110,18 +125,17 @@ test('LIVE: 모델 응답이 정상이면 mode=live 로 결과를 조립한다',
   assert.equal(typeof res.risk.score, 'number');
 });
 
-test('LIVE: 요청 파라미터가 규약대로 나간다 (출력 상한·effort·캐시 브레이크포인트)', async () => {
+test('LIVE: 요청 파라미터가 규약대로 나간다 (JSON 모드·reasoning 숨김·타임아웃)', async () => {
   const capture = {};
   await runAnalyze(
     { maskedText: '확인 부탁드립니다.', context: {} },
     LIVE_ENV,
-    { clientFactory: fakeClient(textResponse(JSON.stringify(VALID_AI_JSON)), capture) },
+    { clientFactory: fakeClient(chatResponse(JSON.stringify(VALID_AI_JSON)), capture) },
   );
 
-  // thinking 토큰이 max_tokens 를 같이 소진하므로 넉넉해야 한다(잘림 방지).
-  assert.ok(capture.params.max_tokens >= 8000, `max_tokens 가 너무 작다: ${capture.params.max_tokens}`);
-  assert.equal(capture.params.output_config.effort, 'low');
-  assert.equal(capture.params.system[0].cache_control.type, 'ephemeral');
+  assert.ok(capture.params.max_tokens >= 2000, `max_tokens 가 너무 작다: ${capture.params.max_tokens}`);
+  assert.equal(capture.params.response_format.type, 'json_object');
+  assert.equal(capture.params.reasoning_format, 'hidden');
   // 타임아웃은 vercel maxDuration(25s)보다 반드시 작아야 한다.
   assert.ok(capture.opts.timeout < 25_000, '타임아웃이 함수 제한을 넘는다');
 });
@@ -131,7 +145,7 @@ test('LIVE: 모델이 riskScore 를 우겨넣어도 점수는 규칙이 계산�
   const res = await runAnalyze(
     { maskedText: '{{PERSON_1}}님 주말에 가볍게 한번 봐주세요.', context: {} },
     LIVE_ENV,
-    { clientFactory: fakeClient(textResponse(JSON.stringify(hijacked))) },
+    { clientFactory: fakeClient(chatResponse(JSON.stringify(hijacked))) },
   );
   // 모델이 보낸 3점이 아니라, 규칙엔진이 신호로 계산한 점수여야 한다.
   assert.notEqual(res.risk.score, 3);
@@ -142,7 +156,7 @@ test('LIVE: 모델이 필드를 빠뜨려도 정규화 폴백으로 응답 형�
   const res = await runAnalyze(
     { maskedText: '확인 부탁드립니다.', context: {} },
     LIVE_ENV,
-    { clientFactory: fakeClient(textResponse('{"subtext":"설명만 있고 나머지는 없음"}')) },
+    { clientFactory: fakeClient(chatResponse('{"subtext":"설명만 있고 나머지는 없음"}')) },
   );
   assert.equal(res.replies.length, 3);
   assert.ok(res.xray.urgencyType);
@@ -155,7 +169,7 @@ test('LIVE: 모델이 환각으로 지어낸 클리셰는 원문 대조로 걸�
   const res = await runAnalyze(
     { maskedText: '확인 부탁드립니다.', context: {} },
     LIVE_ENV,
-    { clientFactory: fakeClient(textResponse(JSON.stringify(lying))) },
+    { clientFactory: fakeClient(chatResponse(JSON.stringify(lying))) },
   );
   assert.ok(!res.xray.clicheHits.includes('원문에 절대 없는 표현입니다'));
 });
@@ -166,7 +180,7 @@ test('LIVE 경로에서도 마스킹 안 된 원문 PII 는 모델 호출 전에
     () => runAnalyze(
       { maskedText: '010-1234-5678 로 연락주세요', context: {} },
       LIVE_ENV,
-      { clientFactory: async () => { called = true; return { messages: { create: async () => textResponse('{}') } }; } },
+      { clientFactory: async () => { called = true; return { chat: { completions: { create: async () => chatResponse('{}') } } }; } },
     ),
     (e) => e.code === 'RAW_PII_DETECTED',
   );

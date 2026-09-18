@@ -227,15 +227,20 @@ npm test
 
 ### 환경 변수
 
-`.env.example` 참고. **`ANTHROPIC_API_KEY` 가 없으면 자동으로 MOCK 모드**로 동작한다
+`.env.example` 참고. **`GROQ_API_KEY` 가 없으면 자동으로 MOCK 모드**로 동작한다
 (규칙 기반 근사치 응답). 키 없이도 마스킹 → 룰엔진 → 렌더링 전 구간을 검증할 수 있고,
 시연 중 모델 호출이 실패해도 화면이 비지 않는 폴백이 된다.
 
 | 변수 | 설명 |
 |---|---|
-| `ANTHROPIC_API_KEY` | 비어 있으면 MOCK 모드 |
-| `OFW_MODEL` | 기본 `claude-opus-5` |
+| `GROQ_API_KEY` | 비어 있으면 MOCK 모드 |
+| `GROQ_MODEL` | 기본 `openai/gpt-oss-20b` |
 | `OFW_FORCE_MOCK` | `1` 이면 키가 있어도 LLM 을 호출하지 않는다 |
+
+> Sprint 0~2 는 Anthropic Claude(`claude-opus-5`) 기준으로 만들어졌다. 제출 마감을
+> 앞두고 비용 절감을 위해 Groq(무료 티어)로 전환했다 — 자세한 배경과 트레이드오프는
+> 아래 "AI 제공자 전환" 절 참고. 이 문서의 Sprint 0~2 기록은 당시 기준 그대로 두었다
+> (Opus 5 의 thinking·effort 관련 서술은 전환 전 상태를 설명하는 역사적 기록이다).
 
 ---
 
@@ -952,3 +957,63 @@ Claude Design 으로 만든 목업(핸드오프 zip)을 검토하는 과정에�
 상태였다. 나머지를 억지로 해요체로 바꾸면 검증된 기존 카피 전체를 건드리는
 큰 변경이 되는데 반해 톤 일관성 외의 실질적 이득은 없어서, 이번엔 CTA 통일만
 반영했다.
+
+## AI 제공자 전환 — Claude → Groq (제출 마감 직전, 비용 절감)
+
+Sprint 0~2 는 전 구간 Anthropic Claude(`claude-opus-5`) 기준으로 만들었다.
+제출을 앞두고 API 비용 부담 없이 진행하고 싶다는 요청이 있어 무료 티어가 있는
+Groq(GroqCloud)로 실 호출 부분을 교체했다.
+
+### 실제로 바뀐 부분
+
+`api/_lib/analyze-core.js` 가 Anthropic Messages API(`client.messages.create`,
+`content: [{type:'text'}]`, `stop_reason`) 대신 Groq 의 OpenAI 호환
+chat.completions API(`client.chat.completions.create`, `choices[0].message.content`,
+`finish_reason`)를 호출하도록 전면 재작성했다. `prompt.js`(시스템 프롬프트)는
+특정 제공자에 종속된 지시문이 없어서 그대로 재사용했다.
+
+| | 이전(Claude) | 이후(Groq) |
+|---|---|---|
+| SDK | `@anthropic-ai/sdk` | `groq-sdk` |
+| 기본 모델 | `claude-opus-5` | `openai/gpt-oss-20b` (env: `GROQ_MODEL`) |
+| 환경변수 | `ANTHROPIC_API_KEY` | `GROQ_API_KEY` |
+| 출력 형식 강제 | 프롬프트 지시만 | `response_format: { type: 'json_object' }` (API 레벨 보장) |
+| 사용량 필드 | `usage.input_tokens`/`output_tokens` | `usage.prompt_tokens`/`completion_tokens` (내부적으로 같은 이름으로 매핑해 프론트는 무영향) |
+| 프롬프트 캐싱 | `cache_control: ephemeral` | 없음(Groq 미지원) — `cache_*` 필드는 0 으로 고정, 하위 호환만 유지 |
+
+### 추론(reasoning) 모델 노출 사고 — 겪기 전에 막아둔 것
+
+Groq 무료 티어의 강한 모델(qwen3 계열, gpt-oss 계열)은 추론 모델이라 `<think>`
+블록 형태로 사고 과정을 함께 뱉는 경우가 있다 — 이걸 그대로 노출하면 영어 사고
+과정이 답장 내용에 섞여 나가는 사고로 이어진다(다른 프로젝트에서 실제로 겪은
+문제라고 전달받았다). 이중으로 막아뒀다:
+
+1. **API 레벨**: 요청에 `reasoning_format: 'hidden'` 을 넣어 서버가 아예
+   reasoning 을 content 에 안 섞도록 한다(Groq 공식 문서화된 파라미터).
+2. **방어선**: `analyze-core.js` 의 `stripReasoning()` 이 혹시 새어나온
+   `<think>...</think>` 블록을 JSON 추출 전에 제거한다. `test/live-path.test.js`
+   에 "reasoning 모델이 `<think>` 블록을 흘려도 JSON 은 정상 파싱된다" 테스트로
+   고정해 뒀다.
+
+### 검증 관련 한계 — 솔직히 남겨둔다
+
+이 세션(Claude Code 실행 환경)의 네트워크 정책이 `api.groq.com` 아웃바운드를
+차단하고 있어서, **개발 중 실제 Groq 호출로 골든 5종을 검증하지 못했다.**
+단위 테스트는 가짜 클라이언트로 요청·응답 형태(파라미터가 맞게 나가는지,
+다양한 응답 형태에 안전하게 대응하는지)만 고정했다 — 실제 모델이 이 프롬프트로
+기대한 JSON 스키마를 안정적으로 내는지는 **배포 후 실제 키로 처음 검증**하게
+된다. `DEFAULT_MODEL`(`openai/gpt-oss-20b`)은 `groq-sdk` 패키지의 공식 README
+예제가 그대로 쓰는 값이라는 것 외에는 별도로 검증하지 못했다. 배포 직후
+STEP 3(LIVE 실측)에서 골든 5종을 반드시 먼저 돌려보고, 점수 구간이 어긋나거나
+JSON 파싱이 자주 실패하면 `GROQ_MODEL` 을 다른 값으로 바꿔 재시도할 것.
+
+### 왜 굳이 바꿨는가 — 비용 비교
+
+`claude-opus-5` 기준 실제 호출 1회는 대략 $0.03~0.05 수준(짧은 정형 추출 작업이라
+입력·출력 토큰 모두 적음, 위험 점수 자체는 규칙 엔진이 계산하므로 모델 몫은
+사실 추출뿐)으로, 심사 기간 전체 사용량을 넉넉히 잡아도 큰 비용이 아니었다.
+그럼에도 "무료로 진행하고 싶다"는 명확한 요청이 있었고, Groq 무료 티어가
+실사용에 충분한 요청 한도를 제공해 교체했다. 제출 폼의 "사용 AI툴 및 기술
+스택" 체크박스 목록(Claude/ChatGPT/Gemini/.../OpenRouter 등)에는 Groq 가
+없어서 체크박스는 해당 사항 없음으로 두고, 자유 서술형인 "AI 활용 방식 및
+결과" 항목에 Groq 사용 사실을 명시하기로 했다(`docs/SUBMISSION.md` 참고).
