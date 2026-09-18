@@ -1,22 +1,38 @@
 :root {
-  --bg: #0b0f16;
-  --bg-panel: #121824;
-  --bg-soft: #182131;
-  --line: #243047;
-  --text: #e8edf6;
-  --text-dim: #93a1bb;
-  --text-faint: #61708c;
+  /* Wanted 디자인 시스템(Montage, github.com/wanteddev/montage-web) 의
+     packages/wds-theme/src/theme/{atomic,semantic}/*.ts 실측값을 그대로 옮겼다.
+     라이트 테마(semantic.light) 기준 — 다크 매핑은 저장소에 이미 있지만 지금은
+     쓰지 않는다. */
+  --bg: #f7f7f8;          /* coolNeutral[99] — 페이지 캔버스 */
+  --bg-panel: #ffffff;    /* common[100]    — 카드(elevated) */
+  --bg-soft: #eaebec;     /* coolNeutral[97] — 흰 패널 안의 눌린(nested) 표면 */
+  --line: #e1e2e4;        /* coolNeutral[96] — 실선 테두리 */
+  --text: #171719;        /* coolNeutral[10] */
+  --text-dim: #5a5c63;    /* coolNeutral[40] */
+  --text-faint: #70737c;  /* coolNeutral[50] */
   /* 브랜드 색(칩·버튼·링크 등 UI 크롬)과 위험 등급 색(--green 이하)은 의도적으로
      분리한다 — 예전엔 둘 다 같은 초록이라 "실행 버튼이 초록=안전해 보이는" 것과
-     "실제 위험도가 낮다"는 의미가 뒤섞였다. 브랜드는 파랑, 위험도는 별도의
-     초록~빨강 스케일로 고정한다. */
-  --accent: #4f8cff;
-  --accent-dim: #2f5fc2;
-  --green: #3ddc97;
-  --lime: #a3d94b;
-  --amber: #f2c744;
-  --orange: #f5854e;
-  --red: #ff5a5f;
+     "실제 위험도가 낮다"는 의미가 뒤섞였다. 브랜드는 Montage 의 primary(파랑),
+     위험도는 Montage 의 status/accent 톤을 5단계로 확장한 스케일로 고정한다. */
+  --accent: #0066ff;      /* semantic.light.primary.normal = blue[50] */
+  --accent-dim: #0054d1;  /* blue[40] — hover/dim 테두리용 */
+  /* 진한 파랑 배경 위에 놓는 텍스트(실행 버튼, 스텝 배지)는 흰색으로 고정한다 —
+     라이트 테마에서는 검정 계열 텍스트가 안 먹힌다. */
+  --on-accent: #ffffff;
+  /* 모달 스크림(rgba(5,8,13,.72))은 테마와 무관하게 항상 어둡게 유지한다(영수증
+     카드와 같은 의도적 예외) — 그 위에 얹는 텍스트만 어두운 배경에서 읽히도록
+     별도 톤을 쓴다. blue[65], 예전 --accent 값과 거의 같아 어색하지 않다. */
+  --accent-on-dark: #4f95ff;
+  --green: #00bf40;   /* green[50]     — semantic.light.status.positive */
+  --lime: #58cf04;    /* lime[50] */
+  --amber: #ff9200;   /* orange[50]    — semantic.light.status.cautionary */
+  --orange: #ff5e00;  /* redOrange[50] */
+  --red: #ff4242;     /* red[50]       — semantic.light.status.negative */
+  /* amber/red 는 배경 틴트용으로는 밝지만 그 위에 얹는 작은 텍스트로는 흐리다 —
+     Montage 는 이 문제를 accent.background(틴트) vs accent.foreground(글자)
+     두 톤으로 나눠서 푼다. 그 foreground 값을 그대로 쓴다. */
+  --amber-text: #d17600; /* orange[39] — accent.foreground.orange */
+  --red-text: #e52222;   /* red[40]    — accent.foreground.red */
   --radius-sm: 8px;
   --radius: 12px;
   --radius-lg: 18px;
@@ -49,7 +65,7 @@ html, body {
   flex-wrap: wrap;
   padding: 16px 20px;
   border-bottom: 1px solid var(--line);
-  background: linear-gradient(180deg, #0f1622, var(--bg));
+  background: linear-gradient(180deg, var(--bg-panel), var(--bg));
 }
 .brand { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .brand-mark {
@@ -105,7 +121,7 @@ html, body {
 .step-num {
   display: inline-flex; align-items: center; justify-content: center;
   width: 20px; height: 20px; border-radius: 999px; flex-shrink: 0;
-  background: var(--accent); color: #05231a;
+  background: var(--accent); color: var(--on-accent);
   font-family: var(--mono); font-weight: 800; font-size: 11px;
 }
 
@@ -143,7 +159,7 @@ html, body {
 .preset:active { transform: translateY(0); }
 .preset .emoji { font-size: 16px; }
 .preset.selected {
-  background: rgba(79, 140, 255, 0.12);
+  background: rgba(0, 102, 255, 0.12);
   border-color: var(--accent);
   color: var(--accent);
   font-weight: 600;
@@ -158,7 +174,7 @@ html, body {
 }
 .preset.suggested:not(.selected) {
   border-color: var(--amber);
-  box-shadow: 0 0 0 1px rgba(242, 199, 68, 0.25);
+  box-shadow: 0 0 0 1px rgba(255, 146, 0, 0.25);
 }
 .preset.suggested .suggested-badge { display: inline; }
 
@@ -179,15 +195,15 @@ html, body {
 }
 .chip:hover { border-color: var(--accent-dim); color: var(--text); }
 .chip[aria-checked="true"] {
-  background: rgba(79, 140, 255, 0.12);
+  background: rgba(0, 102, 255, 0.12);
   border-color: var(--accent);
   color: var(--accent);
   font-weight: 600;
 }
 .chips-tone .chip[aria-checked="true"][data-value="매운맛"] {
-  background: rgba(255, 90, 95, 0.14);
+  background: rgba(255, 66, 66, 0.14);
   border-color: var(--red);
-  color: var(--red);
+  color: var(--red-text);
 }
 
 /* ── 모바일 최적화(터치 타겟·확대 방지) ───────────────────
@@ -222,8 +238,8 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 @media (prefers-reduced-motion: no-preference) {
   #message.just-filled { animation: fill-pulse 1s ease-out; }
   @keyframes fill-pulse {
-    0% { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.22); }
-    100% { border-color: var(--line); box-shadow: 0 0 0 0 rgba(79, 140, 255, 0); }
+    0% { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.22); }
+    100% { border-color: var(--line); box-shadow: 0 0 0 0 rgba(0, 102, 255, 0); }
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -236,8 +252,8 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   gap: 4px;
   font-size: 11px;
   color: var(--accent);
-  background: rgba(79, 140, 255, 0.1);
-  border: 1px solid rgba(79, 140, 255, 0.28);
+  background: rgba(0, 102, 255, 0.1);
+  border: 1px solid rgba(0, 102, 255, 0.28);
   border-radius: 999px;
   padding: 3px 9px;
   margin-bottom: 8px;
@@ -260,7 +276,7 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   border: 1px dashed var(--line);
   border-radius: 10px;
   padding: 10px;
-  background: #0e141f;
+  background: var(--bg-soft);
 }
 .mask-preview-head {
   display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap;
@@ -292,9 +308,9 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   margin: 8px 0 0;
   padding: 8px 10px;
   border-radius: 8px;
-  background: rgba(242, 199, 68, 0.1);
-  border: 1px solid rgba(242, 199, 68, 0.32);
-  color: #e6c15a;
+  background: rgba(255, 146, 0, 0.1);
+  border: 1px solid rgba(255, 146, 0, 0.32);
+  color: var(--amber-text);
   font-size: 11.5px;
   line-height: 1.55;
 }
@@ -314,9 +330,9 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   margin: 8px 0 0;
   padding: 9px 11px;
   border-radius: 9px;
-  background: rgba(255, 90, 95, 0.1);
-  border: 1px solid rgba(255, 90, 95, 0.35);
-  color: #ffb0b3;
+  background: rgba(255, 66, 66, 0.1);
+  border: 1px solid rgba(255, 66, 66, 0.35);
+  color: var(--red-text);
   font-size: 12px;
   line-height: 1.55;
 }
@@ -327,8 +343,8 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   padding: 14px 16px;
   border-radius: var(--radius-lg);
   border: none;
-  background: linear-gradient(135deg, #4f8cff, #2f5fc2);
-  color: #05231a;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+  color: var(--on-accent);
   font-family: var(--font);
   font-weight: 800;
   font-size: 14.5px;
@@ -338,7 +354,7 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 }
 .run:hover:not(:disabled) { filter: brightness(1.07); }
 .run:active:not(:disabled) { transform: translateY(1px); }
-.run:disabled { background: #223042; color: var(--text-faint); cursor: not-allowed; }
+.run:disabled { background: var(--line); color: var(--text-faint); cursor: not-allowed; }
 .run-hint { font-size: 11px; color: var(--text-faint); text-align: center; margin: 7px 0 0; }
 
 /* ── 대기 상태 ─────────────────────────────── */
@@ -355,7 +371,7 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   padding: 16px;
-  background: linear-gradient(180deg, #141c2b, #111826);
+  background: linear-gradient(180deg, var(--bg-panel), var(--bg-soft));
   margin-bottom: 16px;
 }
 .xray-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
@@ -385,7 +401,7 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 .score-label { font-size: 14px; font-weight: 700; }
 .score-action { font-size: 12px; color: var(--text-dim); }
 
-.score-bar { height: 6px; border-radius: 4px; background: #1b2537; margin-top: 12px; overflow: hidden; }
+.score-bar { height: 6px; border-radius: 4px; background: var(--line); margin-top: 12px; overflow: hidden; }
 .score-bar-fill { height: 100%; width: 0; border-radius: 4px; transition: width .5s ease; }
 
 .level-green .score-value, .level-green .alert-header, .level-green .score-label { color: var(--green); }
@@ -417,7 +433,7 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 .stat-name { font-size: 10.5px; color: var(--text-faint); display: block; margin-bottom: 4px; }
 .stat-value { font-size: 14px; font-weight: 700; display: block; line-height: 1.35; }
 .stat-meter { display: flex; gap: 3px; margin-top: 6px; }
-.stat-pip { flex: 1; height: 4px; border-radius: 2px; background: #222d42; }
+.stat-pip { flex: 1; height: 4px; border-radius: 2px; background: var(--line); }
 .stat-pip.on { background: var(--amber); }
 .stat-sub { font-size: 10.5px; color: var(--text-faint); display: block; margin-top: 5px; }
 
@@ -431,8 +447,8 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 .chip-list { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
 .cliche-tag {
   font-size: 11px; font-family: var(--mono);
-  background: rgba(242, 199, 68, .1); border: 1px solid rgba(242, 199, 68, .3);
-  color: var(--amber); border-radius: 5px; padding: 2px 6px;
+  background: rgba(255, 146, 0, .1); border: 1px solid rgba(255, 146, 0, .3);
+  color: var(--amber-text); border-radius: 5px; padding: 2px 6px;
 }
 
 /* ── 답장 ─────────────────────────────── */
@@ -462,9 +478,9 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 }
 
 .error-box {
-  border: 1px solid rgba(255, 90, 95, .4);
-  background: rgba(255, 90, 95, .08);
-  color: #ffb0b3;
+  border: 1px solid rgba(255, 66, 66, .4);
+  background: rgba(255, 66, 66, .08);
+  color: var(--red-text);
   border-radius: 10px;
   padding: 12px;
   font-size: 13px;
@@ -490,7 +506,7 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   padding: 13px 14px;
   border-radius: 10px;
   border: 1px solid var(--accent-dim);
-  background: rgba(79, 140, 255, 0.1);
+  background: rgba(0, 102, 255, 0.1);
   color: var(--accent);
   font-family: var(--font);
   font-size: 14px;
@@ -498,7 +514,7 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   cursor: pointer;
   transition: border-color .12s, background .12s, transform .12s;
 }
-.receipt-btn:hover { border-color: var(--accent); background: rgba(79, 140, 255, 0.16); transform: translateY(-1px); }
+.receipt-btn:hover { border-color: var(--accent); background: rgba(0, 102, 255, 0.16); transform: translateY(-1px); }
 .receipt-btn:active { transform: translateY(0); }
 .receipt-btn-sub { font-weight: 400; color: var(--text-faint); font-size: 12px; }
 
@@ -597,8 +613,10 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 .receipt-action.done { border-color: var(--accent); color: var(--accent); }
 
 .receipt-eap-link {
+  /* 이 링크만 모달 스크림(항상 어두움) 위에 직접 놓인다 — 나머지 텍스트는
+     흰 카드/버튼 위에 있어 --accent 로 충분하지만, 여긴 어두운 배경용 톤이 필요하다. */
   font-size: 12px;
-  color: var(--accent);
+  color: var(--accent-on-dark);
   text-decoration: none;
 }
 .receipt-eap-link:hover { text-decoration: underline; }
