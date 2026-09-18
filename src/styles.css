@@ -36,7 +36,10 @@
   --radius-sm: 8px;
   --radius: 12px;
   --radius-lg: 18px;
-  --font: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
+  /* index.html 에서 로드하는 가변 폰트가 선언하는 이름이 'Pretendard Variable' 이라
+     맨 앞에 둔다. 폴백은 Montage 의 스택을 따른다 — 윈도우용 'Malgun Gothic' 이
+     빠져 있어 보강했다(로드 실패 시 그 환경이 실제로 받는 글꼴이다). */
+  --font: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Segoe UI', Roboto, 'Noto Sans KR', 'Malgun Gothic', sans-serif;
   --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 }
 
