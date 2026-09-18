@@ -496,6 +496,14 @@ function animateScore(target) {
   requestAnimationFrame(step);
 }
 
+/** 모호성 유형별 한 줄 풀이 — 값과 1:1 이다(normalize.js AMBIGUITY_VALUES). */
+const AMBIGUITY_HINT = {
+  'R&R 미지정': '담당자가 정해지지 않음',
+  '범위 불명': '어디까지인지 불명확',
+  '기한 불명': '언제까지인지 없음',
+  '없음': '범위·기한 명확',
+};
+
 function renderStats(xray) {
   const pips = (n, total) =>
     `<div class="stat-meter">${Array.from({ length: total }, (_, i) => `<span class="stat-pip${i < n ? ' on' : ''}"></span>`).join('')}</div>`;
@@ -517,7 +525,11 @@ function renderStats(xray) {
       name: '요구 모호성',
       value: xray.ambiguityType,
       extra: '',
-      sub: xray.hasDeadline ? '기한 명시됨' : '기한 없음',
+      // 표시되는 값 자체가 풀이 없이는 안 읽힌다 — 특히 'R&R 미지정' 은
+      // 직군에 따라 아예 모르는 말이고 화면 어디에도 설명이 없었다.
+      // 기존 하위 문구는 표시된 값과 무관한 "기한 명시됨/없음" 이라
+      // '범위 불명' 옆에 '기한 명시됨' 이 붙는 식으로 오히려 헷갈렸다.
+      sub: AMBIGUITY_HINT[xray.ambiguityType] || '',
     },
     {
       // 이 값(aiSlopScore)이 실제로 재는 건 "누가 썼나"가 아니라 "알맹이(숫자·기한·
