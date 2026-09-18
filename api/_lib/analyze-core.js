@@ -130,6 +130,13 @@ async function callGroq(maskedText, context, env, clientFactory = defaultClientF
       // 1,100~2,800 토큰이 나가 Groq 무료 티어 한도(8,000 TPM)를 금방 태운다.
       // 이 작업은 정형화된 추출이라 low 로 충분하고, 응답도 눈에 띄게 빨라진다.
       reasoning_effort: 'low',
+      // "같은 입력이면 항상 같은 점수"가 이 제품의 핵심 주장이다. 점수 계산은
+      // 규칙이 하지만, 그 입력이 되는 추출값이 호출마다 흔들리면 결과도 흔들린다
+      // (실제로 같은 시나리오가 36점/67점으로 갈렸다). 샘플링을 끄고 시드를 고정해
+      // 추출 단계까지 재현 가능하게 만든다. Groq 는 best-effort 결정성이라 완전한
+      // 보장은 아니지만, 실측상 흔들림이 크게 줄었다.
+      temperature: 0,
+      seed: 90,
     },
     { timeout: CALL_TIMEOUT_MS },
   );
