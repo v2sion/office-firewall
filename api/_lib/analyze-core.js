@@ -126,6 +126,10 @@ async function callGroq(maskedText, context, env, clientFactory = defaultClientF
       // qwen3/gpt-oss 계열은 추론 모델이라 사고 과정이 그대로 노출된 사고가 있었다 —
       // API 레벨에서 아예 숨긴다(문서화된 파라미터). 지원하지 않는 모델에서는 무시된다.
       reasoning_format: 'hidden',
+      // 추론 토큰도 출력 토큰으로 과금·집계된다. 기본값(medium)으로는 한 번 호출에
+      // 1,100~2,800 토큰이 나가 Groq 무료 티어 한도(8,000 TPM)를 금방 태운다.
+      // 이 작업은 정형화된 추출이라 low 로 충분하고, 응답도 눈에 띄게 빨라진다.
+      reasoning_effort: 'low',
     },
     { timeout: CALL_TIMEOUT_MS },
   );

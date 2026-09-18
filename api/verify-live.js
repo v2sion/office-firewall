@@ -74,8 +74,16 @@ export default async function handler(req, res) {
   const overrideModel = typeof req.query.model === 'string' ? req.query.model : null;
   const env = overrideModel ? { ...process.env, GROQ_MODEL: overrideModel } : process.env;
 
+  // Groq 무료 티어는 8,000 TPM 이라 5종 병렬 실행이 한도를 넘긴다(429).
+  // ?only=<id> 로 한 건씩 나눠 호출할 수 있게 해서 호출 간격을 바깥에서 제어한다.
+  const onlyId = typeof req.query.only === 'string' ? req.query.only : null;
+  const scenarios = onlyId ? golden.filter((g) => g.id === onlyId) : golden;
+  if (onlyId && !scenarios.length) {
+    return res.status(400).json({ error: `unknown scenario id: ${onlyId}` });
+  }
+
   const settled = await Promise.allSettled(
-    golden.map(async (scenario) => {
+    scenarios.map(async (scenario) => {
       const startedAt = Date.now();
       const result = await runAnalyze({ maskedText: scenario.text, context: scenario.context }, env);
       return { scenario, result, elapsed: Date.now() - startedAt };
@@ -83,7 +91,7 @@ export default async function handler(req, res) {
   );
 
   const results = settled.map((s, i) => {
-    const scenario = golden[i];
+    const scenario = scenarios[i];
     if (s.status === 'rejected') {
       return { id: scenario.id, title: scenario.title, ok: false, error: s.reason?.message || String(s.reason) };
     }
