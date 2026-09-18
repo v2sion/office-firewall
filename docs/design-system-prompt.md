@@ -24,12 +24,18 @@ Office Firewall 의 디자인 시스템 캔버스를 만들어 주세요.
 
 ## 이미 확정된 토큰 — 새로 발명하지 말고 이 값을 체계화해 주세요
 
-다크 테마 단일 운영입니다(라이트 테마 없음). 실제 구현된 값입니다:
+라이트 테마 단일 운영입니다(다크 테마 없음). 원티드가 공개한 실제 디자인 시스템
+[Montage](https://github.com/wanteddev/montage-web)의 토큰(`packages/wds-theme/src/theme/{atomic,semantic}`)
+값을 그대로 옮긴 것이다 — 실제 구현된 값입니다:
 
-배경/표면   --bg #0b0f16 · --bg-panel #121824 · --bg-soft #182131 · --line #243047
-텍스트      --text #e8edf6 · --text-dim #93a1bb · --text-faint #61708c
-브랜드      --accent #4f8cff · --accent-dim #2f5fc2
-위험 등급   --green #3ddc97 · --lime #a3d94b · --amber #f2c744 · --orange #f5854e · --red #ff5a5f
+배경/표면   --bg #f7f7f8 · --bg-panel #ffffff · --bg-soft #eaebec · --line #e1e2e4
+텍스트      --text #171719 · --text-dim #5a5c63 · --text-faint #70737c
+브랜드      --accent #0066ff · --accent-dim #0054d1 · --on-accent #ffffff(진한 파랑 위 텍스트)
+위험 등급   --green #00bf40 · --lime #58cf04 · --amber #ff9200 · --orange #ff5e00 · --red #ff4242
+위험 등급(텍스트용) --amber-text #d17600 · --red-text #e52222
+  → amber/red 는 배경 틴트로는 밝지만 그 위에 얹는 작은 글자로 쓰면 흰 배경에서
+    대비가 약하다. Montage 의 accent.background(틴트) vs accent.foreground(글자)
+    구분을 그대로 따라, 작은 텍스트에는 반드시 `-text` 변형을 쓴다.
 라운드      --radius-sm 8px · --radius 12px · --radius-lg 18px
 서체        본문/UI: Pretendard  ·  숫자·데이터·브랜드마크: 모노스페이스
 
@@ -44,6 +50,10 @@ Office Firewall 의 디자인 시스템 캔버스를 만들어 주세요.
 - 파랑 = 조작 가능한 UI(버튼, 선택된 칩, 링크, 포커스). 의미 없음, 브랜드일 뿐.
 - 초록~빨강 = 위험도 5단계. **오직 진단 결과에만** 씁니다.
 - 앰버는 "주의/추천" 신호로도 씁니다(경고 배너, 추천 카드 배지).
+- 모달 스크림(오버레이 배경)은 테마와 무관하게 항상 어둡게 유지합니다(영수증 카드와
+  같은 의도된 예외). 그 위에 얹는 텍스트·링크만 어두운 배경에서 읽히는 별도 톤
+  (`--accent-on-dark #4f95ff`)을 씁니다 — 흰 배경용 `--accent`를 그대로 쓰면 짙은
+  스크림 위에서 대비가 떨어집니다.
 
 위험 5단계는 점수 구간과 문구가 이미 고정돼 있습니다:
   0-20  green  정상 업무 범위 / 그대로 진행해도 좋습니다
@@ -77,7 +87,12 @@ Office Firewall 의 디자인 시스템 캔버스를 만들어 주세요.
 
 7. **모달 패턴** — 영수증 모달, 기록 모달. 오버레이·패널·닫기·액션 버튼 배치.
 
-8. **반응형 대비** — 데스크톱 1280(좌 입력 / 우 결과 2컬럼, 결과 패널 sticky)과
+8. **"어떻게 작동하나요" 스텝탭** — 도구 아래에 붙는 설명 섹션. 알약형 탭 4개
+   (상황 입력/AI 추출/규칙 판정/카운터 답장), 활성 탭은 `--text`(짙은 잉크) 배경에
+   흰 글자, 스크롤 시 탭바가 화면 상단에 sticky. 탭 아래 패널은 eyebrow(파랑,
+   모노) + 제목 + 설명 + Tip 리스트(구분선으로 나뉜 행) 구조.
+
+9. **반응형 대비** — 데스크톱 1280(좌 입력 / 우 결과 2컬럼, 결과 패널 sticky)과
    모바일 375(1컬럼 스택) 두 폭을 나란히.
 
 ## 제약
