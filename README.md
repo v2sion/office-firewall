@@ -66,7 +66,7 @@ npm run build && npm run serve:local   # http://localhost:5180
 
 | 항목 | 결과 | 상세 |
 |---|---|---|
-| 자동화 테스트 | **126개** 통과 (`npm test`) | 마스킹 round-trip · 룰엔진 · 골든 5종 · LIVE 경로 · 보안 |
+| 자동화 테스트 | **136개** 통과 (`npm test`) | 마스킹 round-trip · 룰엔진 · 골든 5종 · LIVE 경로 · 보안 |
 | 판정 재현성 | 골든 5종 고정, 정상 업무 대조군 포함 | [골든 5종](#골든-5종-sprint-0-exit-criteria) |
 | 모델 호출 경로 | 규약 대조로 버그 3건 수정 + 테스트 | [LIVE 경로 점검](#live-경로-점검-실행된-적-없던-코드-검증) |
 | 개인정보 | 마스킹 커버리지 실측·확대, 남용 방지 추가 | [보안 검토](#보안-검토) |
@@ -121,7 +121,7 @@ test/
   golden.test.js          골든 5종 스키마·점수·3.5초 예산 검증
   live-path.test.js       LIVE(실모델) 경로 — 가짜 클라이언트 주입, 실호출 없음
   security.test.js        이름 마스킹 커버리지 · 남용 방지 회귀
-  (총 126개 · npm test)
+  (총 136개 · npm test)
 ```
 
 ---
@@ -154,7 +154,7 @@ test/
     "aiReported": { "...": "AI가 보고한 원본 (검증용)" }
   },
   "replies": [{ "label": "목적 맞춤형 정밀 방어", "text": "{{PERSON_1}}님, ..." }],
-  "risk": { "score": 92, "level": "red", "label": "즉각 승인 금지", "header": "고위험 독박 경보", "breakdown": [] },
+  "risk": { "score": 92, "level": "red", "label": "심각", "header": "고위험 독박 경보", "breakdown": [] },
   "usage": { "input_tokens": 0, "output_tokens": 0 },
   "meta": { "mode": "mock", "model": "mock", "latencyMs": 3 }
 }
@@ -1034,7 +1034,7 @@ gpt-oss 계열은 추론 모델이라 `reasoning_format: 'hidden'` 으로 사고
 **3) 그래도 8,000 TPM 은 서비스 전체 한도다.**
 호출당 입력 ~1,900 + 출력 ~600 ≈ 2,500 토큰이므로 **분당 약 3건**이 서비스
 전체의 상한이다. 심사 기간에 여러 명이 동시에 쓰면 429 가 나고, 그때는
-클라이언트가 로컬 룰엔진으로 폴백해 배지가 `LOCAL` 로 바뀐다(화면이 비지는
+클라이언트가 로컬 룰엔진으로 폴백해 배지가 `오프라인 분석` 으로 바뀐다(화면이 비지는
 않는다). 유료 전환 없이 이 구조를 쓰는 한 피할 수 없는 제약이다.
 
 **4) 추출값이 호출마다 흔들린다 — 이게 가장 아픈 부분이다.**
