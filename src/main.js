@@ -520,10 +520,13 @@ function renderStats(xray) {
       sub: xray.hasDeadline ? '기한 명시됨' : '기한 없음',
     },
     {
-      name: 'AI 복붙 냄새',
+      // 이 값(aiSlopScore)이 실제로 재는 건 "누가 썼나"가 아니라 "알맹이(숫자·기한·
+      // 산출물·담당)가 몇 % 비었나"다. 예전 이름 'AI 복붙 냄새'는 AI 를 지목해서,
+      // 사람이 쓴 영혼 없는 메일도 AI 탓으로 읽히게 만들었다. 이름을 정의에 맞춘다.
+      name: '내용 공허도',
       value: `${xray.aiSlopScore}%`,
       extra: pips(Math.round(xray.aiSlopScore / 20), 5),
-      sub: xray.aiSlopScore >= 60 ? '정형구 과다' : '사람이 쓴 문장',
+      sub: xray.aiSlopScore >= 60 ? '알맹이 거의 없음' : '구체적 내용 있음',
     },
   ];
 
@@ -549,13 +552,13 @@ function renderEvidence(xray, risk) {
 
   el.evidenceBody.innerHTML = `
     <table class="evidence-table">
-      <thead><tr><th>알맹이 결여 지표</th><th>검출</th><th>0~1</th></tr></thead>
+      <thead><tr><th>내용 공허도 지표</th><th>검출</th><th>0~1</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
     ${cliches}
     <p class="evidence-formula">
       점수 = 권력 비대칭(${xray.powerAsymmetry}×8) + 긴급도(${xray.urgencyType === '없음' ? 0 : 20})
-      + 모호성(${xray.ambiguityType === '없음' ? 0 : 20}) + 결여율×20 = <b>${risk.score}</b>
+      + 모호성(${xray.ambiguityType === '없음' ? 0 : 20}) + 공허도×20 = <b>${risk.score}</b>
     </p>
     <p class="evidence-formula">이 점수는 AI가 아니라 코드가 계산합니다. 같은 입력이면 항상 같은 값이 나옵니다.</p>
   `;
