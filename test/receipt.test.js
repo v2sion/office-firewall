@@ -82,7 +82,7 @@ test('ISSUED AT 포맷: YYYY-MM-DD HH:mm:ss', () => {
 
 test('buildReceiptData: 골든 ①(주말 침범, 점수 92) 조합으로 가이드 §3.3 예시 카드값을 그대로 재현한다', () => {
   const xray = { urgencyType: '주말 침범', ambiguityType: '범위 불명', aiSlopScore: 0, avoidsDecision: true };
-  const risk = { score: 92, label: '즉각 승인 금지' };
+  const risk = { score: 92, label: '심각' };
   const context = { job: '기획·PM/PO', level: '주니어', counterpart: '직속상사', goal: '칼차단', tone: '매운맛' };
   const r = buildReceiptData(xray, risk, context, new Date(2026, 8, 12, 17, 35, 0));
 

@@ -71,7 +71,7 @@ test('summarize: 평균 점수와 최다 빌런 유형을 계산한다', () => {
 
 test('entryFromResult: 원문 관련 필드를 전혀 참조하지 않고 카테고리만 뽑는다', () => {
   const xray = { urgencyType: '주말 침범', ambiguityType: '범위 불명', aiSlopScore: 0, avoidsDecision: true, subtext: '원문 유출되면 안 되는 문장' };
-  const risk = { score: 92, level: 'red', label: '즉각 승인 금지' };
+  const risk = { score: 92, level: 'red', label: '심각' };
   const context = { job: '기획·PM/PO', level: '주니어', counterpart: '직속상사', goal: '칼차단', tone: '매운맛' };
   const entry = entryFromResult(xray, risk, context, new Date(2026, 8, 12, 10, 0, 0));
 
