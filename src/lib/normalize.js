@@ -27,11 +27,19 @@ export function normalizeXray(aiOut, maskedText) {
     : [];
   const clicheHits = Array.from(new Set([...signals.clicheHits, ...aiCliches]));
 
+  // "기한 불명"은 원문에 날짜·시각이 있는지로 사실 확인이 되는 주장이다.
+  // 규칙이 기한을 찾았는데 AI 가 기한 불명이라고 하면 그건 환각이므로 버린다 —
+  // clicheHits 환각 차단과 같은 원리다. 이 한 줄이 점수 20점을 좌우하고,
+  // 정상 업무 메시지가 실행마다 green ↔ lime 으로 뒤집히던 원인이기도 했다.
+  // (범위 불명·R&R 미지정은 규칙으로 검증할 수 없어 AI 판단을 그대로 둔다)
+  const rawAmbiguity = pickEnum(ai.ambiguityType, AMBIGUITY_VALUES, '없음');
+  const ambiguityType = rawAmbiguity === '기한 불명' && signals.hasDeadline ? '없음' : rawAmbiguity;
+
   return {
     subtext: typeof ai.subtext === 'string' && ai.subtext.trim() ? ai.subtext.trim() : '분석 결과를 요약하지 못했습니다.',
     powerAsymmetry: Math.max(1, Math.min(5, Math.round(Number(ai.powerAsymmetry) || 3))),
     urgencyType: pickEnum(ai.urgencyType, URGENCY_VALUES, '없음'),
-    ambiguityType: pickEnum(ai.ambiguityType, AMBIGUITY_VALUES, '없음'),
+    ambiguityType,
     aiSlopScore: Math.max(0, Math.min(100, Math.round(Number(ai.aiSlopScore) || 0))),
     clicheHits,
     sentenceCount: signals.sentenceCount,
@@ -40,6 +48,7 @@ export function normalizeXray(aiOut, maskedText) {
     avoidsDecision: signals.avoidsDecision,
     aiReported: {
       clicheHits: Array.isArray(ai.clicheHits) ? ai.clicheHits : [],
+      ambiguityType: rawAmbiguity,
       hasNumbers: Boolean(ai.hasNumbers),
       hasDeadline: Boolean(ai.hasDeadline),
       avoidsDecision: Boolean(ai.avoidsDecision),

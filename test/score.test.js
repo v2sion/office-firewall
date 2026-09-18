@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { calcRisk, substanceGap, riskLabel, GREEN_CAP, SUBSTANCE_METRICS } from '../src/lib/score.js';
 import { extractSubstanceSignals, findCliches, hasDeadline, hasNumbers, avoidsDecision } from '../src/lib/cliche.js';
+import { normalizeXray } from '../src/lib/normalize.js';
 
 const base = {
   powerAsymmetry: 1,
@@ -103,5 +104,38 @@ test('컷 우선순위 §11 1번: 의사결정 회피율 지표를 끄면 3중 �
     assert.ok(after < before, '컷 이후 결여율이 낮아져야 한다(회피 신호가 더 이상 반영되지 않음)');
   } finally {
     SUBSTANCE_METRICS.avoidsDecision = true; // 다른 테스트에 영향 주지 않게 원복
+  }
+});
+
+/* ── AI 환각 교차검증: "기한 불명" 주장 ─────────────────────────────
+   점수를 20점 움직이는 ambiguityType 은 그동안 AI 값을 그대로 썼다.
+   "기한 불명"만은 원문에 날짜·시각이 있는지로 사실 확인이 되므로,
+   규칙이 기한을 찾았는데 AI 가 기한 불명이라 하면 환각으로 보고 버린다.
+   (LIVE 실측에서 정상 업무 메시지가 실행마다 green ↔ lime 으로 뒤집혔다) */
+
+test('원문에 기한이 있는데 AI 가 "기한 불명"이라 하면 무시한다', () => {
+  const text = '9월 15일 14시까지 배너 시안 2종 부탁드립니다. 사이즈는 1200x600 입니다.';
+  const xray = normalizeXray({ ambiguityType: '기한 불명', powerAsymmetry: 2 }, text);
+  assert.equal(xray.ambiguityType, '없음');
+  assert.equal(xray.aiReported.ambiguityType, '기한 불명', 'AI 원본은 감사용으로 남아야 한다');
+});
+
+test('기한 불명 환각을 걸러내면 정상 업무 메시지가 Green 을 유지한다', () => {
+  const text = '9월 15일 14시까지 배너 시안 2종 부탁드립니다. 사이즈는 1200x600 입니다.';
+  const xray = normalizeXray({ ambiguityType: '기한 불명', powerAsymmetry: 2 }, text);
+  assert.ok(calcRisk(xray, text) <= GREEN_CAP);
+});
+
+test('원문에 기한이 없으면 "기한 불명"을 그대로 존중한다', () => {
+  const text = '추가적인 논의를 통해 더 나은 결과를 도출할 수 있을 것으로 사료됩니다.';
+  const xray = normalizeXray({ ambiguityType: '기한 불명', powerAsymmetry: 2 }, text);
+  assert.equal(xray.ambiguityType, '기한 불명');
+});
+
+test('규칙으로 검증 못 하는 "범위 불명"·"R&R 미지정"은 AI 판단을 그대로 둔다', () => {
+  const text = '9월 15일 14시까지 부탁드립니다.';
+  for (const label of ['범위 불명', 'R&R 미지정']) {
+    const xray = normalizeXray({ ambiguityType: label, powerAsymmetry: 2 }, text);
+    assert.equal(xray.ambiguityType, label);
   }
 });
