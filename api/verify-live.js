@@ -29,6 +29,18 @@ function checkExpect(result, expect) {
   return problems;
 }
 
+// Groq 실제 지원 모델 후보 — groq/groq-typescript 타입 정의에서 확인했지만 그중
+// 어떤 게 실제로 이 계정에서 접근 가능한지는 라이브 호출 전엔 알 수 없다(위 사건 참고).
+const MODEL_CANDIDATES = [
+  'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant',
+  'openai/gpt-oss-20b',
+  'openai/gpt-oss-120b',
+  'moonshotai/kimi-k2-instruct',
+  'qwen/qwen3-32b',
+  'gemma2-9b-it',
+];
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
@@ -38,10 +50,34 @@ export default async function handler(req, res) {
     return res.status(403).json({ error: 'forbidden' });
   }
 
+  if (req.query.probe === '1') {
+    const probeScenario = golden.find((g) => g.id === 'normal');
+    const settled = await Promise.allSettled(
+      MODEL_CANDIDATES.map(async (model) => {
+        const startedAt = Date.now();
+        const result = await runAnalyze(
+          { maskedText: probeScenario.text, context: probeScenario.context },
+          { ...process.env, GROQ_MODEL: model },
+        );
+        return { model, score: result.risk.score, elapsed: Date.now() - startedAt, usage: result.usage };
+      }),
+    );
+    const probeResults = settled.map((s, i) => (
+      s.status === 'fulfilled'
+        ? { model: MODEL_CANDIDATES[i], ok: true, ...s.value }
+        : { model: MODEL_CANDIDATES[i], ok: false, error: s.reason?.message || String(s.reason) }
+    ));
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ probe: true, results: probeResults });
+  }
+
+  const overrideModel = typeof req.query.model === 'string' ? req.query.model : null;
+  const env = overrideModel ? { ...process.env, GROQ_MODEL: overrideModel } : process.env;
+
   const settled = await Promise.allSettled(
     golden.map(async (scenario) => {
       const startedAt = Date.now();
-      const result = await runAnalyze({ maskedText: scenario.text, context: scenario.context });
+      const result = await runAnalyze({ maskedText: scenario.text, context: scenario.context }, env);
       return { scenario, result, elapsed: Date.now() - startedAt };
     }),
   );
