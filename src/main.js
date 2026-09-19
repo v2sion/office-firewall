@@ -80,6 +80,33 @@ const TONE_NOTE = {
   '매운맛': '완곡어를 걷어내고 모호한 부분을 직접 지적합니다. 범위·기한·담당을 명시적으로 요구합니다.',
 };
 
+/**
+ * 입력칸 예시 문구 — 고른 관계에 따라 바뀐다.
+ *
+ * 예전에는 두 칸 모두 고정 문구였다. 위에서 "클라이언트"를 골라도 입력칸은
+ * 여전히 일반론("카카오톡 메시지, 이메일, 회의 대화록 등…")을 보여줘서,
+ * 무엇을 넣으라는 건지 감이 오지 않았다. 관계마다 실제로 듣는 말투가
+ * 다르므로 예시도 그에 맞춰 바뀌어야 한다.
+ *
+ * 개인정보가 전송 전에 가려진다는 안내는 여기서 뺐다 — 바로 위 "전송 전
+ * 자동 가림" 배지와 아래 "전송될 내용 확인하기"가 이미 같은 말을 하고
+ * 있어서, 예시 자리를 세 번째 사본으로 쓰는 건 낭비였다.
+ */
+const MESSAGE_PLACEHOLDER = {
+  '직속상사': '상대방이 보낸 내용을 그대로 붙여넣으세요.\n\n예) 주말에 미안한데, 월요일 오전 보고 전까지 한 번만 봐주면 좋을 것 같아요. 급한 건 아닙니다!',
+  '타부서 동료': '상대방이 보낸 내용을 그대로 붙여넣으세요.\n\n예) 이 건은 저희 쪽 R&R은 아닌 것 같은데요, 먼저 정리해서 공유해주실 수 있을까요?',
+  '팀원(AI복붙)': '상대방이 보낸 내용을 그대로 붙여넣으세요.\n\n예) 전반적으로 긍정적인 방향으로 보이며, 추가적인 논의를 통해 더 나은 결과를 도출할 수 있을 것으로 사료됩니다.',
+  '클라이언트': '상대방이 보낸 내용을 그대로 붙여넣으세요.\n\n예) 이거 처음 얘기했던 거랑 좀 다른데요? 내일까지 다시 작업해서 보내주세요.',
+};
+
+/** 숨은 속사정도 관계에 따라 쓸 만한 카드가 다르다. */
+const HIDDEN_CONTEXT_PLACEHOLDER = {
+  '직속상사': '예) 주말엔 가족 행사로 외지에 있음',
+  '타부서 동료': '예) 우리 팀 스프린트 마감이 같은 날임',
+  '팀원(AI복붙)': '예) 같은 피드백을 이미 두 번 줬음',
+  '클라이언트': '예) 계약서상 수정은 2회까지',
+};
+
 /** 화면 표기 → API 계약값 */
 const VALUE_OF = {
   '주니어(1~3년)': '주니어',
@@ -260,8 +287,12 @@ function renderChips() {
         btn.setAttribute('aria-checked', 'true');
         if (field === 'tone') el.toneWarning.hidden = apiValue(opt) !== '매운맛';
         if (field === 'counterpart') {
+          // 관계가 바뀌면 이전에 고른 예시 카드는 더 이상 맞지 않는다.
+          // 선택을 풀어야 예시 문구도 새 관계 기준으로 돌아간다.
+          clearPresetSelection();
           updateSituationSuggestion();
           updatePresetOrder();
+          updatePlaceholders();
         }
         if (field === 'goal' || field === 'tone') updateChoiceNotes();
         savePrefs(state);
@@ -270,6 +301,17 @@ function renderChips() {
       box.appendChild(btn);
     }
   });
+}
+
+/**
+ * 고른 관계에 맞춰 두 입력칸의 예시 문구를 갈아끼운다.
+ * 예시 카드를 눌러 미리보기가 떠 있는 동안에는 메시지 칸을 건드리지 않는다.
+ */
+function updatePlaceholders() {
+  const who = apiValue(state.counterpart);
+  el.hiddenContext.placeholder = HIDDEN_CONTEXT_PLACEHOLDER[who] || '';
+  if (activePreset) return;
+  el.message.placeholder = MESSAGE_PLACEHOLDER[who] || '';
 }
 
 /** 지금 고른 목적·말투가 답장을 어떻게 바꾸는지 칩 아래에 적어둔다. */
@@ -345,6 +387,17 @@ function updateSituationSuggestion() {
  * 더 가깝다. ① 내 상황·④ 숨은 속사정·⑤ 방어 목적·⑥ 말투 세기는
  * 여전히 손대지 않는다(이전 수정 그대로).
  */
+/** 예시 카드 선택을 푼다 — 관계가 바뀌면 이전 카드는 더 이상 맞지 않는다. */
+function clearPresetSelection() {
+  if (!activePreset) return;
+  activePreset = null;
+  el.presetGrid.querySelectorAll('.preset').forEach((b) => {
+    b.classList.remove('selected');
+    b.setAttribute('aria-pressed', 'false');
+  });
+  el.presetRun.hidden = true;
+}
+
 function applyPreset(p, btn) {
   el.presetGrid.querySelectorAll('.preset').forEach((b) => {
     b.classList.toggle('selected', b === btn);
@@ -384,7 +437,6 @@ function applyPresetMessage() {
   if (!p || busy) return;
 
   el.message.value = p.text;
-  el.message.placeholder = '';
   onInput();
 
   el.message.focus({ preventScroll: true });
@@ -1047,6 +1099,7 @@ function initHowItWorks() {
 
 renderChips();
 updateChoiceNotes();
+updatePlaceholders();
 renderPresets();
 initHowItWorks();
 el.message.addEventListener('input', onInput);
