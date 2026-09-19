@@ -52,3 +52,46 @@ test('마스킹이 평범한 숫자까지 지우지는 않는다', () => {
   const text = '답장 3개 중 2번이 제일 좋았어요. 9월 22일에도 써볼게요.';
   assert.equal(scrubObvious(text), text);
 });
+
+/**
+ * 웹훅 전송 형태.
+ *
+ * Slack·Discord 는 `text` 를 그대로 본문으로 읽고, Make·Zapier 는 필드를
+ * 하나씩 매핑한다. 의견 본문을 `text` 안에만 두면 릴레이 쪽에서 문자열을
+ * 잘라 써야 하므로 `message` 를 따로 실어 보낸다. 둘 중 하나라도 빠지면
+ * 한쪽 연동이 불편해지므로 형태를 고정한다.
+ */
+test('웹훅 본문에 사람이 읽을 text 와 기계가 매핑할 필드가 모두 담긴다', async () => {
+  const { createServer } = await import('node:http');
+  const { default: handler } = await import('../api/feedback.js');
+
+  let got = null;
+  const hook = createServer((req, res) => {
+    const chunks = [];
+    req.on('data', (c) => chunks.push(c));
+    req.on('end', () => {
+      got = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+      res.writeHead(200).end('Accepted');
+    });
+  });
+  await new Promise((r) => hook.listen(0, r));
+  const prev = process.env.FEEDBACK_WEBHOOK_URL;
+  process.env.FEEDBACK_WEBHOOK_URL = `http://127.0.0.1:${hook.address().port}/hook`;
+
+  const res = { statusCode: 0, body: null, setHeader() {}, status(c) { this.statusCode = c; return this; }, json(b) { this.body = b; return this; } };
+  await handler(
+    { method: 'POST', headers: { 'x-forwarded-for': '198.51.100.7' }, body: JSON.stringify({ message: '근거 화면이 좋았어요', contact: 'a@b.co', wantsUpdates: true }) },
+    res,
+  );
+
+  process.env.FEEDBACK_WEBHOOK_URL = prev;
+  await new Promise((r) => hook.close(r));
+
+  assert.equal(res.statusCode, 200);
+  assert.ok(got, '웹훅이 호출되어야 한다');
+  assert.equal(got.message, '근거 화면이 좋았어요', 'Make·Zapier 가 매핑할 필드');
+  assert.ok(got.text.includes('근거 화면이 좋았어요'), 'Slack·Discord 가 읽을 본문');
+  assert.equal(got.contact, 'a@b.co');
+  assert.equal(got.wantsUpdates, true);
+  assert.equal(got.source, 'office-firewall');
+});

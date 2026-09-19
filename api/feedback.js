@@ -70,8 +70,10 @@ async function notifyWebhook(url, payload) {
     await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // Slack·Discord 수신 웹훅은 둘 다 `text` 를 본문으로 읽는다. 다른 릴레이를
-      // 쓰더라도 구조화 필드가 함께 있어 파싱할 수 있다.
+      // Slack·Discord 수신 웹훅은 `text` 를 그대로 본문으로 읽는다.
+      // Make·Zapier 같은 릴레이는 반대로 필드를 하나씩 매핑하므로,
+      // 의견 본문을 `text` 안에만 두면 거기서 잘라 써야 한다. 사람이 읽을
+      // `text` 와 기계가 매핑할 `message` 를 **둘 다** 보낸다.
       body: JSON.stringify({ text: payload.text, ...payload.fields }),
       signal: controller.signal,
     });
@@ -122,7 +124,7 @@ export default async function handler(req, res) {
     try {
       await notifyWebhook(hook, {
         text: `[Office Firewall 의견]\n${message}${contact ? `\n\n연락처: ${contact}` : ''}`,
-        fields: { receivedAt, contact, wantsUpdates: checked.wantsUpdates },
+        fields: { source: 'office-firewall', receivedAt, message, contact, wantsUpdates: checked.wantsUpdates },
       });
     } catch (err) {
       console.error(JSON.stringify({ tag: 'feedback_webhook_failed', name: err?.name, message: err?.message }));
