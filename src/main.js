@@ -389,6 +389,8 @@ function renderChips() {
           updatePlaceholders();
         }
         if (field === 'goal' || field === 'tone') updateChoiceNotes();
+        touched.add(field);
+        renderStepBars();
         savePrefs(state);
         resetResult();
       });
@@ -584,6 +586,38 @@ function matchPresetId(text, hiddenContextRaw, ctx) {
 
 /* ── 입력 ───────────────────────────── */
 
+/**
+ * 구역별 진행 바.
+ *
+ * 칩은 항상 기본값이 하나 선택돼 있어서 "선택됐는가"로 세면 처음부터 100%
+ * 가 된다 — 진행 표시가 아니라 장식이 된다. 그래서 **사용자가 실제로 손댄
+ * 항목**(touched)만 센다. 1·3구역은 손댄 칩 수, 2구역은 관계 칩과 메시지
+ * 입력, 4구역은 실행 가능 여부다.
+ *
+ * 메시지가 없으면 분석 자체가 안 되므로 2구역에서 가장 큰 몫을 준다.
+ */
+const touched = new Set();
+
+function zoneProgress() {
+  const hasMessage = el.message.value.trim().length > 0;
+  const count = (...fields) => fields.filter((f) => touched.has(f)).length;
+  return {
+    me: count('job', 'level') / 2,
+    them: (count('counterpart') + (hasMessage ? 1 : 0)) / 2,
+    reply: count('goal', 'tone') / 2,
+    run: hasMessage ? 1 : 0,
+  };
+}
+
+function renderStepBars() {
+  const progress = zoneProgress();
+  for (const node of document.querySelectorAll('.step-divider[data-step]')) {
+    const value = progress[node.dataset.step] ?? 0;
+    node.querySelector('.step-bar i').style.width = `${Math.round(value * 100)}%`;
+    node.classList.toggle('is-done', value >= 1);
+  }
+}
+
 function onInput() {
   const len = el.message.value.length;
   el.charCount.textContent = String(len);
@@ -591,6 +625,7 @@ function onInput() {
   counter.classList.toggle('warn', len > MAX_CHARS * 0.9 && len <= MAX_CHARS);
   counter.classList.toggle('over', len > MAX_CHARS);
   el.threadWarning.hidden = !looksLikeMultiTurnThread(el.message.value);
+  renderStepBars();
   resetResult();
   if (!el.maskPreview.hidden) updateMaskPreview();
   clearTimeout(suggestTimer);

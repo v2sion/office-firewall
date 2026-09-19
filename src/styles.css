@@ -41,6 +41,26 @@
   --radius-sm: 8px;
   --radius: 12px;
   --radius-lg: 18px;
+
+  /* 입체감 토큰.
+     그림자를 요소마다 눈대중으로 넣으면 같은 층에 있어야 할 것들이 서로
+     다른 높이로 떠 보인다. 층을 셋으로 고정하고 그 값만 쓴다.
+       sm — 화면에 붙어 있는 것(칩·인풋). 테두리를 보조만 한다.
+       md — 캔버스에서 한 겹 뜬 것(패널·카드).
+       lg — 화면 위에 얹힌 것(모달·떠 있는 버튼).
+     Montage 팔레트가 중성 회색이라 그림자도 파랑이 섞인 중성 톤으로 둬야
+     누렇게 뜨지 않는다. 두 겹(근거리 윤곽 + 원거리 확산)으로 나눠 가장자리가
+     또렷하면서도 부드럽게 퍼지게 한다. */
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, .04), 0 1px 3px rgba(16, 24, 40, .06);
+  --shadow-md: 0 1px 3px rgba(16, 24, 40, .05), 0 6px 16px -4px rgba(16, 24, 40, .1);
+  --shadow-lg: 0 4px 8px rgba(16, 24, 40, .06), 0 20px 40px -12px rgba(16, 24, 40, .18);
+  /* 강조 요소(실행 버튼)는 자기 색을 머금은 그림자를 써야 떠 보인다. */
+  --shadow-accent: 0 2px 6px rgba(0, 102, 255, .22), 0 10px 24px -8px rgba(0, 102, 255, .34);
+
+  /* 동작 곡선. ease-out 계열로 통일해 "빠르게 시작해 부드럽게 멈춘다". */
+  --ease: cubic-bezier(.22, 1, .36, 1);
+  --dur-fast: .14s;
+  --dur: .22s;
   /* index.html 에서 로드하는 가변 폰트가 선언하는 이름이 'Pretendard Variable' 이라
      맨 앞에 둔다. 폴백은 Montage 의 스택을 따른다 — 윈도우용 'Malgun Gothic' 이
      빠져 있어 보강했다(로드 실패 시 그 환경이 실제로 받는 글꼴이다). */
@@ -202,13 +222,35 @@ html, body {
   color: var(--text-faint); text-transform: uppercase;
 }
 .step-divider:first-child { margin-top: 0; }
-.step-divider::after { content: ''; flex: 1; height: 1px; background: var(--line); margin-left: 2px; }
+
+/* 구역 옆 선을 진행 바로 쓴다.
+   예전에는 그냥 회색 구분선이었다. 같은 자리에 "이 구역을 얼마나 채웠나"를
+   실으면 새 UI 를 더하지 않고도 진행감이 생긴다 — 입력이 8개라 어디까지
+   했는지 놓치기 쉬운 화면이다. */
+.step-bar {
+  flex: 1; height: 3px; margin-left: 2px; border-radius: 2px;
+  background: var(--line); overflow: hidden;
+}
+.step-bar i {
+  display: block; height: 100%; width: 0; border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+  transition: width .45s cubic-bezier(.22, 1, .36, 1);
+}
+@media (prefers-reduced-motion: reduce) { .step-bar i { transition: none; } }
+
 .step-num {
   display: inline-flex; align-items: center; justify-content: center;
   width: 20px; height: 20px; border-radius: 999px; flex-shrink: 0;
-  background: var(--accent); color: var(--on-accent);
+  /* 아직 안 채운 구역은 번호도 회색이다. 다 채우면 색이 들어온다. */
+  background: var(--line); color: var(--text-faint);
   font-weight: 800; font-size: 12.5px;
+  transition: background .3s, color .3s, box-shadow .3s;
 }
+.step-divider.is-done .step-num {
+  background: var(--accent); color: var(--on-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.step-divider.is-done > span:not(.step-num):not(.step-bar) { color: var(--text-dim); }
 
 /* ── 구역(나 / 상대방 / 답장 설정) ─────────────────────────
    "상대방과의 관계"가 "내 상황" 안에 섞여 있어서, 사용자가 무엇에 대해
@@ -1190,4 +1232,131 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 .to-top:hover { color: var(--accent); border-color: var(--accent-dim); }
 @media (prefers-reduced-motion: reduce) {
   .to-top { transition: opacity .18s; transform: none; }
+}
+
+/* ── '어떻게 작동하나요' — 모바일 축소 ─────────────────────────────
+   이 섹션은 보조 설명인데 모바일에서는 본문과 같은 폭·같은 글자 크기로
+   깔려서, 스크롤하다 만나면 메인 기능처럼 읽혔다. 데스크톱은 그대로 두고
+   좁은 화면에서만 비중을 낮춘다.
+     - 폭을 좁히고 글자 크기를 한 단 내린다
+     - 탭을 4개 한 줄로 압축하고(Step 01 라벨은 번호만)
+     - 선택한 스텝의 내용만 바로 아래에 펼친다(원래 탭 동작 그대로)
+   탭 4개가 줄바꿈 없이 들어가야 "고르는 것"으로 읽히므로 줄바꿈을 막는다. */
+@media (max-width: 767px) {
+  .hiw { max-width: 34em; }
+  .hiw-intro { padding: 26px 8px 14px; }
+  .hiw-intro h2 { font-size: 18px; }
+  .hiw-intro p { font-size: 12.5px; }
+
+  .hiw-tabbar {
+    flex-wrap: nowrap; gap: 6px; padding: 8px 0; margin-bottom: 16px;
+    border-bottom: none;
+  }
+  .hiw-tab {
+    flex: 1; justify-content: center; padding: 9px 4px;
+    /* 탭 네 개의 높이가 같아야 "고르는 줄"로 읽힌다. 라벨을 남기면 선택된
+       탭만 두 줄이 되어 혼자 커졌다(실측). 어느 스텝인지는 바로 아래
+       패널의 eyebrow·제목이 이미 말해 주므로 여기서는 번호만 쓴다. */
+    white-space: nowrap;
+  }
+  .hiw-tab-step { font-size: 12px; opacity: 1; }
+  .hiw-tab-label { display: none; }
+
+  .hiw-panels { padding-bottom: 24px; }
+  /* 선택한 스텝의 내용만 탭 바로 아래 카드로 펼친다. */
+  .hiw-panel {
+    padding: 16px; border: 1px solid var(--line); border-radius: 12px;
+    background: var(--bg-panel);
+  }
+  .hiw-panel h3 { font-size: 16px; }
+  .hiw-panel > p { font-size: 13px; margin-bottom: 14px; }
+  .hiw-panel-eyebrow { font-size: 11.5px; margin-bottom: 6px; }
+  .hiw-tips li { padding: 10px 0; font-size: 12.5px; }
+}
+
+/* ── 입체감 · 인터랙션 ─────────────────────────────
+   층(--shadow-*)과 곡선(--ease)을 토큰으로 고정해 두고 여기서 한 번에
+   적용한다. 요소마다 눈대중으로 넣으면 같은 층에 있어야 할 것들이 서로
+   다른 높이로 떠 보인다.
+
+   원칙 두 가지.
+     1) 움직임은 상태 변화를 설명할 때만 쓴다(눌림·선택·등장). 장식으로
+        움직이는 건 두 번째 방문부터 거슬린다.
+     2) 누르는 순간 반드시 반응이 있어야 한다 — 모바일은 hover 가 없어서
+        :active 가 유일한 피드백이다. */
+
+/* 패널·카드: 캔버스에서 한 겹 띄운다 */
+.panel { box-shadow: var(--shadow-md); }
+.stat, .reply, .preset, .hiw-tab { box-shadow: var(--shadow-sm); }
+
+/* 칩: 선택되면 한 단 올라오고, 누르면 눌린다 */
+.chip { transition: background var(--dur-fast), border-color var(--dur-fast), color var(--dur-fast), box-shadow var(--dur-fast), transform var(--dur-fast); }
+.chip[aria-checked="true"] { box-shadow: var(--shadow-sm); }
+.chip:active { transform: scale(.96); }
+
+/* 상황 카드 */
+.preset { transition: border-color var(--dur-fast), transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease); }
+.preset:hover { box-shadow: var(--shadow-md); }
+.preset:active { transform: translateY(0) scale(.985); box-shadow: var(--shadow-sm); }
+.preset.selected { box-shadow: var(--shadow-md); }
+
+/* 실행 버튼: 자기 색을 머금은 그림자로 화면에서 가장 높은 층에 둔다 */
+.run {
+  box-shadow: var(--shadow-accent);
+  transition: filter var(--dur-fast), transform var(--dur-fast), box-shadow var(--dur) var(--ease);
+}
+.run:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0, 102, 255, .26), 0 16px 32px -10px rgba(0, 102, 255, .4); }
+.run:active:not(:disabled) { transform: translateY(1px) scale(.995); box-shadow: var(--shadow-sm); }
+.run:disabled { box-shadow: none; }
+
+/* 그 외 조작 버튼 — 누르면 반응한다 */
+.copy-btn, .receipt-open, .feedback-submit, .intro-next, .intro-back,
+.preset-run, .history-open, .care-history, .receipt-save, .receipt-copy {
+  transition: background var(--dur-fast), border-color var(--dur-fast), color var(--dur-fast), transform var(--dur-fast), box-shadow var(--dur-fast);
+}
+.copy-btn:active, .receipt-open:active, .feedback-submit:active, .intro-next:active,
+.intro-back:active, .preset-run:active, .history-open:active, .care-history:active,
+.receipt-save:active, .receipt-copy:active { transform: scale(.97); }
+.receipt-open { box-shadow: var(--shadow-sm); }
+.receipt-open:hover { box-shadow: var(--shadow-md); }
+
+/* 입력: 포커스 시 테두리만 바뀌면 약하다. 은은한 링을 함께 준다 */
+.textarea, .feedback-textarea, .feedback-input {
+  transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+}
+.textarea:focus, .feedback-textarea:focus, .feedback-input:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+/* 떠 있는 층 */
+.receipt-panel, .history-modal-panel, .feedback-panel, .intro-panel { box-shadow: var(--shadow-lg); }
+.to-top { box-shadow: var(--shadow-lg); }
+.to-top:active { transform: scale(.92); }
+
+/* 결과 등장 — 점수가 먼저 눈에 들어오도록 아래에서 살짝 올라온다 */
+@keyframes result-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+.result:not([hidden]) { animation: result-in .34s var(--ease) both; }
+
+/* 답장 카드는 순서대로 들어온다(3장이라 계단이 읽힌다) */
+@keyframes reply-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.reply { animation: reply-in .3s var(--ease) both; }
+.reply:nth-child(2) { animation-delay: .07s; }
+.reply:nth-child(3) { animation-delay: .14s; }
+
+/* 복사 완료 표시 */
+.copy-btn.copied { border-color: var(--accent); color: var(--accent); }
+
+/* 움직임을 줄이라는 설정은 전부 따른다 — 상태 변화는 색으로 남는다 */
+@media (prefers-reduced-motion: reduce) {
+  .result:not([hidden]), .reply { animation: none; }
+  .chip:active, .preset:active, .run:hover:not(:disabled), .run:active:not(:disabled),
+  .copy-btn:active, .receipt-open:active, .feedback-submit:active, .intro-next:active,
+  .intro-back:active, .preset-run:active, .history-open:active, .care-history:active,
+  .receipt-save:active, .receipt-copy:active, .to-top:active { transform: none; }
 }
