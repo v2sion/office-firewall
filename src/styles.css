@@ -1393,3 +1393,7 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   .intro-back:active, .preset-run:active, .history-open:active, .care-history:active,
   .receipt-save:active, .receipt-copy:active, .to-top:active { transform: none; }
 }
+
+/* 체크박스가 약속하는 수준을 문구로 정확히 맞춘다. 소식 발송은 수동이라
+   "바로 구독된다"로 읽히면 안 된다. */
+.feedback-note { font-style: normal; color: var(--text-faint); font-size: 12px; }
