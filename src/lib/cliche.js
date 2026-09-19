@@ -11,11 +11,22 @@ export const CLICHES = [
 ];
 
 /** 의사결정 회피 패턴 (결여율 3번 지표 · 컷 우선순위 1순위) */
-export const DECISION_AVOIDANCE = [
+/**
+ * 의사결정 회피 마커.
+ *
+ * STRONG 은 그 자체로 "지금 정하지 않겠다"는 뜻이라 알맹이가 있어도 회피다.
+ * WEAK 은 **완충어와 구별되지 않는다** — "좋을 것 같아요"는 결정을 미루는
+ * 말이 아니라 부탁을 부드럽게 만드는 한국어 관용구다. 그래서 WEAK 은
+ * 알맹이(수치·기한)가 없을 때만 회피 신호로 센다. 아래 SUBSTANCE_GATE 주석 참고.
+ */
+export const DECISION_AVOIDANCE_STRONG = [
   '검토해보', '검토 후', '논의해서', '논의 후', '확인 후', '확인해보고',
   '조율해서', '협의해서', '정리되는 게 맞', '받고 나서', '추후', '차차',
-  '것 같', '보는 게 좋을',
 ];
+export const DECISION_AVOIDANCE_WEAK = ['것 같', '보는 게 좋을'];
+
+/** @deprecated 강·약 구분 이전의 통합 목록 — 외부 참조 호환용으로만 남긴다. */
+export const DECISION_AVOIDANCE = [...DECISION_AVOIDANCE_STRONG, ...DECISION_AVOIDANCE_WEAK];
 
 /** 숫자(마스킹 토큰 내부 숫자는 제외) */
 const TOKEN_STRIP = /\{\{[A-Z]+_\d+\}\}/g;
@@ -71,9 +82,36 @@ export function hasDeadline(text) {
   return DEADLINE_RES.some((re) => re.test(t));
 }
 
-export function avoidsDecision(text) {
+/**
+ * SUBSTANCE_GATE — 이 파일 전체를 관통하는 원칙
+ *
+ * 완곡어(가볍게·한번만·좋을 것 같아요)는 **공허함의 대리 지표**일 뿐이다.
+ * 산출물·수치·기한이 실제로 적혀 있으면 그 대리 지표는 무효다. 완곡어는
+ * 예의이지 알맹이 없음이 아니다.
+ *
+ * 게이팅 전에는 같은 요청을 말투만 바꿔 넣으면 점수가 16점(건조) ↔ 65점(정중)
+ * 으로 갈렸다 — 산출물·기한·규격이 전부 동일한데도. "정중할수록 위험하다"는
+ * 역설이 생기고, 한국 직장 메시지 상당수가 정중체라 거짓양성이 쏟아진다.
+ *
+ * 반대로 알맹이가 **없는** 메시지에서는 게이트가 열리지 않으므로, 완곡어로
+ * 포장된 주말 요구(골든 ①)는 그대로 고위험으로 남는다. 이 제품의 논지를
+ * 지키면서 거짓양성만 걷어내는 지점이 여기다.
+ *
+ * @param {object} signals hasNumbers / hasDeadline
+ */
+export function hasSubstance(signals) {
+  return Boolean(signals?.hasNumbers || signals?.hasDeadline);
+}
+
+/**
+ * @param {string} text
+ * @param {object} [signals] hasNumbers/hasDeadline. 주면 약한 마커를 게이팅한다.
+ */
+export function avoidsDecision(text, signals) {
   const t = toJamo(text);
-  return DECISION_AVOIDANCE.some((p) => t.includes(toJamo(p)));
+  if (DECISION_AVOIDANCE_STRONG.some((p) => t.includes(toJamo(p)))) return true;
+  if (signals && hasSubstance(signals)) return false; // 완충어는 회피가 아니다
+  return DECISION_AVOIDANCE_WEAK.some((p) => t.includes(toJamo(p)));
 }
 
 /** 요청 시점의 긴급성 유형 (규칙 기반) */
@@ -85,9 +123,16 @@ export function detectUrgency(t) {
 }
 
 /** 무엇이 비어 있는지에 대한 모호성 유형 (규칙 기반) */
+/** 범위가 실제로 비어 있음을 가리키는 표현 — 알맹이가 있어도 모호하다. */
+const SCOPE_VAGUE_STRONG = /(알아서|적당히|대략|보완해서|다시 작업)/;
+/** 완충어와 구분되지 않는 표현 — 알맹이가 없을 때만 모호성으로 센다. */
+const SCOPE_VAGUE_WEAK = /(가볍게|간단히|한번\s*봐|전반적으로)/;
+
 export function detectAmbiguity(t, signals) {
   if (/(R&R|알앤알|롤앤롤|담당이|누가 하|소관|저희 쪽은)/i.test(t)) return 'R&R 미지정';
-  if (/(가볍게|간단히|한번 봐|전반적으로|대략|알아서|적당히|보완해서|다시 작업)/.test(t)) return '범위 불명';
+  if (SCOPE_VAGUE_STRONG.test(t)) return '범위 불명';
+  // "가볍게 한번 봐주세요" 라도 산출물·기한이 적혀 있으면 범위가 비어 있지 않다.
+  if (SCOPE_VAGUE_WEAK.test(t) && !hasSubstance(signals)) return '범위 불명';
   if (!signals.hasDeadline && /(부탁|주세요|해주실|요청|보내주)/.test(t)) return '기한 불명';
   return '없음';
 }
@@ -106,11 +151,11 @@ export function aiSlopScore(t, signals) {
  * @param {string} maskedText
  */
 export function extractSubstanceSignals(maskedText) {
+  const spec = { hasNumbers: hasNumbers(maskedText), hasDeadline: hasDeadline(maskedText) };
   return {
     clicheHits: findCliches(maskedText),
     sentenceCount: countSentences(maskedText),
-    hasNumbers: hasNumbers(maskedText),
-    hasDeadline: hasDeadline(maskedText),
-    avoidsDecision: avoidsDecision(maskedText),
+    ...spec,
+    avoidsDecision: avoidsDecision(maskedText, spec),
   };
 }

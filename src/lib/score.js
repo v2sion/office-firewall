@@ -28,9 +28,16 @@ export function substanceGap(xray, maskedText) {
   const sentences = xray?.sentenceCount || countSentences(maskedText || '');
   const hits = Array.isArray(xray?.clicheHits) ? xray.clicheHits.length : 0;
 
+  // 알맹이(수치·기한)가 실제로 있으면 클리셰 밀도는 세지 않는다.
+  // 클리셰 밀도는 "알맹이가 없다"의 대리 지표인데, 알맹이가 확인된 이상 그
+  // 대리 지표는 무효다. 게이트가 없을 때는 "9/22 14시까지 배너 2종, 1200x600"
+  // 처럼 규격이 다 적힌 요청도 완곡어만 씌우면 밀도가 만점으로 튀었다.
+  // (cliche.js 의 SUBSTANCE_GATE 주석과 같은 원칙)
+  const specPresent = Boolean(xray?.hasNumbers || xray?.hasDeadline);
+
   const parts = [];
   if (SUBSTANCE_METRICS.clicheDensity) {
-    parts.push(Math.min(1, hits / sentences / CLICHE_DENSITY_CAP));
+    parts.push(specPresent ? 0 : Math.min(1, hits / sentences / CLICHE_DENSITY_CAP));
   }
   if (SUBSTANCE_METRICS.missingSpec) {
     parts.push(xray?.hasNumbers || xray?.hasDeadline ? 0 : 1);

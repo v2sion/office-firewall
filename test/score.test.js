@@ -139,3 +139,61 @@ test('규칙으로 검증 못 하는 "범위 불명"·"R&R 미지정"은 AI 판�
     assert.equal(xray.ambiguityType, label);
   }
 });
+
+/**
+ * 정중함 역설 회귀 테스트 (cliche.js 의 SUBSTANCE_GATE)
+ *
+ * 전문가 리뷰에서 "정중하게 말할수록 위험도가 높아지는 역설"로 지적된 부분이다.
+ * 게이팅 전에는 산출물·기한·규격이 전부 동일한 같은 요청이 말투만 바꿔도
+ * 16점(건조) ↔ 65점(정중)으로 갈렸다. 완곡어가 클리셰 밀도·모호성·의사결정
+ * 회피 세 신호를 한꺼번에 발화시켰기 때문이다.
+ */
+const POLITE_SPECIFIC =
+  '{{PERSON_1}}님, 바쁘신데 죄송해요! 시간 날 때 가볍게 한번만 봐주시면 좋을 것 같아요. ' +
+  '9월 22일 14시까지 배너 시안 2종, 사이즈는 1200x600, 문구는 첨부 3페이지 기준입니다. 급한 건 아닙니다!';
+const DRY_SPECIFIC =
+  '9월 22일 14시까지 배너 시안 2종 부탁드립니다. 사이즈는 1200x600, 문구는 첨부 파일 3페이지 기준입니다.';
+
+const scoreOf = (text) => {
+  const signals = extractSubstanceSignals(text);
+  return calcRisk({ ...signals, powerAsymmetry: 4, urgencyType: '없음', ambiguityType: '없음' }, text);
+};
+
+test('같은 요청은 말투가 정중해도 건조할 때와 같은 등급에 머문다', () => {
+  const polite = scoreOf(POLITE_SPECIFIC);
+  const dry = scoreOf(DRY_SPECIFIC);
+  assert.ok(
+    Math.abs(polite - dry) <= 10,
+    `완곡어만으로 점수가 갈린다: 정중 ${polite} vs 건조 ${dry}`,
+  );
+  assert.equal(riskLabel(polite).level, riskLabel(dry).level);
+});
+
+test('산출물·기한이 명시되면 완곡어는 모호성·의사결정 회피로 세지 않는다', () => {
+  const s = extractSubstanceSignals(POLITE_SPECIFIC);
+  assert.equal(s.hasNumbers, true);
+  assert.equal(s.hasDeadline, true);
+  assert.equal(s.avoidsDecision, false, '"좋을 것 같아요"는 완충어지 결정 회피가 아니다');
+  assert.ok(s.clicheHits.length > 0, '클리셰는 여전히 탐지되어야 한다(표시용)');
+  assert.equal(substanceGap(s, POLITE_SPECIFIC), 0, '알맹이가 있으면 결여율 0');
+});
+
+test('알맹이가 없으면 게이트가 열리지 않는다 — 완곡어로 포장된 주말 요구는 그대로 고위험', () => {
+  // 골든 ① 과 같은 문장. 이 제품의 논지 자체라 절대 낮아지면 안 된다.
+  const weekend =
+    '{{PERSON_1}}님 주말에 미안한데, 월요일 오전에 대표님 보고가 잡혀서요. ' +
+    '시간 날 때 가볍게 한번 봐주시면 좋을 것 같아요. 급한 건 아닙니다!';
+  const s = extractSubstanceSignals(weekend);
+  assert.equal(s.hasNumbers, false);
+  assert.equal(s.hasDeadline, false);
+  assert.equal(s.avoidsDecision, true, '알맹이가 없으면 약한 마커도 회피 신호로 센다');
+  assert.equal(substanceGap(s, weekend), 1, '결여율 만점 유지');
+});
+
+test('"알아서" 류 강한 범위 신호는 알맹이가 있어도 모호성으로 남는다', () => {
+  const text = '9월 22일 14시까지 알아서 적당히 정리해서 주세요.';
+  const s = extractSubstanceSignals(text);
+  assert.equal(s.hasDeadline, true);
+  assert.equal(avoidsDecision(text, s), false);
+  // 강한 신호는 게이트를 통과하지 못한다 — detectAmbiguity 는 cliche.js 에서 검증
+});
