@@ -214,6 +214,11 @@ html, body {
   font-family: var(--font);
   font-size: 13px;
   text-align: left;
+  /* 한글은 기본값(word-break: normal)에서 어절 중간도 끊는다 — 좁은 폭에서
+     "주말 업무 요/청"처럼 잘렸다. keep-all 로 띄어쓰기에서만 접고,
+     띄어쓰기 없이 긴 낱말이 들어올 때만 overflow-wrap 이 받아낸다. */
+  word-break: keep-all;
+  overflow-wrap: break-word;
   cursor: pointer;
   transition: border-color .12s, transform .12s;
 }
