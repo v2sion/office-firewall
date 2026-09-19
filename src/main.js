@@ -12,6 +12,7 @@ import { buildReceiptData } from './lib/receipt.js';
 import { looksLikeMultiTurnThread } from './lib/thread-hint.js';
 import { matchSituationId } from './lib/situation-match.js';
 import { entryFromResult, addEntry, getHistory, clearHistory, summarize } from './lib/history.js';
+import { loadPrefs, savePrefs } from './lib/prefs.js';
 import golden from './data/golden.json';
 import presetWeekend from './data/presets/weekend.json';
 import presetAislop from './data/presets/aislop.json';
@@ -160,6 +161,9 @@ const state = {
   counterpart: OPTIONS.counterpart[0],
   goal: OPTIONS.goal[0],
   tone: OPTIONS.tone[1], // 보통맛 기본값
+  // 지난 방문에서 고른 값이 있으면 그걸로 덮는다. 현재 선택지에 없는 값은
+  // loadPrefs 가 걸러내므로 기본값이 유지된다.
+  ...loadPrefs(OPTIONS),
 };
 
 /** 세션 메모리 토큰 맵 — localStorage 금지, 서버 전송 금지 */
@@ -260,6 +264,7 @@ function renderChips() {
           updatePresetOrder();
         }
         if (field === 'goal' || field === 'tone') updateChoiceNotes();
+        savePrefs(state);
       });
       box.appendChild(btn);
     }
