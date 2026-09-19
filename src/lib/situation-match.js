@@ -28,10 +28,16 @@ export function matchSituationId(text, counterpart) {
   if (slop >= 60) return 'aislop';
   if (urgencyType === '주말 침범') return 'weekend';
   if (urgencyType === '야간 침범') return 'nightowl';
+  // 당일 마감 + 관계 조합으로 같은 신호를 다른 카드로 나눈다. '민원인'을
+  // '클라이언트'보다 먼저 확인해야 한다 — 둘 다 해당하는 counterpart 값은
+  // 없지만, 관계가 늘어난 순서에 의존하지 않도록 명시적으로 분리해 둔다.
+  if (urgencyType === '당일 마감' && counterpart === '민원인') return 'complainant';
   if (urgencyType === '당일 마감' && counterpart === '클라이언트') return 'client';
+  if (urgencyType === '당일 마감' && counterpart === '후배') return 'juniordump';
   if (ambiguityType === 'R&R 미지정') return 'pingpong';
   if (GROUPCHAT_RE.test(t)) return 'groupchat';
   if ((ambiguityType === '범위 불명' || ambiguityType === '기한 불명') && counterpart === '클라이언트') return 'emailcreep';
+  if (signals.avoidsDecision && counterpart === '후배') return 'juniordump';
   if (signals.avoidsDecision) return 'passthebuck';
 
   return null;

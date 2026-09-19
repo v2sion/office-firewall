@@ -32,7 +32,21 @@ test('AI 슬롭 마커가 강하면 상대방/기타 신호보다 aislop 이 우
   assert.equal(matchSituationId(t, '클라이언트'), 'aislop');
 });
 
-test('당일 마감 신호가 있어도 상대가 클라이언트가 아니면 client 로 매칭하지 않는다', () => {
+test('당일 마감 신호가 있어도 상대가 클라이언트/민원인/후배가 아니면 매칭하지 않는다', () => {
   const t = '내일까지 다시 작업해서 보내주세요.';
   assert.equal(matchSituationId(t, '직속상사'), null);
+});
+
+test('같은 "당일 마감" 신호도 관계에 따라 client·complainant·juniordump 로 갈린다', () => {
+  const t = '내일까지 다시 작업해서 보내주세요.';
+  assert.equal(matchSituationId(t, '클라이언트'), 'client');
+  assert.equal(matchSituationId(t, '민원인'), 'complainant');
+  assert.equal(matchSituationId(t, '후배'), 'juniordump');
+});
+
+test('신규 상황 카드(juniordump·complainant) 원문도 자기 자신의 id로 매칭된다', () => {
+  const juniordump = '선배님 죄송한데 저 이거 도저히 감이 안 잡혀서요… 내일까지 드려야 하는데 대신 좀 봐주시면 안 될까요? 선배님이 하시면 훨씬 빠를 것 같아서요ㅠㅠ';
+  const complainant = '지금 몇 시간째 기다리는 줄 아세요? 당장 책임자 나오라고 하세요. 오늘 중으로 처리 안 되면 가만 안 있을 겁니다.';
+  assert.equal(matchSituationId(juniordump, '후배'), 'juniordump');
+  assert.equal(matchSituationId(complainant, '민원인'), 'complainant');
 });

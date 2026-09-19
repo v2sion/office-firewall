@@ -142,75 +142,91 @@ const apiValue = (raw) => VALUE_OF[raw] || strip(raw);
  * 순수 UI 예시 갤러리라서 골든 데이터에 종속되지 않는다 — 새 카드를
  * 추가할 때 테스트 픽스처를 함께 만들 필요가 없다.
  */
+/**
+ * fits 는 배열이다 — 한 상황이 여러 관계에서 나올 수 있다.
+ * "주말 업무 눈치보기"는 직속상사만이 아니라 임원·선배도 시킨다. 예전에
+ * 값 하나만 받던 시절엔 관계 8종 중 6종이 매칭 카드 1장뿐이었다(실측).
+ *
+ * 라벨에서 관계 이름을 뺐다("상사의 주말 업무"→"주말 갑질"). fits 가
+ * 배열이 된 이상 카드 하나를 특정 관계에 고정해 부르면 다른 매칭 관계와
+ * 모순된다 — "후배의 업무 떠넘기기"가 상사 화면에도 뜨면 이상하다.
+ *
+ * 대신 "갑질" 로 통일했다 — 이건 관계 이름이 아니라 권력 우위를 이용한
+ * 행위를 가리키는 말이라 여러 관계에 걸쳐도 어긋나지 않는다(영수증의
+ * "주말 도둑형"·"벼락 마감형" 같은 빌런 네이밍과 같은 결). 다만 아래
+ * 세 장(무지성 AI 복붙·R&R 핑퐁·대신 해달라는 요청)은 동기·타부서 동료·
+ * 후배처럼 대등하거나 낮은 위치에서 나오는 상황이라 "갑질"을 붙이지
+ * 않았다 — 후배가 갑질을 할 수는 없다.
+ */
 const PRESETS = [
   {
     id: 'weekend',
     emoji: '📅',
-    fits: '직속상사',
-    label: '상사의 주말 업무',
+    fits: ['직속상사', '임원', '선배'],
+    label: '주말 갑질',
     text: '박지훈님 주말에 미안한데, 월요일 오전에 대표님 보고가 잡혀서요. 시간 날 때 가볍게 한번 봐주시면 좋을 것 같아요. 급한 건 아닙니다!',
   },
   {
     id: 'aislop',
     emoji: '🤖',
-    fits: '동기',
+    fits: ['동기', '타부서 동료', '후배'],
     label: '무지성 AI 복붙',
     text: '안녕하세요! 말씀해주신 사항에 대해 검토해보았습니다. 전반적으로 긍정적인 방향으로 보이며, 추가적인 논의를 통해 더 나은 결과를 도출할 수 있을 것으로 사료됩니다. 관련하여 지속적인 커뮤니케이션을 이어가면 좋겠습니다. 감사합니다.',
   },
   {
     id: 'pingpong',
     emoji: '🏓',
-    fits: '타부서 동료',
-    label: '타부서 R&R 핑퐁',
+    fits: ['타부서 동료', '동기'],
+    label: 'R&R 핑퐁',
     text: '이 건은 저희 쪽 R&R은 아닌 것 같은데요, 아무래도 기획 단계에서 정리되는 게 맞을 것 같습니다. 혹시 먼저 정리해서 공유해주실 수 있을까요? 저희는 그거 받고 나서 진행하겠습니다.',
   },
   {
     id: 'client',
     emoji: '👑',
-    fits: '클라이언트',
-    label: '클라이언트 갑질',
+    fits: ['클라이언트', '민원인'],
+    label: '무상 재작업 갑질',
     text: '이거 처음 얘기했던 거랑 좀 다른데요? 저희가 원한 건 이게 아니었습니다. 내일까지 다시 작업해서 보내주세요. 추가 비용 얘기는 없던 걸로 알고 있습니다.',
   },
   {
     id: 'nightowl',
     emoji: '🌙',
-    fits: '선배',
-    label: '퇴근 후 야간 톡',
+    fits: ['직속상사', '선배'],
+    label: '야간 갑질',
     text: '이렇게 늦은 시간에 톡해서 미안한데 자기 전에 하나만 부탁해도 될까요? 내일 오전 회의자료에 지난달 지표 슬라이드 하나만 껴주면 좋을 것 같아요. 급한 건 아니니까 편하실 때 봐주세요~',
   },
   {
     id: 'emailcreep',
     emoji: '✉️',
-    fits: '클라이언트',
-    label: '이메일 무한 수정요청',
+    fits: ['클라이언트', '민원인'],
+    label: '수정 갑질',
     text: '안녕하세요, 지난번에 말씀드린 배너 시안 관련해서요. 죄송한데 색감을 조금만 더 밝게, 폰트도 살짝 키워주시고, 로고 위치도 다시 한 번 검토 부탁드려요. 예산 안에서 진행 가능할 것 같아서 말씀드립니다!',
   },
   {
     id: 'groupchat',
     emoji: '📢',
-    fits: '임원',
-    label: '단톡방 공개 저격',
+    fits: ['임원', '직속상사'],
+    label: '단톡방 갑질',
     text: '다들 보고 계시죠? 이번 프로젝트 일정 늦어진 거 이 자리에서 한번 정리하고 갑시다. 담당자분 답변 부탁드려요.',
   },
   {
     id: 'passthebuck',
     emoji: '🤐',
-    fits: '직속상사',
-    label: '책임 떠넘기는 지시',
+    fits: ['직속상사', '임원'],
+    label: '위임 갑질',
     text: '이 부분은 담당자님이 알아서 잘 판단해서 진행해 주세요. 저는 큰 그림만 보고 있어서 세부적인 건 믿고 맡기겠습니다. 결과만 잘 나오면 될 것 같아요!',
   },
   {
     id: 'juniordump',
     emoji: '🙇',
-    fits: '후배',
-    label: '후배의 업무 떠넘기기',
+    fits: ['후배'],
+    label: '대신 해달라는 요청',
     text: '선배님 죄송한데 저 이거 도저히 감이 안 잡혀서요… 내일까지 드려야 하는데 대신 좀 봐주시면 안 될까요? 선배님이 하시면 훨씬 빠를 것 같아서요ㅠㅠ',
   },
   {
     id: 'complainant',
     emoji: '😤',
-    fits: '민원인',
-    label: '민원인 격앙 응대',
+    fits: ['민원인', '클라이언트'],
+    label: '진상 갑질',
     text: '지금 몇 시간째 기다리는 줄 아세요? 당장 책임자 나오라고 하세요. 오늘 중으로 처리 안 되면 가만 안 있을 겁니다.',
   },
 ];
@@ -236,6 +252,7 @@ const $ = (id) => document.getElementById(id);
 const el = {
   presetGrid: $('preset-grid'),
   presetHint: $('preset-hint'),
+  presetToggle: $('preset-toggle'),
   presetRun: $('preset-run'),
   message: $('message'),
   charCount: $('char-count'),
@@ -327,8 +344,9 @@ function renderChips() {
           // 관계가 바뀌면 이전에 고른 예시 카드는 더 이상 맞지 않는다.
           // 선택을 풀어야 예시 문구도 새 관계 기준으로 돌아간다.
           clearPresetSelection();
+          presetsExpanded = false; // 관계를 다시 고르면 필터도 그 관계로 리셋한다
           updateSituationSuggestion();
-          updatePresetOrder();
+          applyPresetFilter();
           updatePlaceholders();
         }
         if (field === 'goal' || field === 'tone') updateChoiceNotes();
@@ -360,6 +378,9 @@ function updateChoiceNotes() {
 /** id → 카드 버튼. 입력 내용 기반 추천 표시(updateSituationSuggestion)에 쓴다. */
 const presetButtons = new Map();
 
+/** "다른 상황도 보기" 를 눌러 전체 목록을 펼친 상태인가. 관계를 바꾸면 다시 접는다. */
+let presetsExpanded = false;
+
 /** 마지막으로 누른 예시 카드 — "예시 그대로 결과 보기" 가 이 값을 쓴다. */
 let activePreset = null;
 
@@ -375,27 +396,41 @@ function renderPresets() {
     el.presetGrid.appendChild(btn);
     presetButtons.set(p.id, btn);
   }
-  updatePresetOrder();
+  applyPresetFilter();
 }
 
 /**
- * 고른 관계에 맞는 예시를 앞으로 당긴다.
+ * 고른 관계에 맞는 예시만 남기고 나머지는 숨긴다.
  *
- * 카드 8장이 관계와 무관하게 늘 같은 순서로 놓여 있었다. 이미
- * matchSituationId 가 counterpart 를 받아 추천 표시를 하지만 그건 메시지를
- * 8자 이상 타이핑한 뒤에야 작동한다 — 정작 도움이 필요한 "아직 아무것도
- * 안 쓴 순간"에는 아무 단서가 없었다.
+ * 예전엔 CSS order 로 "정렬"만 했다 — 카드 10장이 관계와 무관하게 항상
+ * 전부 보였고, 관계당 매칭 카드가 1장뿐인 경우(8종 중 6종)엔 순서가
+ * 거의 안 바뀌어서 힌트 문구("OO 관련 상황을 먼저 보여드려요")가 과장한
+ * 약속처럼 느껴졌다. fits 를 배열로 바꾸고(관계당 2~4장으로 늘어남),
+ * 정렬 대신 실제로 안 맞는 카드를 hidden 처리한다.
  *
- * DOM 을 다시 만들지 않고 CSS order 만 바꾼다. 선택 상태·추천 배지·이벤트
- * 핸들러가 그대로 유지된다.
+ * "다른 상황도 보기"로 언제든 전체를 펼칠 수 있다 — 관계 선택이 완벽하지
+ * 않을 수 있으니 숨긴 카드를 아예 못 보게 막지는 않는다.
  */
-function updatePresetOrder() {
+function applyPresetFilter() {
   const who = apiValue(state.counterpart);
+  const matches = PRESETS.filter((p) => p.fits.includes(who));
+  const hiddenCount = PRESETS.length - matches.length;
+
   for (const p of PRESETS) {
     const btn = presetButtons.get(p.id);
-    if (btn) btn.style.order = apiValue(p.fits) === who ? '0' : '1';
+    if (!btn) continue;
+    const show = presetsExpanded || matches.includes(p);
+    btn.hidden = !show;
   }
-  el.presetHint.textContent = `예시 — ${who} 관련 상황을 먼저 보여드려요`;
+
+  el.presetHint.textContent = presetsExpanded
+    ? '예시 — 전체 상황'
+    : `예시 — ${who} 관련 상황 ${matches.length}가지`;
+
+  el.presetToggle.hidden = hiddenCount === 0;
+  el.presetToggle.textContent = presetsExpanded
+    ? '관련 상황만 보기'
+    : `다른 상황도 보기 (+${hiddenCount})`;
 }
 
 /**
@@ -404,12 +439,22 @@ function updatePresetOrder() {
  * 선택하지 않는다 — 사용자가 이미 손에 든 메시지를 붙여넣는 흐름에 맞춰,
  * 카드를 먼저 고르지 않아도 자연스럽게 비슷한 상황을 알아볼 수 있게 하는
  * 힌트일 뿐이다.
+ *
+ * 텍스트로 찾은 카드가 지금 관계 필터에 가려져 있으면 필터를 펼친다 —
+ * "내용을 보니 이거다"가 "관계로 짐작한 목록"보다 더 확실한 신호라서다.
  */
 function updateSituationSuggestion() {
   const text = el.message.value;
   const matchedId = text.trim().length >= SUGGEST_MIN_CHARS
     ? matchSituationId(text, apiValue(state.counterpart))
     : null;
+  if (matchedId && !presetsExpanded) {
+    const btn = presetButtons.get(matchedId);
+    if (btn?.hidden) {
+      presetsExpanded = true;
+      applyPresetFilter();
+    }
+  }
   presetButtons.forEach((btn, id) => btn.classList.toggle('suggested', id === matchedId));
 }
 
@@ -1183,6 +1228,10 @@ el.hiddenContext.addEventListener('input', () => {
 });
 el.run.addEventListener('click', () => run());
 el.presetRun.addEventListener('click', () => applyPresetMessage());
+el.presetToggle.addEventListener('click', () => {
+  presetsExpanded = !presetsExpanded;
+  applyPresetFilter();
+});
 el.togglePreview.addEventListener('click', () => {
   const show = el.maskPreview.hidden;
   el.maskPreview.hidden = !show;

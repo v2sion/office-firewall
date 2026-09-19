@@ -240,6 +240,19 @@ html, body {
 }
 .preset.suggested .suggested-badge { display: inline; }
 
+/* 관계 필터에서 접힌 카드를 다시 펼치는 링크형 버튼. .preset-run(강조된
+   CTA)과 톤을 분리해 눈에 덜 띄게 둔다 — "다른 것도 있다"는 부가 선택지지
+   기본 흐름이 아니다. */
+.preset-toggle {
+  width: 100%; margin-top: 8px; padding: 8px 4px;
+  border: none; background: none; color: var(--text-dim);
+  font-family: var(--font); font-size: 12px; font-weight: 500;
+  text-decoration: underline; text-underline-offset: 2px;
+  cursor: pointer;
+}
+.preset-toggle:hover { color: var(--accent); }
+@media (max-width: 991px) { .preset-toggle { min-height: 40px; } }
+
 /* 카드를 누른 뒤에만 나타나는 "이 예시로 결과 보기". 첫 방문자가 자기
    메시지를 붙여넣기 전에 결과 화면을 한 번 볼 수 있게 하는 통로다.
    실행 버튼(.run)과 경쟁하지 않도록 점선·저채도로 한 단계 낮춘다. */
