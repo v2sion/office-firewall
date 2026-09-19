@@ -54,7 +54,11 @@ export default async function handler(req, res) {
     return res.status(200).json(result);
   } catch (err) {
     if (err instanceof AnalyzeError) {
-      return res.status(err.status).json({ error: { code: err.code, message: err.message } });
+      // 혼잡(429)은 "언제 다시 오면 되는지"까지 알려 줘야 안내가 완성된다.
+      if (err.retryAfterSec) res.setHeader('Retry-After', String(err.retryAfterSec));
+      return res.status(err.status).json({
+        error: { code: err.code, message: err.message, retryAfterSec: err.retryAfterSec },
+      });
     }
     console.error(JSON.stringify({ tag: 'analyze_error', name: err?.name, status: err?.status, message: err?.message }));
     return res.status(502).json({

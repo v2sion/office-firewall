@@ -145,6 +145,26 @@ async function callGroq(maskedText, context, env, clientFactory = defaultClientF
 }
 
 /**
+ * 업스트림 혼잡(429)을 "실패"와 구분한다.
+ *
+ * 무료 티어 한도는 8,000 TPM 이고 호출당 ~2,500 토큰이 나가므로 **서비스
+ * 전체가 분당 3건**이다. 제출 후 공개되면 이 한도는 자주 걸린다. 그런데
+ * 예전에는 Groq 의 429 가 일반 catch 로 흘러 502 UPSTREAM_FAILED 가 됐고,
+ * 사용자는 "분석에 실패했습니다"를 봤다. 실패가 아니라 줄을 선 것이라
+ * 안내가 달라야 한다(잠시 후 다시 오면 된다).
+ *
+ * Groq SDK 는 APIError 에 status 를 실어 준다. 헤더의 retry-after 가 있으면
+ * 그대로 쓰고, 없으면 한도 창이 분 단위라 60초를 기본값으로 둔다.
+ */
+function rateLimitInfo(err) {
+  if (err?.status !== 429) return null;
+  const headers = err?.headers;
+  const raw = typeof headers?.get === 'function' ? headers.get('retry-after') : headers?.['retry-after'];
+  const sec = Number(raw);
+  return { retryAfterSec: Number.isFinite(sec) && sec > 0 ? Math.ceil(sec) : 60 };
+}
+
+/**
  * @param {{ maskedText: string, context: object }} input
  * @param {object} [env]
  * @param {{ clientFactory?: Function }} [deps] 테스트에서 모델 호출을 대체하기 위한 주입점
@@ -176,7 +196,22 @@ export async function runAnalyze(input, env = process.env, deps = {}) {
   if (useMock) {
     aiOut = buildMockAnalysis(maskedText, context);
   } else {
-    const result = await callGroq(maskedText, context, env, deps.clientFactory || defaultClientFactory);
+    let result;
+    try {
+      result = await callGroq(maskedText, context, env, deps.clientFactory || defaultClientFactory);
+    } catch (err) {
+      const limited = rateLimitInfo(err);
+      if (limited) {
+        const e = new AnalyzeError(
+          429,
+          'UPSTREAM_RATE_LIMITED',
+          '지금 이용자가 몰려 AI 분석이 밀려 있습니다. 잠시 후 다시 시도해 주세요.',
+        );
+        e.retryAfterSec = limited.retryAfterSec;
+        throw e;
+      }
+      throw err;
+    }
     aiOut = result.parsed;
     usage = {
       input_tokens: result.usage.prompt_tokens ?? 0,

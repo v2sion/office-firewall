@@ -89,15 +89,15 @@ const OPTIONS = {
  * 으로 다시 쓴 것이 아래 문구다. 둘 중 하나를 고치면 다른 쪽도 맞출 것.
  */
 const GOAL_NOTE = {
-  '칼차단': '수용할 수 없다는 걸 분명히 합니다. 대안은 하나만 남기고, 일정 재협상 여지는 두지 않습니다.',
-  '시간벌기': '즉답을 피하고 판단에 필요한 정보를 먼저 요구합니다. 회신 시점을 내가 정합니다.',
-  '공넘기기': '선행 조건과 책임 소재를 짚어 공을 상대에게 돌려보냅니다. 내가 먼저 착수하지 않습니다.',
-  '관계보존': '요구는 받되 범위와 기한을 좁혀 다시 정의합니다. 관계 비용을 가장 적게 씁니다.',
+  '칼차단': '수용할 수 없다는 걸 분명히 합니다.\n대안은 하나만 남기고, 일정 재협상 여지는 두지 않습니다.',
+  '시간벌기': '즉답을 피하고 판단에 필요한 정보를 먼저 요구합니다.\n회신 시점을 내가 정합니다.',
+  '공넘기기': '선행 조건과 책임 소재를 짚어 공을 상대에게 돌려보냅니다.\n내가 먼저 착수하지 않습니다.',
+  '관계보존': '요구는 받되 범위와 기한을 좁혀 다시 정의합니다.\n관계 비용을 가장 적게 씁니다.',
 };
 const TONE_NOTE = {
-  '순한맛': '쿠션어를 문장마다 넣고, 거절도 제안 형태로 바꿉니다. 상대 체면을 먼저 세웁니다.',
-  '보통맛': '사실과 일정 중심의 표준 업무 어조입니다. 감정 표현 없이 담백하게 씁니다.',
-  '매운맛': '완곡어를 걷어내고 모호한 부분을 직접 지적합니다. 범위·기한·담당을 명시적으로 요구합니다.',
+  '순한맛': '쿠션어를 문장마다 넣고, 거절도 제안 형태로 바꿉니다.\n상대 체면을 먼저 세웁니다.',
+  '보통맛': '사실과 일정 중심의 표준 업무 어조입니다.\n감정 표현 없이 담백하게 씁니다.',
+  '매운맛': '완곡어를 걷어내고 모호한 부분을 직접 지적합니다.\n범위·기한·담당을 명시적으로 요구합니다.',
 };
 
 /**
@@ -298,6 +298,8 @@ const el = {
   introReplay: $('intro-replay'),
   result: $('result'),
   errorBox: $('error-box'),
+  busyNote: $('busy-note'),
+  busyNoteBody: $('busy-note-body'),
   xray: $('xray'),
   alertHeader: $('alert-header'),
   modeBadge: $('mode-badge'),
@@ -658,6 +660,7 @@ async function run() {
         if (err.recoverable) {
           result = localFallback(payload, startedAt);
           result.meta.note = err.message;
+          if (err.busySec) result.meta.busySec = err.busySec;
         } else {
           throw err;
         }
@@ -697,6 +700,16 @@ async function postAnalyze(payload) {
   }
   if (!res.ok) {
     const message = body?.error?.message || '분석에 실패했습니다.';
+    // 429 는 실패가 아니라 "줄을 섰다"는 뜻이다. 제출 후 공개되면 무료 티어
+    // 한도(서비스 전체 분당 ~3건)에 자주 걸리는데, 그때 화면이 에러로 끝나면
+    // 처음 온 사람은 고장난 서비스로 읽는다. 로컬 룰엔진으로 결과는 그대로
+    // 내주고, 왜 AI 분석이 빠졌는지와 언제 다시 오면 되는지를 함께 알린다.
+    if (res.status === 429) {
+      const sec = Number(body?.error?.retryAfterSec) || Number(res.headers.get('Retry-After')) || 60;
+      const e = recoverable(message);
+      e.busySec = sec;
+      throw e;
+    }
     // 400대(EMPTY_INPUT·TOO_LONG·RAW_PII_DETECTED)는 사용자가 고칠 수 있는 문제라
     // 메시지를 그대로 보여준다. 500대는 모델·인프라 쪽 실패이므로 화면을 비우지 않고
     // 로컬 룰엔진으로 넘긴다 — 코드가 늘어나도(MODEL_REFUSED, MODEL_OUTPUT_TRUNCATED 등)
@@ -784,6 +797,25 @@ function wantedUrl(context) {
  * 기록이 0건이면 배지를 숨긴다 — 첫 방문자에게 "0"을 보여줄 이유가 없고,
  * 쌓이기 시작하면 숫자 자체가 다시 들어올 이유가 된다.
  */
+/**
+ * 혼잡 안내 (무료 티어 한도).
+ *
+ * 한도는 서비스 전체 기준 분당 3건 남짓이라, 공개 직후에는 내 차례가 아니어도
+ * 걸린다. 그래서 문구가 "당신이 너무 많이 눌렀다"로 읽히면 안 되고, 결과가
+ * 없는 것처럼 보여서도 안 된다 — 규칙 엔진 결과는 이미 화면에 떠 있다.
+ * 빠진 것(AI 분석)과 다시 올 시점만 정확히 말한다.
+ */
+function renderBusyNote(meta) {
+  const sec = Number(meta?.busySec) || 0;
+  el.busyNote.hidden = !sec;
+  if (!sec) return;
+  const wait = sec >= 60 ? `${Math.round(sec / 60)}분` : `${sec}초`;
+  el.busyNoteBody.textContent =
+    `무료 이용량 한도에 걸려 지금은 AI 분석 대신 규칙 엔진으로 계산했어요.\n`
+    + `점수와 판정 근거는 그대로이고, 답장만 예시 문구입니다. `
+    + `${wait} 뒤에 다시 실행하면 AI가 쓴 답장까지 받아볼 수 있어요.`;
+}
+
 function renderHistoryBadge() {
   const n = getHistory().length;
   el.historyBadge.hidden = n === 0;
@@ -801,12 +833,12 @@ function renderCare(risk, context) {
   if (serious) {
     el.careTitle.textContent = '혼자 참지 않아도 됩니다';
     el.careBody.textContent =
-      '이런 신호가 반복되면 기록으로 남겨 두세요. 사내 고충처리나 외부 상담을 이용할 때 근거가 됩니다. '
+      '이런 신호가 반복되면 기록으로 남겨 두세요.\n사내 고충처리나 외부 상담을 이용할 때 근거가 됩니다. '
       + "'나의 방어 기록'에 이 브라우저에만 남습니다.";
   } else {
     el.careTitle.textContent = '이번 건은 정상 범위입니다';
     el.careBody.textContent =
-      "같은 상대와의 기록이 쌓이면 흐름이 보입니다. '나의 방어 기록'에서 확인해 보세요. "
+      "같은 상대와의 기록이 쌓이면 흐름이 보입니다. '나의 방어 기록'에서 확인해 보세요.\n"
       + '혼자 감당하기 어려운 일이 생기면 아래 상담도 무료로 이용할 수 있습니다.';
   }
 }
@@ -915,6 +947,7 @@ function render(result, elapsedMs, context) {
   el.scoreBarFill.style.width = `${risk.score}%`;
   el.subtext.textContent = unmask(xray.subtext, sessionTokenMap);
 
+  renderBusyNote(meta);
   renderStats(xray);
   renderEvidence(xray, risk);
   renderReplies(replies);
@@ -1067,8 +1100,8 @@ function renderRepliesModeNote(mode) {
   }
   el.repliesModeNote.hidden = false;
   el.repliesModeNote.textContent = mode === 'cached'
-    ? 'ℹ️ 캐시된 예시 답장입니다. 상황 카드 원본 그대로일 때만 나오는 미리 준비된 결과예요.'
-    : 'ℹ️ 지금은 규칙 기반 예시 답장입니다(모델 미연동). 목적·말투에 따라 갈라지긴 하지만 메시지 내용을 세세히 읽고 쓰진 않아요. 그대로 보내기보다 초안으로 참고해 다듬어 주세요.';
+    ? 'ℹ️ 캐시된 예시 답장입니다.\n상황 카드 원본 그대로일 때만 나오는 미리 준비된 결과예요.'
+    : 'ℹ️ 지금은 규칙 기반 예시 답장입니다(모델 미연동).\n목적·말투에 따라 갈라지긴 하지만 메시지 내용을 세세히 읽고 쓰진 않아요.\n그대로 보내기보다 초안으로 참고해 다듬어 주세요.';
 }
 
 function renderReplies(replies) {
