@@ -465,7 +465,43 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 }
 .standby-icon { color: var(--text-faint); opacity: .7; }
 .standby-title { font-size: 15px; color: var(--text-dim); margin: 6px 0 0; font-weight: 700; }
-.standby-copy { font-family: var(--mono); font-size: 12px; color: var(--text-faint); margin: 0; }
+/* 대기 화면의 첫 줄은 "무엇을 해주는 도구인가"를 답해야 한다 — 예전엔 설계
+   원칙 한 줄이 모노 폰트 흐린 글씨로만 있어서, 결과를 보기 전에는 가치를
+   판단할 수 없었다. 혜택 문장을 본문 크기로 올리고 원리는 아래로 내린다. */
+.standby-copy {
+  font-size: 14px; line-height: 1.65; color: var(--text-dim);
+  margin: 0; max-width: 30em; word-break: keep-all;
+}
+.standby-copy b { color: var(--text); font-weight: 700; }
+.standby-sub {
+  font-family: var(--mono); font-size: 11.5px; color: var(--text-faint);
+  margin: 4px 0 0; max-width: 32em; word-break: keep-all;
+}
+
+/* ── 진행 표시 ─────────────────────────────
+   분석은 LIVE 에서 1~3초가 걸린다. 예전에는 버튼 글자만 "분석 중…"으로
+   바뀌고 오른쪽 패널은 "방화벽 대기 중" 그대로여서, 눌렸는지조차 확인이
+   안 됐다. 어떤 단계를 지나고 있는지 이름으로 보여준다. */
+.progress { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 20em; margin-top: 14px; }
+.progress-step {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 13px; color: var(--text-faint); transition: color .2s;
+}
+.progress-step .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--line); flex: none; transition: background .2s, transform .2s;
+}
+.progress-step.active { color: var(--text); font-weight: 600; }
+.progress-step.active .dot { background: var(--accent); animation: progress-pulse 1s ease-in-out infinite; }
+.progress-step.done { color: var(--text-dim); }
+.progress-step.done .dot { background: var(--accent-dim); }
+@keyframes progress-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: .55; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .progress-step.active .dot { animation: none; }
+}
 
 /* ── X-Ray ─────────────────────────────── */
 .xray {
@@ -898,3 +934,25 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   .history-modal { padding: 16px 12px; }
   .history-modal-panel { padding: 16px; }
 }
+
+
+/* ── 나의 방어 기록 진입점 ─────────────────────────────
+   기록은 이 도구의 재방문 이유인데 상단 버튼 하나뿐이라 눈에 안 띄었다.
+   (1) 쌓인 개수를 배지로 드러내고, (2) 결과 화면에도 진입점을 둔다 —
+   기록이 의미를 갖는 순간은 방금 결과를 본 직후다. */
+.history-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px; margin-left: 6px;
+  border-radius: 9px; background: var(--accent); color: #fff;
+  font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.care-history {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin: 10px 0 2px; padding: 8px 13px; min-height: 36px;
+  border: 1px solid var(--accent-dim); border-radius: 8px;
+  background: transparent; color: var(--accent);
+  font-family: var(--font); font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: background .12s, border-color .12s;
+}
+.care-history:hover { background: #0066ff14; border-color: var(--accent); }
+@media (max-width: 991px) { .care-history { min-height: 44px; } }

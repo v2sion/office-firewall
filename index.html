@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>OFFICE FIREWALL — 직장 메시지 방화벽</title>
-  <meta name="description" content="직장에서 받은 애매한 메시지의 숨은 요구를 진단하고, 원하는 톤으로 답장을 만들어 주는 도구. AI는 추출하고, 판정은 규칙이 한다." />
+  <meta name="description" content="받은 직장 메시지를 붙여넣으면 위험도와 바로 보낼 수 있는 답장 3개를 만들어 드립니다. 점수는 AI가 아니라 규칙이 계산합니다." />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23171719'/%3E%3Cpath d='M16 5l9 3.2v7.1c0 5.6-3.7 10.3-9 11.7-5.3-1.4-9-6.1-9-11.7V8.2z' fill='%230066ff'/%3E%3C/svg%3E" />
   <!-- Pretendard — 원티드 디자인 시스템(Montage)이 지정한 기본 글꼴.
        이전에는 styles.css 에서 font-family 로 이름만 부르고 실제 로드를 하지
@@ -22,8 +22,8 @@
       <span class="brand-sub">직장 메시지 위험도 진단</span>
     </div>
     <div class="topbar-right">
-      <button type="button" class="history-open" id="history-open">나의 방어 기록 보기</button>
-      <div class="brand-claim">AI는 추출하고, 판정은 규칙이 한다</div>
+      <button type="button" class="history-open" id="history-open">나의 방어 기록<span class="history-badge" id="history-badge" hidden>0</span></button>
+      <div class="brand-claim">이 메시지, 혼자 해석하지 마세요</div>
     </div>
   </header>
 
@@ -131,8 +131,16 @@
     <section class="panel panel-result" aria-label="결과 패널" aria-live="polite">
       <div class="standby" id="standby">
         <svg class="standby-icon" viewBox="0 0 32 32" width="40" height="40" aria-hidden="true"><path d="M16 5l9 3.2v7.1c0 5.6-3.7 10.3-9 11.7-5.3-1.4-9-6.1-9-11.7V8.2z" fill="currentColor"/></svg>
-        <p class="standby-title">방화벽 대기 중</p>
-        <p class="standby-copy">AI는 추출하고, 판정은 규칙이 한다</p>
+        <p class="standby-title" id="standby-title">방화벽 대기 중</p>
+        <p class="standby-copy">받은 메시지를 붙여넣으면 <b>위험도</b>와 <b>바로 보낼 수 있는 답장 3개</b>를 만들어 드려요.</p>
+        <p class="standby-sub">점수는 AI가 아니라 규칙이 계산합니다 — 판정 근거를 그대로 펼쳐 보여드려요.</p>
+
+        <!-- 분석 중에만 보이는 진행 표시. 대기 문구와 같은 자리를 쓴다. -->
+        <div class="progress" id="progress" hidden>
+          <div class="progress-step" data-step="mask"><span class="dot"></span>이름·연락처 가리는 중</div>
+          <div class="progress-step" data-step="analyze"><span class="dot"></span>숨은 요구 분석 중</div>
+          <div class="progress-step" data-step="reply"><span class="dot"></span>답장 3개 만드는 중</div>
+        </div>
       </div>
 
       <div class="result" id="result" hidden>
@@ -174,8 +182,9 @@
         <aside class="care" id="care">
           <p class="care-title" id="care-title"></p>
           <p class="care-body" id="care-body"></p>
+          <button type="button" class="care-history" id="care-history">📁 나의 방어 기록 보기</button>
           <div class="care-links">
-            <a class="care-link" href="https://welfare.comwel.or.kr" target="_blank" rel="noopener noreferrer">
+            <a class="care-link" href="https://welfare.comwel.or.kr/default/eap/board.do?mCode=D020010000" target="_blank" rel="noopener noreferrer">
               근로복지공단 EAP 무료 심리상담 →
             </a>
             <a class="care-link care-link-sub" id="care-wanted" href="https://www.wanted.co.kr" target="_blank" rel="noopener noreferrer">
@@ -251,7 +260,7 @@
       <article class="hiw-panel" role="tabpanel" id="hiw-panel-3" aria-labelledby="hiw-tab-3" tabindex="0" hidden>
         <span class="hiw-panel-eyebrow">Step 03</span>
         <h3>위험도는 정해진 규칙이 계산합니다</h3>
-        <p>권력 비대칭·시간적 긴급도·요구 모호성·내용 공허도 4가지를 규칙 엔진이 계산해 하나의 위험 지수로 합칩니다. 같은 입력이면 항상 같은 점수가 나옵니다.</p>
+        <p>권력 비대칭·시간적 긴급도·요구 모호성·알맹이 없음 4가지를 규칙 엔진이 계산해 하나의 위험 지수로 합칩니다. 같은 입력이면 항상 같은 점수가 나옵니다.</p>
         <ul class="hiw-tips">
           <li><b>Tip 1</b><span>정상·경미·주의·경계·심각 5단계로 색이 나뉩니다.</span></li>
           <li><b>Tip 2</b><span>점수만이 아니라 근거 문장도 함께 보여줍니다.</span></li>
@@ -329,7 +338,7 @@
         <button type="button" class="receipt-action" id="receipt-save">이미지로 저장하기</button>
         <button type="button" class="receipt-action" id="receipt-copy">이미지 복사하기</button>
       </div>
-      <a class="receipt-eap-link" href="https://welfare.comwel.or.kr" target="_blank" rel="noopener noreferrer">
+      <a class="receipt-eap-link" href="https://welfare.comwel.or.kr/default/eap/board.do?mCode=D020010000" target="_blank" rel="noopener noreferrer">
         근로복지공단 EAP 무료 심리상담 신청 바로가기 →
       </a>
       <p class="receipt-status" id="receipt-status" aria-live="polite"></p>

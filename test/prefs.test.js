@@ -10,11 +10,13 @@ import { loadPrefs, savePrefs, clearPrefs, PREFS_KEY, PREF_FIELDS } from '../src
  *     칩이 하나도 선택되지 않은 화면이 나온다(선택지 목록은 실제로 바뀐 적이
  *     있다 — "비즈니스"가 사라지고 8종으로 확장됐다).
  *  2) 자유 입력(메시지·숨은 속사정)은 절대 저장되지 않아야 한다.
+ *  3) **내 정보(job·level)만** 남는다. 상대·목적·말투는 메시지마다 달라지는
+ *     값이라 저장하면 다음 방문에 엉뚱한 칩이 켜진 화면이 된다.
  */
 
 const OPTIONS = {
   job: ['기획·PM/PO', '개발(Dev)', '기타'],
-  level: ['주니어(1~3년)', '시니어(4~7년)'],
+  level: ['신입 (1년 미만)', '1~3년', '4~6년'],
   counterpart: ['직속상사', '클라이언트'],
   goal: ['🛑 칼차단', '⏳ 시간벌기'],
   tone: ['🟢 순한맛', '🟡 보통맛'],
@@ -31,24 +33,27 @@ function fakeStorage(initial = {}) {
   };
 }
 
-test('저장한 선택을 그대로 복원한다', () => {
+test('내 정보(직군·연차)는 그대로 복원한다', () => {
   const s = fakeStorage();
-  savePrefs({ job: '개발(Dev)', level: '시니어(4~7년)', counterpart: '클라이언트', goal: '⏳ 시간벌기', tone: '🟡 보통맛' }, s);
-  assert.deepEqual(loadPrefs(OPTIONS, s), {
-    job: '개발(Dev)',
-    level: '시니어(4~7년)',
-    counterpart: '클라이언트',
-    goal: '⏳ 시간벌기',
-    tone: '🟡 보통맛',
-  });
+  savePrefs({ job: '개발(Dev)', level: '4~6년' }, s);
+  assert.deepEqual(loadPrefs(OPTIONS, s), { job: '개발(Dev)', level: '4~6년' });
+});
+
+test('상대·목적·말투는 저장하지 않는다 (메시지마다 달라지는 값)', () => {
+  const s = fakeStorage();
+  savePrefs({ job: '개발(Dev)', level: '4~6년', counterpart: '민원인', goal: '⏳ 시간벌기', tone: '🟡 보통맛' }, s);
+  const saved = JSON.parse(s._dump()[PREFS_KEY]);
+  assert.deepEqual(Object.keys(saved).sort(), ['job', 'level']);
+  // 어제 민원인 건으로 쓴 사람이 오늘 상사 메시지를 들고 와도 '민원인'이 켜져 있으면 안 된다.
+  assert.equal(loadPrefs(OPTIONS, s).counterpart, undefined);
 });
 
 test('현재 선택지에 없는 값은 버린다 (선택지 목록이 바뀐 경우)', () => {
   // '비즈니스'는 실제로 제거된 옛 직군이다.
-  const s = fakeStorage({ [PREFS_KEY]: JSON.stringify({ job: '비즈니스', counterpart: '직속상사' }) });
+  const s = fakeStorage({ [PREFS_KEY]: JSON.stringify({ job: '비즈니스', level: '4~6년' }) });
   const loaded = loadPrefs(OPTIONS, s);
   assert.equal(loaded.job, undefined, '없어진 직군이 그대로 복원되면 칩이 하나도 안 켜진다');
-  assert.equal(loaded.counterpart, '직속상사', '살아 있는 값은 유지돼야 한다');
+  assert.equal(loaded.level, '4~6년', '살아 있는 값은 유지돼야 한다');
 });
 
 test('자유 입력 필드는 저장하지 않는다 (원문·숨은 속사정 유출 방지)', () => {

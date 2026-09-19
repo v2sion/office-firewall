@@ -53,7 +53,15 @@ const OPTIONS = {
    * 한국 직장인 전반을 덮도록 넓히되, 칩이 너무 잘게 쪼개지지 않게 묶었다.
    */
   job: ['기획·PM/PO', '개발(Dev)', '디자인', '마케팅·영업', '경영지원', '고객·CS', '전문직', '기타'],
-  level: ['주니어(1~3년)', '시니어(4~7년)', '리드·팀장(8년+)'],
+  /**
+   * 연차 구간은 **원티드 채용 필터와 같은 눈금**을 쓴다(신입 / 1~10년 / 10년+).
+   * 예전 3종(주니어·시니어·리드)은 구간이 넓어 1년차와 3년차가 같은 칸에
+   * 들어갔고, 무엇보다 직책(리드·팀장)과 연차가 한 축에 섞여 있었다.
+   * 원티드 눈금을 따르면 결과 화면의 채용 공고 링크에 years 파라미터를
+   * 그대로 넘길 수 있다(WANTED_YEARS 참고) — 화면의 선택과 링크가 어긋나지
+   * 않는다. 점수에는 관여하지 않는 표시·맥락 전용 값이라 넓혀도 회귀 없음.
+   */
+  level: ['신입 (1년 미만)', '1~3년', '4~6년', '7~9년', '10년 이상'],
   /**
    * 예전 4종(직속상사·타부서 동료·팀원(AI복붙)·클라이언트)에서 "팀원(AI복붙)"은
    * 관계가 아니라 증상이었다 — 다른 세 값은 전부 "누구와의 관계"인데 이것만
@@ -279,6 +287,8 @@ const el = {
   run: $('run'),
   runHint: $('run-hint'),
   standby: $('standby'),
+  progress: $('progress'),
+  standbyTitle: $('standby-title'),
   result: $('result'),
   errorBox: $('error-box'),
   xray: $('xray'),
@@ -312,6 +322,8 @@ const el = {
   rcRisk: $('rc-risk'),
   rcCount: $('rc-count'),
   historyOpen: $('history-open'),
+  historyBadge: $('history-badge'),
+  careHistory: $('care-history'),
   historyModal: $('history-modal'),
   historyBackdrop: $('history-backdrop'),
   historyClose: $('history-close'),
@@ -611,6 +623,8 @@ async function run() {
 
   busy = true;
   setBusy(true);
+  // 마스킹은 위에서 이미 끝났다 — 사용자에겐 그 사실 자체가 정보라 한 박자 보여준다.
+  setProgress('mask');
   hideError();
   const startedAt = Date.now();
 
@@ -628,6 +642,7 @@ async function run() {
       });
       result.meta.note = '캐시된 프리셋 — API 호출 없음, 비용 $0';
     } else {
+      setProgress('analyze');
       const payload = { maskedText: maskedMessage, context: { ...context, hiddenContext: maskedHiddenContext } };
       try {
         result = await postAnalyze(payload);
@@ -641,6 +656,7 @@ async function run() {
         }
       }
     }
+    setProgress('reply');
     render(result, Date.now() - startedAt, context);
     cooldownUntil = Date.now() + COOLDOWN_MS;
     startCooldownTimer();
@@ -715,8 +731,63 @@ function localFallback(payload, startedAt) {
  * 먼저다 — 직장 문제를 먼저 "그만두라"로 받으면 조언이 아니라 떠밀기로
  * 들린다.
  */
-function renderCare(risk) {
+/**
+ * 연차 선택 → 원티드 채용 필터의 years 파라미터.
+ *
+ * 원티드는 years 를 **개별 연차마다 하나씩** 반복해 받는다
+ * (예: 6~7년 = `years=6&years=7`). 신입은 0, 10년 이상은 10 하나로 묶인다.
+ * OPTIONS.level 을 원티드와 같은 눈금으로 맞춰 둔 덕에 1:1 로 떨어진다.
+ */
+const WANTED_YEARS = {
+  '신입 (1년 미만)': [0],
+  '1~3년': [1, 2, 3],
+  '4~6년': [4, 5, 6],
+  '7~9년': [7, 8, 9],
+  '10년 이상': [10],
+};
+
+/**
+ * 내 정보(연차)에 맞춘 원티드 채용 공고 링크를 만든다.
+ *
+ * 직군까지 맞추려면 원티드의 직무 카테고리 ID(`/wdlist/<그룹>` 과 `selected`)가
+ * 필요한데, 그 ID 는 원티드 페이지에서 확인해야만 알 수 있는 값이라 여기서
+ * 임의로 채우지 않는다 — 틀린 ID 는 엉뚱한 직군 공고로 보내서 링크가 없는
+ * 것보다 나쁘다. WANTED_JOB_GROUP 에 확인된 값이 채워지면 자동으로 직군
+ * 필터까지 붙는다.
+ */
+const WANTED_JOB_GROUP = {
+  // '개발(Dev)': { group: 518, selected: [] },   ← 확인 후 채울 자리
+};
+
+function wantedUrl(context) {
+  const years = WANTED_YEARS[context?.level] || [];
+  const params = new URLSearchParams({ country: 'kr', job_sort: 'job.latest_order', locations: 'all' });
+  for (const y of years) params.append('years', String(y));
+
+  const jobGroup = WANTED_JOB_GROUP[context?.job];
+  for (const sel of jobGroup?.selected || []) params.append('selected', String(sel));
+
+  const path = jobGroup ? `/wdlist/${jobGroup.group}` : '/wdlist';
+  return `https://www.wanted.co.kr${path}?${params.toString()}`;
+}
+
+/**
+ * 상단 버튼의 기록 개수 배지.
+ *
+ * 기록이 0건이면 배지를 숨긴다 — 첫 방문자에게 "0"을 보여줄 이유가 없고,
+ * 쌓이기 시작하면 숫자 자체가 다시 들어올 이유가 된다.
+ */
+function renderHistoryBadge() {
+  const n = getHistory().length;
+  el.historyBadge.hidden = n === 0;
+  el.historyBadge.textContent = n > 99 ? '99+' : String(n);
+}
+
+function renderCare(risk, context) {
   const serious = risk.score > 40; // 주의 이상
+  // 문구만 주지 말고 내 연차에 맞는 공고 목록으로 바로 보낸다.
+  el.careWanted.href = wantedUrl(context);
+  el.careWanted.textContent = `${context?.level || ''} 경력으로 열려 있는 채용 보기 →`.trim();
   el.care.classList.toggle('care-serious', serious);
   el.careWanted.hidden = risk.score <= 60; // 경계·심각에서만
 
@@ -742,6 +813,7 @@ function render(result, elapsedMs, context) {
   lastReceiptSource = { xray, risk, context };
   // 나의 방어 기록에도 같은 원칙으로 카테고리·점수만 남긴다(원문 없음).
   addEntry(entryFromResult(xray, risk, context));
+  renderHistoryBadge();
 
   el.standby.hidden = true;
   el.result.hidden = false;
@@ -756,7 +828,7 @@ function render(result, elapsedMs, context) {
   el.modeBadge.title = meta.note || `model: ${meta.model}`;
 
   animateScore(risk.score);
-  renderCare(risk);
+  renderCare(risk, context);
   el.scoreLabel.textContent = risk.label;
   el.scoreAction.textContent = risk.action;
   el.scoreBarFill.style.width = `${risk.score}%`;
@@ -837,7 +909,10 @@ function renderStats(xray) {
       // "판정 근거를 그대로 펼쳐 보여준다"가 이 제품의 핵심 주장이라
       // 근거 화면의 자가당착은 그 주장을 직접 깎는다. 계산에 쓰이는 값으로
       // 통일한다. aiSlopScore 는 영수증 빌런 유형·상황 매칭에서 계속 쓴다.
-      name: '내용 공허도',
+      // "내용 공허도"는 한자어 조어라 읽고 나서 한 번 더 생각해야 했다.
+      // 이 값이 재는 건 "요구는 있는데 그걸 실행할 정보가 비어 있다"이므로,
+      // 제품이 첫 문장부터 쓰는 말("빠진 알맹이")을 그대로 쓴다.
+      name: '알맹이 없음',
       value: `${Math.round(gap * 100)}%`,
       extra: pips(Math.round(gap * 5), 5),
       sub: gap >= 0.6 ? '알맹이 거의 없음' : '구체적 내용 있음',
@@ -876,18 +951,18 @@ function renderEvidence(xray, risk) {
 
   el.evidenceBody.innerHTML = `
     <table class="evidence-table">
-      <thead><tr><th>내용 공허도 지표</th><th>검출</th><th>0~1</th></tr></thead>
+      <thead><tr><th>무엇이 비어 있나</th><th>검출</th><th>0~1</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
     ${cliches}
     <p class="evidence-formula">
       점수 = 권력 비대칭(${xray.powerAsymmetry}×8) + 긴급도(${xray.urgencyType === '없음' ? 0 : 20})
-      + 모호성(${xray.ambiguityType === '없음' ? 0 : 20}) + 공허도(${Math.round(substanceGap(xray) * 20)})
+      + 모호성(${xray.ambiguityType === '없음' ? 0 : 20}) + 알맹이 없음(${Math.round(substanceGap(xray) * 20)})
       = <b>${capped ? GREEN_CAP : risk.score}</b>
     </p>
     ${
       capped
-        ? `<p class="evidence-formula">정상 업무 가드 적용 — 긴급도·모호성·공허도가 모두 0이면
+        ? `<p class="evidence-formula">정상 업무 가드 적용 — 긴급도·모호성·알맹이 없음이 모두 0이면
            권력 비대칭만으로 경보를 올리지 않는다(상한 ${GREEN_CAP}점). 가드 전 합계는 ${rawSum}점.</p>`
         : ''
     }
@@ -958,6 +1033,31 @@ function setBusy(on) {
   el.run.disabled = on;
   el.run.textContent = on ? '분석 중…' : '분석하고 답장 만들기';
   document.body.classList.toggle('is-loading', on);
+  el.progress.hidden = !on;
+  // 진행 표시가 도는데 제목이 "대기 중"이면 서로 어긋난다.
+  el.standbyTitle.textContent = on ? '방화벽 가동 중' : '방화벽 대기 중';
+  if (!on) setProgress(null);
+}
+
+/**
+ * 진행 단계 표시.
+ *
+ * 예전에는 버튼 글자만 "분석 중…"으로 바뀌고 결과 패널은 "방화벽 대기 중"
+ * 그대로였다. LIVE 에서 1~3초가 걸리는데 화면이 안 변하니 눌렸는지조차
+ * 확인이 안 됐다. 단계 이름을 보여주면 기다리는 시간이 "멈춘 것"이 아니라
+ * "진행 중"으로 읽힌다 — 특히 첫 단계가 '이름·연락처 가리는 중'이라,
+ * 전송 전에 가린다는 이 제품의 약속이 기다리는 동안 눈에 들어온다.
+ *
+ * @param {'mask'|'analyze'|'reply'|null} step  null 이면 전부 초기화
+ */
+const PROGRESS_ORDER = ['mask', 'analyze', 'reply'];
+function setProgress(step) {
+  const at = PROGRESS_ORDER.indexOf(step);
+  for (const node of el.progress.querySelectorAll('.progress-step')) {
+    const i = PROGRESS_ORDER.indexOf(node.dataset.step);
+    node.classList.toggle('active', i === at);
+    node.classList.toggle('done', at >= 0 && i < at);
+  }
 }
 
 function setHint(msg) {
@@ -1215,6 +1315,7 @@ function onClearHistory() {
   if (!window.confirm('나의 방어 기록을 전부 삭제할까요? 이 작업은 되돌릴 수 없습니다.')) return;
   clearHistory();
   renderHistory();
+  renderHistoryBadge();
 }
 
 /* ── 어떻게 작동하나요 (스텝 탭) ───────────────── */
@@ -1279,6 +1380,7 @@ el.receiptBackdrop.addEventListener('click', closeReceiptModal);
 el.receiptSave.addEventListener('click', saveReceiptImage);
 el.receiptCopy.addEventListener('click', copyReceiptImage);
 el.historyOpen.addEventListener('click', openHistoryModal);
+el.careHistory.addEventListener('click', openHistoryModal);
 el.historyClose.addEventListener('click', closeHistoryModal);
 el.historyBackdrop.addEventListener('click', closeHistoryModal);
 el.historyClear.addEventListener('click', onClearHistory);
@@ -1289,3 +1391,5 @@ document.addEventListener('keydown', (e) => {
   if (!el.historyModal.hidden) closeHistoryModal();
 });
 onInput();
+// 재방문자는 첫 화면에서 바로 쌓인 기록 수를 본다.
+renderHistoryBadge();
