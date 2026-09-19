@@ -99,48 +99,56 @@ const PRESETS = [
   {
     id: 'weekend',
     emoji: '📅',
+    fits: '직속상사',
     label: '상사의 주말 업무',
     text: '박지훈님 주말에 미안한데, 월요일 오전에 대표님 보고가 잡혀서요. 시간 날 때 가볍게 한번 봐주시면 좋을 것 같아요. 급한 건 아닙니다!',
   },
   {
     id: 'aislop',
     emoji: '🤖',
+    fits: '팀원(AI복붙)',
     label: '무지성 AI 복붙',
     text: '안녕하세요! 말씀해주신 사항에 대해 검토해보았습니다. 전반적으로 긍정적인 방향으로 보이며, 추가적인 논의를 통해 더 나은 결과를 도출할 수 있을 것으로 사료됩니다. 관련하여 지속적인 커뮤니케이션을 이어가면 좋겠습니다. 감사합니다.',
   },
   {
     id: 'pingpong',
     emoji: '🏓',
+    fits: '타부서 동료',
     label: '타부서 R&R 핑퐁',
     text: '이 건은 저희 쪽 R&R은 아닌 것 같은데요, 아무래도 기획 단계에서 정리되는 게 맞을 것 같습니다. 혹시 먼저 정리해서 공유해주실 수 있을까요? 저희는 그거 받고 나서 진행하겠습니다.',
   },
   {
     id: 'client',
     emoji: '👑',
+    fits: '클라이언트',
     label: '클라이언트 갑질',
     text: '이거 처음 얘기했던 거랑 좀 다른데요? 저희가 원한 건 이게 아니었습니다. 내일까지 다시 작업해서 보내주세요. 추가 비용 얘기는 없던 걸로 알고 있습니다.',
   },
   {
     id: 'nightowl',
     emoji: '🌙',
+    fits: '직속상사',
     label: '퇴근 후 야간 톡',
     text: '이렇게 늦은 시간에 톡해서 미안한데 자기 전에 하나만 부탁해도 될까요? 내일 오전 회의자료에 지난달 지표 슬라이드 하나만 껴주면 좋을 것 같아요. 급한 건 아니니까 편하실 때 봐주세요~',
   },
   {
     id: 'emailcreep',
     emoji: '✉️',
+    fits: '클라이언트',
     label: '이메일 무한 수정요청',
     text: '안녕하세요, 지난번에 말씀드린 배너 시안 관련해서요. 죄송한데 색감을 조금만 더 밝게, 폰트도 살짝 키워주시고, 로고 위치도 다시 한 번 검토 부탁드려요. 예산 안에서 진행 가능할 것 같아서 말씀드립니다!',
   },
   {
     id: 'groupchat',
     emoji: '📢',
+    fits: '직속상사',
     label: '단톡방 공개 저격',
     text: '다들 보고 계시죠? 이번 프로젝트 일정 늦어진 거 이 자리에서 한번 정리하고 갑시다. 담당자분 답변 부탁드려요.',
   },
   {
     id: 'passthebuck',
     emoji: '🤐',
+    fits: '직속상사',
     label: '책임 떠넘기는 지시',
     text: '이 부분은 담당자님이 알아서 잘 판단해서 진행해 주세요. 저는 큰 그림만 보고 있어서 세부적인 건 믿고 맡기겠습니다. 결과만 잘 나오면 될 것 같아요!',
   },
@@ -163,6 +171,8 @@ let suggestTimer = null;
 const $ = (id) => document.getElementById(id);
 const el = {
   presetGrid: $('preset-grid'),
+  presetHint: $('preset-hint'),
+  presetRun: $('preset-run'),
   message: $('message'),
   charCount: $('char-count'),
   hiddenContext: $('hidden-context'),
@@ -245,7 +255,10 @@ function renderChips() {
         box.querySelectorAll('.chip').forEach((c) => c.setAttribute('aria-checked', 'false'));
         btn.setAttribute('aria-checked', 'true');
         if (field === 'tone') el.toneWarning.hidden = apiValue(opt) !== '매운맛';
-        if (field === 'counterpart') updateSituationSuggestion();
+        if (field === 'counterpart') {
+          updateSituationSuggestion();
+          updatePresetOrder();
+        }
         if (field === 'goal' || field === 'tone') updateChoiceNotes();
       });
       box.appendChild(btn);
@@ -259,8 +272,11 @@ function updateChoiceNotes() {
   el.toneNote.textContent = TONE_NOTE[apiValue(state.tone)] || '';
 }
 
-/** id → 카드 버튼. ③ 입력 내용 기반 추천 표시(updateSituationSuggestion)에 쓴다. */
+/** id → 카드 버튼. 입력 내용 기반 추천 표시(updateSituationSuggestion)에 쓴다. */
 const presetButtons = new Map();
+
+/** 마지막으로 누른 예시 카드 — "예시 그대로 결과 보기" 가 이 값을 쓴다. */
+let activePreset = null;
 
 function renderPresets() {
   for (const p of PRESETS) {
@@ -274,6 +290,27 @@ function renderPresets() {
     el.presetGrid.appendChild(btn);
     presetButtons.set(p.id, btn);
   }
+  updatePresetOrder();
+}
+
+/**
+ * 고른 관계에 맞는 예시를 앞으로 당긴다.
+ *
+ * 카드 8장이 관계와 무관하게 늘 같은 순서로 놓여 있었다. 이미
+ * matchSituationId 가 counterpart 를 받아 추천 표시를 하지만 그건 메시지를
+ * 8자 이상 타이핑한 뒤에야 작동한다 — 정작 도움이 필요한 "아직 아무것도
+ * 안 쓴 순간"에는 아무 단서가 없었다.
+ *
+ * DOM 을 다시 만들지 않고 CSS order 만 바꾼다. 선택 상태·추천 배지·이벤트
+ * 핸들러가 그대로 유지된다.
+ */
+function updatePresetOrder() {
+  const who = apiValue(state.counterpart);
+  for (const p of PRESETS) {
+    const btn = presetButtons.get(p.id);
+    if (btn) btn.style.order = apiValue(p.fits) === who ? '0' : '1';
+  }
+  el.presetHint.textContent = `예시 — ${who} 관련 상황을 먼저 보여드려요`;
 }
 
 /**
@@ -316,6 +353,51 @@ function applyPreset(p, btn) {
   void el.message.offsetWidth;
   el.message.classList.add('just-filled');
   setHint('예시를 참고해 실제 내용을 입력한 뒤 실행 버튼을 눌러주세요.');
+
+  activePreset = p;
+  el.presetRun.hidden = false;
+  el.presetRun.textContent = `“${p.label}” 예시 그대로 결과 보기 →`;
+}
+
+/**
+ * 예시를 실제로 한 번 돌려본다 — 콜드 스타트 해소.
+ *
+ * 카드를 눌러도 placeholder 만 바뀌기 때문에, 결과 화면이 어떻게 생겼는지
+ * 보려면 반드시 진짜 직장 메시지를 붙여넣어야 했다. 그건 심리적 비용이
+ * 큰 행동인데 대가가 뭔지 모르는 상태에서 먼저 치르라는 구조였다.
+ *
+ * 여기서는 본문뿐 아니라 골든이 정의한 맥락(직군·연차·관계·목적·말투·숨은
+ * 속사정)까지 그대로 맞춘다. 그래야 matchPresetId 가 캐시를 찾아 호출
+ * 없이($0) 즉시 렌더링된다 — 예전에는 기본값이 골든과 어긋나(tone: 순한맛
+ * vs 보통맛, hiddenContext: 빈칸 vs 값 있음) 캐시 경로가 사실상 도달
+ * 불가능했다. 골든이 없는 카드(nightowl 등)는 본문만 채우고 평소 경로로
+ * 분석한다.
+ *
+ * "직접 입력하게 유도한다"는 기존 방침은 그대로다 — 카드를 누르는 것만으로
+ * 폼이 채워지지는 않고, 이 버튼을 눌러야 한다.
+ */
+async function runPresetExample() {
+  const p = activePreset;
+  if (!p || busy) return;
+
+  el.message.value = p.text;
+
+  const g = golden.find((x) => x.id === p.id);
+  if (g) {
+    for (const field of ['job', 'level', 'counterpart', 'goal', 'tone']) {
+      // 칩 라벨에는 이모지·괄호가 붙어 있어 API 계약값으로 역매핑해야 한다
+      const opt = OPTIONS[field].find((o) => apiValue(o) === g.context[field]);
+      if (opt) state[field] = opt;
+    }
+    el.hiddenContext.value = g.context.hiddenContext || '';
+    renderChips();
+    updateChoiceNotes();
+    updatePresetOrder();
+    el.toneWarning.hidden = apiValue(state.tone) !== '매운맛';
+  }
+
+  onInput();
+  await run();
 }
 
 /**
@@ -957,6 +1039,7 @@ renderPresets();
 initHowItWorks();
 el.message.addEventListener('input', onInput);
 el.run.addEventListener('click', () => run());
+el.presetRun.addEventListener('click', () => runPresetExample());
 el.togglePreview.addEventListener('click', () => {
   const show = el.maskPreview.hidden;
   el.maskPreview.hidden = !show;

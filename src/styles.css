@@ -240,6 +240,19 @@ html, body {
 }
 .preset.suggested .suggested-badge { display: inline; }
 
+/* 카드를 누른 뒤에만 나타나는 "이 예시로 결과 보기". 첫 방문자가 자기
+   메시지를 붙여넣기 전에 결과 화면을 한 번 볼 수 있게 하는 통로다.
+   실행 버튼(.run)과 경쟁하지 않도록 점선·저채도로 한 단계 낮춘다. */
+.preset-run {
+  width: 100%; margin-top: 9px; padding: 10px 12px;
+  border: 1px dashed var(--accent-dim); border-radius: 10px;
+  background: #0066ff0f; color: var(--accent);
+  font-family: var(--font); font-size: 12.5px; font-weight: 600;
+  cursor: pointer; transition: background .12s, border-color .12s;
+}
+.preset-run:hover { background: #0066ff1f; border-color: var(--accent); }
+@media (max-width: 991px) { .preset-run { min-height: 44px; } }
+
 /* ── 셀렉터 칩 ─────────────────────────────── */
 .selector { margin-bottom: 10px; }
 .selector-label { display: block; font-size: 11px; color: var(--text-faint); margin-bottom: 5px; }
