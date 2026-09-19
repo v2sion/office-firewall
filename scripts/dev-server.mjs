@@ -1,5 +1,5 @@
 /**
- * vercel CLI 없이 프론트 + /api/analyze 를 한 포트에서 띄우는 로컬 서버.
+ * vercel CLI 없이 프론트 + /api/* 를 한 포트에서 띄우는 로컬 서버.
  *   node scripts/dev-server.mjs            # dist/ 를 서빙 (npm run build 후)
  *   PORT=5180 node scripts/dev-server.mjs
  *
@@ -11,6 +11,7 @@ import { existsSync } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import handler from '../api/analyze.js';
+import feedbackHandler from '../api/feedback.js';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const DIST = join(ROOT, 'dist');
@@ -44,13 +45,17 @@ function adapt(req, res) {
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
 
-  if (url.pathname === '/api/analyze') {
+  // 배포에서는 파일 경로가 곧 라우트지만 여기서는 직접 이어 줘야 한다.
+  // 새 엔드포인트를 만들 때 이 표에 넣지 않으면 로컬에서만 404 가 난다.
+  const API = { '/api/analyze': handler, '/api/feedback': feedbackHandler };
+  const apiHandler = API[url.pathname];
+  if (apiHandler) {
     const chunks = [];
     for await (const c of req) chunks.push(c);
     req.body = chunks.length ? Buffer.concat(chunks).toString('utf8') : '';
     adapt(req, res);
     try {
-      await handler(req, res);
+      await apiHandler(req, res);
     } catch (err) {
       res.statusCode = 500;
       res.end(JSON.stringify({ error: { code: 'SERVER_ERROR', message: String(err?.message || err) } }));

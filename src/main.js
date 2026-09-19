@@ -299,6 +299,12 @@ const el = {
   result: $('result'),
   errorBox: $('error-box'),
   busyNote: $('busy-note'),
+  feedbackForm: $('feedback-form'),
+  fbMessage: $('fb-message'),
+  fbContact: $('fb-contact'),
+  fbUpdates: $('fb-updates'),
+  fbSubmit: $('fb-submit'),
+  fbStatus: $('fb-status'),
   busyNoteBody: $('busy-note-body'),
   xray: $('xray'),
   alertHeader: $('alert-header'),
@@ -811,8 +817,8 @@ function renderBusyNote(meta) {
   if (!sec) return;
   const wait = sec >= 60 ? `${Math.round(sec / 60)}분` : `${sec}초`;
   el.busyNoteBody.textContent =
-    `무료 이용량 한도에 걸려 지금은 AI 분석 대신 규칙 엔진으로 계산했어요.\n`
-    + `점수와 판정 근거는 그대로이고, 답장만 예시 문구입니다. `
+    `지금은 AI 분석 대신 규칙 엔진으로 계산해서 알려드려요.\n`
+    + `점수와 판정 근거는 그대로이고, 답장만 예시 문구입니다.\n`
     + `${wait} 뒤에 다시 실행하면 AI가 쓴 답장까지 받아볼 수 있어요.`;
 }
 
@@ -841,6 +847,61 @@ function renderCare(risk, context) {
       "같은 상대와의 기록이 쌓이면 흐름이 보입니다. '나의 방어 기록'에서 확인해 보세요.\n"
       + '혼자 감당하기 어려운 일이 생기면 아래 상담도 무료로 이용할 수 있습니다.';
   }
+}
+
+/* ── 의견 보내기 ───────────────────────────── */
+
+/**
+ * 사용자 의견을 /api/feedback 으로 보낸다.
+ *
+ * **분석 상태는 아무것도 싣지 않는다.** 메시지 원문·점수·컨텍스트·토큰 맵은
+ * 이 요청에 들어가지 않고, 사용자가 이 폼에 직접 쓴 글만 간다. "원문은
+ * 서버에 저장되지 않는다"는 약속이 의견 폼 때문에 깨지면 안 된다.
+ *
+ * 서버가 없는 환경(vite 단독 실행)에서는 404/405 가 온다. 그때 "실패"라고만
+ * 하면 쓴 글이 사라진 것처럼 보이므로, 입력은 남겨 두고 상태만 알린다.
+ */
+async function sendFeedback(e) {
+  e.preventDefault();
+  const message = el.fbMessage.value.trim();
+  if (!message) {
+    setFeedbackStatus('의견을 입력해 주세요.', 'is-error');
+    el.fbMessage.focus();
+    return;
+  }
+
+  el.fbSubmit.disabled = true;
+  el.fbSubmit.textContent = '보내는 중…';
+  setFeedbackStatus('');
+
+  try {
+    const res = await fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message,
+        contact: el.fbContact.value.trim(),
+        wantsUpdates: el.fbUpdates.checked,
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      throw new Error(body?.error?.message || '의견을 보내지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    }
+    // 성공했을 때만 비운다 — 실패했는데 지워버리면 쓴 글이 날아간다.
+    el.feedbackForm.reset();
+    setFeedbackStatus('보내주셔서 고맙습니다. 읽고 반영하겠습니다.', 'is-ok');
+  } catch (err) {
+    setFeedbackStatus(err.message || '의견을 보내지 못했습니다.', 'is-error');
+  } finally {
+    el.fbSubmit.disabled = false;
+    el.fbSubmit.textContent = '의견 보내기';
+  }
+}
+
+function setFeedbackStatus(text, cls = '') {
+  el.fbStatus.className = `feedback-status ${cls}`.trim();
+  el.fbStatus.textContent = text;
 }
 
 /* ── 첫 진입 스토리 ───────────────────────────── */
@@ -1506,6 +1567,7 @@ el.introNext.addEventListener('click', () => stepIntro(1));
 el.introBack.addEventListener('click', () => stepIntro(-1));
 el.introSkip.addEventListener('click', closeIntro);
 el.introReplay.addEventListener('click', openIntro);
+el.feedbackForm.addEventListener('submit', sendFeedback);
 
 document.addEventListener('keydown', (e) => {
   trapTabInModal(e);
