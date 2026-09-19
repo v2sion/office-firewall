@@ -265,6 +265,7 @@ function renderChips() {
         }
         if (field === 'goal' || field === 'tone') updateChoiceNotes();
         savePrefs(state);
+        resetResult();
       });
       box.appendChild(btn);
     }
@@ -361,48 +362,34 @@ function applyPreset(p, btn) {
 
   activePreset = p;
   el.presetRun.hidden = false;
-  el.presetRun.textContent = `“${p.label}” 예시 그대로 결과 보기 →`;
+  el.presetRun.textContent = `“${p.label}” 예시 메시지 그대로 적용하기`;
 }
 
 /**
- * 예시를 실제로 한 번 돌려본다 — 콜드 스타트 해소.
+ * 고른 예시의 메시지를 입력칸에 그대로 채운다.
  *
  * 카드를 눌러도 placeholder 만 바뀌기 때문에, 결과 화면이 어떻게 생겼는지
- * 보려면 반드시 진짜 직장 메시지를 붙여넣어야 했다. 그건 심리적 비용이
- * 큰 행동인데 대가가 뭔지 모르는 상태에서 먼저 치르라는 구조였다.
+ * 보려면 반드시 진짜 직장 메시지를 붙여넣어야 했다. 심리적 비용이 큰
+ * 행동인데 대가가 뭔지 모르는 채로 먼저 치르라는 구조였다.
  *
- * 여기서는 본문뿐 아니라 골든이 정의한 맥락(직군·연차·관계·목적·말투·숨은
- * 속사정)까지 그대로 맞춘다. 그래야 matchPresetId 가 캐시를 찾아 호출
- * 없이($0) 즉시 렌더링된다 — 예전에는 기본값이 골든과 어긋나(tone: 순한맛
- * vs 보통맛, hiddenContext: 빈칸 vs 값 있음) 캐시 경로가 사실상 도달
- * 불가능했다. 골든이 없는 카드(nightowl 등)는 본문만 채우고 평소 경로로
- * 분석한다.
- *
- * "직접 입력하게 유도한다"는 기존 방침은 그대로다 — 카드를 누르는 것만으로
- * 폼이 채워지지는 않고, 이 버튼을 눌러야 한다.
+ * 채우는 건 **메시지 하나뿐**이다. 예전에는 골든 맥락(직군·연차·관계·
+ * 목적·말투·숨은 속사정)까지 맞추고 곧바로 분석까지 돌렸는데, 폼 중간에
+ * 있는 버튼이 갑자기 최종 결과를 띄우는 흐름이 어색했고 사용자가 고른
+ * 값을 말없이 덮어쓰기도 했다. 이제는 메시지만 채우고, 나머지 선택과
+ * 실행은 사용자 몫으로 남긴다 — 3구역 답장 설정을 거쳐 4구역 실행
+ * 버튼을 누르는 원래 흐름이 그대로 유지된다.
  */
-async function runPresetExample() {
+function applyPresetMessage() {
   const p = activePreset;
   if (!p || busy) return;
 
   el.message.value = p.text;
-
-  const g = golden.find((x) => x.id === p.id);
-  if (g) {
-    for (const field of ['job', 'level', 'counterpart', 'goal', 'tone']) {
-      // 칩 라벨에는 이모지·괄호가 붙어 있어 API 계약값으로 역매핑해야 한다
-      const opt = OPTIONS[field].find((o) => apiValue(o) === g.context[field]);
-      if (opt) state[field] = opt;
-    }
-    el.hiddenContext.value = g.context.hiddenContext || '';
-    renderChips();
-    updateChoiceNotes();
-    updatePresetOrder();
-    el.toneWarning.hidden = apiValue(state.tone) !== '매운맛';
-  }
-
+  el.message.placeholder = '';
   onInput();
-  await run();
+
+  el.message.focus({ preventScroll: true });
+  el.message.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setHint('예시 메시지를 넣었습니다. 답장 설정을 고른 뒤 실행해 보세요.');
 }
 
 /**
@@ -431,6 +418,7 @@ function onInput() {
   counter.classList.toggle('warn', len > MAX_CHARS * 0.9 && len <= MAX_CHARS);
   counter.classList.toggle('over', len > MAX_CHARS);
   el.threadWarning.hidden = !looksLikeMultiTurnThread(el.message.value);
+  resetResult();
   if (!el.maskPreview.hidden) updateMaskPreview();
   clearTimeout(suggestTimer);
   suggestTimer = setTimeout(updateSituationSuggestion, SUGGEST_DEBOUNCE_MS);
@@ -788,6 +776,25 @@ function startCooldownTimer() {
   tick();
 }
 
+/**
+ * 입력이 하나라도 바뀌면 화면에 남아 있던 결과를 치우고 대기 상태로 돌린다.
+ *
+ * 예전에는 결과가 뜬 뒤 직군·관계·말투를 바꿔도 이전 결과가 그대로 남아
+ * 있었다. 바뀐 선택과 화면의 점수가 어긋나는데 사용자는 그걸 "방금 바꾼 게
+ * 반영된 점수"로 읽는다. 영수증도 옛 스냅샷(lastReceiptSource)으로 발급되어
+ * 화면과 다른 값이 찍혔다.
+ *
+ * 실행 중에는 건드리지 않는다 — 분석이 끝나면 어차피 새 결과로 덮인다.
+ */
+function resetResult() {
+  if (busy) return;
+  if (el.result.hidden && el.errorBox.hidden) return;
+  el.result.hidden = true;
+  el.standby.hidden = false;
+  hideError();
+  lastReceiptSource = null;
+}
+
 function showError(message) {
   el.errorBox.hidden = false;
   el.errorBox.textContent = message;
@@ -1043,8 +1050,14 @@ updateChoiceNotes();
 renderPresets();
 initHowItWorks();
 el.message.addEventListener('input', onInput);
+// 숨은 속사정은 그동안 리스너가 없어서, 전송본 미리보기를 열어둔 채 이 칸을
+// 고쳐도 미리보기가 갱신되지 않았다. 결과 초기화와 함께 여기서 처리한다.
+el.hiddenContext.addEventListener('input', () => {
+  resetResult();
+  if (!el.maskPreview.hidden) updateMaskPreview();
+});
 el.run.addEventListener('click', () => run());
-el.presetRun.addEventListener('click', () => runPresetExample());
+el.presetRun.addEventListener('click', () => applyPresetMessage());
 el.togglePreview.addEventListener('click', () => {
   const show = el.maskPreview.hidden;
   el.maskPreview.hidden = !show;
