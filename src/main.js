@@ -246,14 +246,23 @@ const PRESETS = [
   },
 ];
 
+/**
+ * 선택값은 **아무것도 미리 고르지 않은 상태**로 시작한다.
+ *
+ * 예전에는 각 항목의 첫 값이 선택돼 있었다. 화면이 채워져 보이는 대신,
+ * 사용자가 고른 값과 그냥 기본값으로 남은 값을 구분할 수 없었다. 특히
+ * counterpart 는 **점수에 직접 관여하는 유일한 컨텍스트**(POWER_BY_COUNTERPART)
+ * 라, 고르지도 않은 '직속상사'로 권력 비대칭 4점이 잡히는 건 사실과 다른
+ * 판정이다. 비워 두고 사용자가 고르게 한다.
+ *
+ * 직군·연차는 지난 방문 값이 있으면 그것만 복원한다(내 정보는 안 바뀐다).
+ */
 const state = {
-  job: OPTIONS.job[0],
-  level: OPTIONS.level[0],
-  counterpart: OPTIONS.counterpart[0],
-  goal: OPTIONS.goal[0],
-  tone: OPTIONS.tone[1], // 보통맛 기본값
-  // 지난 방문에서 고른 값이 있으면 그걸로 덮는다. 현재 선택지에 없는 값은
-  // loadPrefs 가 걸러내므로 기본값이 유지된다.
+  job: '',
+  level: '',
+  counterpart: '',
+  goal: '',
+  tone: '',
   ...loadPrefs(OPTIONS),
 };
 
@@ -305,6 +314,7 @@ const el = {
   feedbackOpen: $('feedback-open'),
   feedbackClose: $('feedback-close'),
   toTop: $('to-top'),
+  feedbackFloat: $('feedback-float'),
   fbMessage: $('fb-message'),
   fbContact: $('fb-contact'),
   fbUpdates: $('fb-updates'),
@@ -389,7 +399,6 @@ function renderChips() {
           updatePlaceholders();
         }
         if (field === 'goal' || field === 'tone') updateChoiceNotes();
-        touched.add(field);
         renderStepBars();
         savePrefs(state);
         resetResult();
@@ -412,8 +421,9 @@ function updatePlaceholders() {
 
 /** 지금 고른 목적·말투가 답장을 어떻게 바꾸는지 칩 아래에 적어둔다. */
 function updateChoiceNotes() {
-  el.goalNote.textContent = GOAL_NOTE[apiValue(state.goal)] || '';
-  el.toneNote.textContent = TONE_NOTE[apiValue(state.tone)] || '';
+  // 고르기 전에는 빈 줄 대신 무엇을 고르는 자리인지 알려 준다.
+  el.goalNote.textContent = GOAL_NOTE[apiValue(state.goal)] || '고르면 답장이 어떤 방향으로 쓰일지 여기에 설명이 나옵니다.';
+  el.toneNote.textContent = TONE_NOTE[apiValue(state.tone)] || '고르면 말투가 어떻게 달라질지 여기에 설명이 나옵니다.';
 }
 
 /** id → 카드 버튼. 입력 내용 기반 추천 표시(updateSituationSuggestion)에 쓴다. */
@@ -454,6 +464,18 @@ function renderPresets() {
  */
 function applyPresetFilter() {
   const who = apiValue(state.counterpart);
+  // 관계를 아직 고르지 않았으면 거를 기준이 없다. 전부 보여준다 —
+  // 여기서 fits 로 거르면 매칭 0건이라 빈 목록이 뜬다.
+  if (!who) {
+    for (const p of PRESETS) {
+      const btn = presetButtons.get(p.id);
+      if (btn) btn.hidden = false;
+    }
+    el.presetHint.textContent = '상황 10가지';
+    el.presetToggle.hidden = true;
+    return;
+  }
+
   const matches = PRESETS.filter((p) => p.fits.includes(who));
   const hiddenCount = PRESETS.length - matches.length;
 
@@ -564,7 +586,10 @@ function applyPresetMessage() {
 
   el.message.focus({ preventScroll: true });
   el.message.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  setHint('예시 메시지를 넣었습니다. 답장 설정을 고른 뒤 실행해 보세요.');
+  // 안내 문구는 띄우지 않는다 — 입력칸이 예시 문장으로 채워지고 그 자리로
+  // 스크롤까지 되므로 무슨 일이 일어났는지 이미 보인다. 실행 버튼 아래에
+  // 한 줄을 더 얹으면 설명만 늘어난다.
+  setHint('');
 }
 
 /**
@@ -589,23 +614,21 @@ function matchPresetId(text, hiddenContextRaw, ctx) {
 /**
  * 구역별 진행 바.
  *
- * 칩은 항상 기본값이 하나 선택돼 있어서 "선택됐는가"로 세면 처음부터 100%
- * 가 된다 — 진행 표시가 아니라 장식이 된다. 그래서 **사용자가 실제로 손댄
- * 항목**(touched)만 센다. 1·3구역은 손댄 칩 수, 2구역은 관계 칩과 메시지
- * 입력, 4구역은 실행 가능 여부다.
+ * 기본 선택을 없앤 뒤로는 "고른 값이 있는가"가 곧 진행률이다(예전에는 칩이
+ * 항상 하나 선택돼 있어 처음부터 100% 였고, 그래서 '손댔는지'를 따로
+ * 추적해야 했다).
  *
- * 메시지가 없으면 분석 자체가 안 되므로 2구역에서 가장 큰 몫을 준다.
+ * 2·4구역은 메시지 입력까지 함께 본다 — 메시지가 없으면 분석 자체가 안 된다.
  */
-const touched = new Set();
-
 function zoneProgress() {
   const hasMessage = el.message.value.trim().length > 0;
-  const count = (...fields) => fields.filter((f) => touched.has(f)).length;
+  const count = (...fields) => fields.filter((f) => state[f]).length;
   return {
     me: count('job', 'level') / 2,
     them: (count('counterpart') + (hasMessage ? 1 : 0)) / 2,
     reply: count('goal', 'tone') / 2,
-    run: hasMessage ? 1 : 0,
+    // 실행 조건은 메시지와 관계 두 가지다(관계는 점수를 움직이므로 필수).
+    run: ((hasMessage ? 1 : 0) + (state.counterpart ? 1 : 0)) / 2,
   };
 }
 
@@ -644,6 +667,13 @@ function updateMaskPreview() {
 
 /* ── 실행 ───────────────────────────── */
 
+/**
+ * 서버로 보낼 컨텍스트.
+ *
+ * 고르지 않은 값은 빈 문자열로 간다. 서버(prompt.js)·MOCK(mock.js) 모두
+ * `context.x || 기본값` 으로 받고 있어 그대로 동작한다. counterpart 만은
+ * 실행 전에 선택을 강제하므로 여기까지 빈 값으로 오지 않는다.
+ */
 function contextFields() {
   return {
     job: apiValue(state.job),
@@ -664,6 +694,13 @@ async function run() {
   const text = el.message.value.trim();
   if (!text) {
     showError('분석할 내용을 먼저 입력해 주세요. 상황 카드는 예시일 뿐, 직접 입력해야 분석됩니다.');
+    return;
+  }
+  // counterpart 는 점수를 움직이는 유일한 컨텍스트라 비어 있으면 임의값으로
+  // 채우지 않고 물어본다. 나머지는 없어도 판정이 달라지지 않는다.
+  if (!state.counterpart) {
+    showError('상대방과의 관계를 먼저 골라 주세요. 이 선택이 위험 지수의 권력 비대칭을 결정합니다.');
+    document.querySelector('.selector[data-field="counterpart"]')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
     return;
   }
   if (text.length > MAX_CHARS) {
@@ -1626,6 +1663,7 @@ el.introSkip.addEventListener('click', closeIntro);
 el.introReplay.addEventListener('click', openIntro);
 el.feedbackForm.addEventListener('submit', sendFeedback);
 el.feedbackOpen.addEventListener('click', openFeedbackModal);
+el.feedbackFloat.addEventListener('click', openFeedbackModal);
 el.feedbackClose.addEventListener('click', closeFeedbackModal);
 el.feedbackBackdrop.addEventListener('click', closeFeedbackModal);
 
@@ -1646,8 +1684,8 @@ const TO_TOP_AT = () => window.innerHeight * 0.9;
  * 대신, 그 버튼들이 화면에 있는 동안에는 맨 위로를 숨긴다. 위로 갈 길은
  * 스크롤로도 열려 있지만 실행 버튼을 못 누르는 건 대안이 없다.
  */
-function toTopWouldCover() {
-  const t = el.toTop.getBoundingClientRect();
+function wouldCover(floatBtn) {
+  const t = floatBtn.getBoundingClientRect();
   return [el.run, el.receiptOpen].some((node) => {
     if (!node || !node.offsetParent) return false;
     const r = node.getBoundingClientRect();
@@ -1655,8 +1693,18 @@ function toTopWouldCover() {
   });
 }
 
-const syncToTop = () =>
-  el.toTop.classList.toggle('is-on', window.scrollY > TO_TOP_AT() && !toTopWouldCover());
+/**
+ * 떠 있는 버튼 두 개(맨 위로 · 의견 보내기)의 노출.
+ *
+ * 의견 보내기는 푸터까지 내려가야만 보였다. 한 번 써본 뒤에 쓸 말이
+ * 생기는 성격이라, 결과를 본 시점부터 손에 닿는 곳에 둔다. 다만 둘 다
+ * 실행 버튼을 덮으면 안 되므로 같은 가림 판정을 공유한다.
+ */
+const syncToTop = () => {
+  const scrolled = window.scrollY > TO_TOP_AT();
+  el.toTop.classList.toggle('is-on', scrolled && !wouldCover(el.toTop));
+  el.feedbackFloat.classList.toggle('is-on', scrolled && !wouldCover(el.feedbackFloat));
+};
 window.addEventListener('scroll', syncToTop, { passive: true });
 el.toTop.addEventListener('click', () => {
   window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });

@@ -139,7 +139,14 @@ html, body {
   position: sticky; top: 0; z-index: 20;
   background: var(--bg-panel);
 }
-.brand { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+/* 로고는 홈 링크다. 눌러서 처음 화면으로 돌아가는 건 사이트의 기본 기대라
+   링크 티(밑줄·파란색)는 빼고 커서만 바꾼다. */
+.brand {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  text-decoration: none; color: inherit;
+}
+.brand:hover .brand-mark b { color: var(--accent-dim); }
+.brand:active { transform: scale(.99); }
 
 /* 로고 마크. currentColor 라 테마를 따라간다. */
 .brand-logo { display: flex; color: var(--accent); flex: none; }
@@ -837,20 +844,27 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   align-items: center;
   gap: 14px;
 }
+/* 닫기 버튼.
+   예전에는 position: absolute 에 top/right -6px 라 패널 모서리 **밖으로
+   반쯤 걸쳐** 떠 있었다. 배경 위에 동그라미만 잘린 채 얹혀 보여서 버튼이
+   아니라 얼룩처럼 읽혔다. 패널 안쪽 오른쪽 위에 제대로 앉힌다. */
 .receipt-close {
   position: absolute;
-  top: -6px;
-  right: -6px;
+  top: 12px;
+  right: 12px;
+  display: flex; align-items: center; justify-content: center;
   width: 32px; height: 32px;
   border-radius: 999px;
-  border: 1px solid var(--line);
-  background: var(--bg-panel);
-  color: var(--text-dim);
-  font-size: 14px;
+  border: 1px solid transparent;
+  background: var(--bg-soft);
+  color: var(--text-faint);
+  font-size: 14px; line-height: 1;
   cursor: pointer;
   z-index: 2;
+  transition: background var(--dur-fast), color var(--dur-fast), border-color var(--dur-fast), transform var(--dur-fast);
 }
-.receipt-close:hover { color: var(--text); border-color: var(--accent); }
+.receipt-close:hover { background: var(--line); color: var(--text); }
+.receipt-close:active { transform: scale(.92); }
 
 /* ── 영수증 카드 (실제 캡처 대상) — 종이 영수증 느낌으로 앱과 다른 결을 준다 ── */
 .receipt-card {
@@ -957,7 +971,7 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   border-radius: var(--radius);
   padding: 20px;
 }
-.history-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.history-head { padding-right: 40px; }
 .history-head h2 { font-size: 15px; margin: 0; }
 .history-note { font-size: 12.5px; color: var(--text-faint); margin: 8px 0 14px; line-height: 1.5; }
 
@@ -969,7 +983,13 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   padding: 10px 8px;
   text-align: center;
 }
-.history-stat span { display: block; font-family: var(--mono); font-size: 17px; font-weight: 700; }
+/* 이 자리에는 숫자(총 기록·평균)와 **한글 유형명**("주말 도둑형")이 같이
+   들어온다. mono 는 라틴 전용이라 한글만 시스템 글꼴로 떨어져 세 칸의 결이
+   서로 달랐다. 숫자 폭을 맞추려던 원래 의도는 tabular-nums 로 살린다. */
+.history-stat span {
+  display: block; font-size: 17px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
 .history-stat small { font-size: 12px; color: var(--text-faint); }
 
 .history-empty {
@@ -990,7 +1010,7 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   background: var(--bg-soft);
 }
 .history-item-score {
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   font-weight: 700;
   font-size: 13px;
   width: 32px;
@@ -1091,8 +1111,11 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 }
 .intro-body b { color: var(--text); font-weight: 700; }
 
-.intro-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.intro-nav { display: flex; gap: 8px; }
+/* 마지막 장에서는 건너뛰기가 사라진다. space-between 만 쓰면 남은 버튼
+   묶음이 왼쪽으로 끌려가 장마다 위치가 바뀌었다 — 같은 자리에서 계속
+   누르던 버튼이 옮겨 다니면 손이 헛나간다. 오른쪽 정렬을 고정한다. */
+.intro-actions { display: flex; align-items: center; gap: 12px; }
+.intro-nav { display: flex; gap: 8px; margin-left: auto; }
 .intro-skip, .intro-back, .intro-next {
   font-family: var(--font); font-size: 13.5px; cursor: pointer;
   border-radius: 8px; min-height: 42px; padding: 0 18px;
@@ -1178,7 +1201,7 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   padding: 24px; border-radius: 14px;
   border: 1px solid var(--line); background: var(--bg-panel);
 }
-.feedback-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.feedback-head { padding-right: 40px; }
 .feedback-title { margin: 0; font-size: 17px; font-weight: 800; color: var(--text); }
 .feedback-lead { margin: 8px 0 18px; font-size: 13.5px; line-height: 1.7; color: var(--text-dim); }
 .feedback-form { display: flex; flex-direction: column; }
@@ -1218,20 +1241,26 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 /* ── 맨 위로 ─────────────────────────────
    페이지가 길어서(입력 → 결과 → 작동 방식 → 의견) 아래에서 위로 돌아오는
    비용이 크다. 한 화면 넘게 내려갔을 때만 나타난다. */
-.to-top {
-  position: fixed; right: 20px; bottom: 20px; z-index: 30;
+.float-btn {
+  position: fixed; right: 20px; z-index: 30;
   width: 44px; height: 44px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   border: 1px solid var(--line); background: var(--bg-panel);
   color: var(--text-dim); cursor: pointer;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, .12);
   opacity: 0; transform: translateY(8px); pointer-events: none;
   transition: opacity .18s, transform .18s, color .12s, border-color .12s;
 }
-.to-top.is-on { opacity: 1; transform: none; pointer-events: auto; }
-.to-top:hover { color: var(--accent); border-color: var(--accent-dim); }
+.float-btn.is-on { opacity: 1; transform: none; pointer-events: auto; }
+.float-btn:hover { color: var(--accent); border-color: var(--accent-dim); }
+
+/* 두 버튼을 한 줄로 쌓는다. 맨 위로가 아래, 의견 보내기가 그 위다 —
+   자주 쓰는 쪽(맨 위로)이 엄지에 가깝다. */
+.to-top { bottom: 20px; }
+.float-feedback { bottom: 72px; color: var(--accent); border-color: var(--accent-dim); }
+.float-feedback:hover { background: color-mix(in srgb, var(--accent) 8%, var(--bg-panel)); }
+
 @media (prefers-reduced-motion: reduce) {
-  .to-top { transition: opacity .18s; transform: none; }
+  .float-btn { transition: opacity .18s; transform: none; }
 }
 
 /* ── '어떻게 작동하나요' — 모바일 축소 ─────────────────────────────
@@ -1329,9 +1358,11 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 }
 
 /* 떠 있는 층 */
-.receipt-panel, .history-modal-panel, .feedback-panel, .intro-panel { box-shadow: var(--shadow-lg); }
-.to-top { box-shadow: var(--shadow-lg); }
-.to-top:active { transform: scale(.92); }
+/* 스토리(.intro-panel)는 뺐다. 전체 화면을 덮는 면이라 그림자가 걸릴
+   모서리가 없고, 떠 있는 층으로 취급하면 배경과 겹쳐 얼룩처럼 보인다. */
+.receipt-panel, .history-modal-panel, .feedback-panel { box-shadow: var(--shadow-lg); }
+.float-btn { box-shadow: var(--shadow-lg); }
+.float-btn:active { transform: scale(.92); }
 
 /* 결과 등장 — 점수가 먼저 눈에 들어오도록 아래에서 살짝 올라온다 */
 @keyframes result-in {

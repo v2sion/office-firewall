@@ -73,7 +73,7 @@
   </div>
 
   <header class="topbar">
-    <div class="brand">
+    <a class="brand" href="/" aria-label="OFFICE FIREWALL 처음으로">
       <!--
         로고는 비트맵 파일이 아니라 인라인 SVG 다. 이유 세 가지.
           1) 상단바에서 20px 남짓으로 쓰는데 비트맵은 고DPI 화면에서 뭉갠다.
@@ -99,7 +99,7 @@
       </span>
       <span class="brand-mark"><b>OFFICE</b><i>FIREWALL</i></span>
       <span class="brand-sub">직장 메시지 방화벽</span>
-    </div>
+    </a>
     <div class="topbar-right">
       <button type="button" class="history-open" id="history-open">나의 방어 기록<span class="history-badge" id="history-badge" hidden>0</span></button>
       <div class="brand-claim">이 메시지, 혼자 해석하지 마세요</div>
@@ -375,7 +375,13 @@
     <button type="button" class="footer-feedback" id="feedback-open">의견 보내기</button>
   </footer>
 
-  <button type="button" class="to-top" id="to-top" aria-label="맨 위로" title="맨 위로">
+  <button type="button" class="float-btn float-feedback" id="feedback-float" aria-label="의견 보내기" title="의견 보내기">
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.8-.9L3 21l1.9-5.1A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z" />
+    </svg>
+  </button>
+
+  <button type="button" class="float-btn to-top" id="to-top" aria-label="맨 위로" title="맨 위로">
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M12 19V5M5 12l7-7 7 7" />
     </svg>
