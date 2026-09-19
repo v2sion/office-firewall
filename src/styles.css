@@ -366,6 +366,14 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 }
 .field-hint b { color: var(--text-dim); font-weight: 600; }
 
+/* 고른 목적·말투가 답장을 어떻게 바꾸는지 알려주는 줄. 선택에 따라 내용이
+   바뀌므로 정적인 힌트(--text-faint)보다 한 단계 진하게 둬서 "지금 내
+   선택의 결과"로 읽히게 한다. */
+.choice-note {
+  font-size: 11.5px; color: var(--text-dim); line-height: 1.55;
+  margin: 8px 0 0; padding-left: 9px; border-left: 2px solid var(--line);
+}
+
 .thread-warning {
   margin: 8px 0 0;
   padding: 8px 10px;

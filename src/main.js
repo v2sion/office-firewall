@@ -57,6 +57,28 @@ const OPTIONS = {
   tone: ['🟢 순한맛', '🟡 보통맛', '🔴 매운맛'],
 };
 
+/**
+ * 목적·말투를 고르면 답장이 어떻게 달라지는지 한 줄로 알려준다.
+ *
+ * 예전에는 "칼차단 / 시간벌기 / 공넘기기 / 관계보존" 이름만 있고 결과를
+ * 가늠할 단서가 없어서, 12가지 조합 중 뭘 골라야 하는지 찍어야 했다.
+ * 모델에 보내는 지시문(api/_lib/prompt.js 의 GOAL_RULES·TONE_RULES)은
+ * 이미 같은 내용을 담고 있지만 그건 "모델에게 시키는 명령문"이라 사용자가
+ * 읽을 문장이 아니다 — 같은 규칙을 사용자 입장("내 답장이 어떻게 되나")
+ * 으로 다시 쓴 것이 아래 문구다. 둘 중 하나를 고치면 다른 쪽도 맞출 것.
+ */
+const GOAL_NOTE = {
+  '칼차단': '수용할 수 없다는 걸 분명히 합니다. 대안은 하나만 남기고, 일정 재협상 여지는 두지 않습니다.',
+  '시간벌기': '즉답을 피하고 판단에 필요한 정보를 먼저 요구합니다. 회신 시점을 내가 정합니다.',
+  '공넘기기': '선행 조건과 책임 소재를 짚어 공을 상대에게 돌려보냅니다. 내가 먼저 착수하지 않습니다.',
+  '관계보존': '요구는 받되 범위와 기한을 좁혀 다시 정의합니다. 관계 비용을 가장 적게 씁니다.',
+};
+const TONE_NOTE = {
+  '순한맛': '쿠션어를 문장마다 넣고, 거절도 제안 형태로 바꿉니다. 상대 체면을 먼저 세웁니다.',
+  '보통맛': '사실과 일정 중심의 표준 업무 어조입니다. 감정 표현 없이 담백하게 씁니다.',
+  '매운맛': '완곡어를 걷어내고 모호한 부분을 직접 지적합니다. 범위·기한·담당을 명시적으로 요구합니다.',
+};
+
 /** 화면 표기 → API 계약값 */
 const VALUE_OF = {
   '주니어(1~3년)': '주니어',
@@ -145,6 +167,8 @@ const el = {
   charCount: $('char-count'),
   hiddenContext: $('hidden-context'),
   toneWarning: $('tone-warning'),
+  goalNote: $('goal-note'),
+  toneNote: $('tone-note'),
   togglePreview: $('toggle-preview'),
   maskPreview: $('mask-preview'),
   maskPreviewBody: $('mask-preview-body'),
@@ -222,10 +246,17 @@ function renderChips() {
         btn.setAttribute('aria-checked', 'true');
         if (field === 'tone') el.toneWarning.hidden = apiValue(opt) !== '매운맛';
         if (field === 'counterpart') updateSituationSuggestion();
+        if (field === 'goal' || field === 'tone') updateChoiceNotes();
       });
       box.appendChild(btn);
     }
   });
+}
+
+/** 지금 고른 목적·말투가 답장을 어떻게 바꾸는지 칩 아래에 적어둔다. */
+function updateChoiceNotes() {
+  el.goalNote.textContent = GOAL_NOTE[apiValue(state.goal)] || '';
+  el.toneNote.textContent = TONE_NOTE[apiValue(state.tone)] || '';
 }
 
 /** id → 카드 버튼. ③ 입력 내용 기반 추천 표시(updateSituationSuggestion)에 쓴다. */
@@ -921,6 +952,7 @@ function initHowItWorks() {
 /* ── 초기화 ───────────────────────────── */
 
 renderChips();
+updateChoiceNotes();
 renderPresets();
 initHowItWorks();
 el.message.addEventListener('input', onInput);
