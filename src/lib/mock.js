@@ -10,11 +10,21 @@
  */
 import { extractSubstanceSignals, detectUrgency, detectAmbiguity, aiSlopScore } from './cliche.js';
 
+/**
+ * 거절 비용 기본값 — "직책이 아니라 거절 비용으로 매긴다"는 판정 기준
+ * (api/_lib/prompt.js 의 powerAsymmetry 앵커)을 이 폴백 경로에도 맞췄다.
+ * 임원·클라이언트처럼 거절 시 실질 불이익이 큰 관계를 5로, 후배처럼
+ * 거절해도 잃을 게 적은 관계를 1로 둔다.
+ */
 const POWER_BY_COUNTERPART = {
-  '직속상사': 4,
+  '임원': 5,
   '클라이언트': 5,
+  '직속상사': 4,
+  '민원인': 4,
+  '선배': 3,
   '타부서 동료': 3,
-  '팀원(AI복붙)': 2,
+  '동기': 2,
+  '후배': 1,
 };
 
 function buildSubtext(ctx, urgency, ambiguity, slop, signals) {

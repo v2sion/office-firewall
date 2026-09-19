@@ -13,7 +13,7 @@ test('빌런 유형: 골든 ① 주말 침범 → "주말 도둑형 상사" (가
 
 test('빌런 유형: AI 슬롭이 가장 먼저 판정된다 (다른 신호보다 우선)', () => {
   const xray = { urgencyType: '주말 침범', ambiguityType: 'R&R 미지정', aiSlopScore: 80, avoidsDecision: true };
-  assert.equal(villainType(xray, { counterpart: '팀원(AI복붙)' }), '영혼 없이 복붙형 동료');
+  assert.equal(villainType(xray, { counterpart: '동기' }), '영혼 없이 복붙형 동기');
 });
 
 test('빌런 유형: 신호가 전혀 없으면 "평범한 ○○"', () => {
@@ -24,6 +24,17 @@ test('빌런 유형: 신호가 전혀 없으면 "평범한 ○○"', () => {
 test('빌런 유형: counterpart 가 없거나 알 수 없어도 죽지 않는다', () => {
   assert.doesNotThrow(() => villainType({}, {}));
   assert.equal(villainType({}, {}), '평범한 상대');
+});
+
+test('빌런 유형: 확장된 관계 8종이 전부 고유한 "who" 로 치환된다', () => {
+  const xray = { urgencyType: '없음', ambiguityType: '없음', aiSlopScore: 0, avoidsDecision: false };
+  const who = {
+    '직속상사': '상사', '임원': '임원', '선배': '선배', '후배': '후배',
+    '동기': '동기', '타부서 동료': '동료', '클라이언트': '클라이언트', '민원인': '민원인',
+  };
+  for (const [counterpart, label] of Object.entries(who)) {
+    assert.equal(villainType(xray, { counterpart }), `평범한 ${label}`, counterpart);
+  }
 });
 
 test('방어 모드 라벨: 칼차단+매운맛 → "🛑 여지없는 칼차단" (가이드 §3.3 예시와 정확히 일치)', () => {
