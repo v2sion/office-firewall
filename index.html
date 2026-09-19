@@ -30,86 +30,95 @@
   <main class="layout">
     <!-- ─────────────────  좌: 입력 패널  ───────────────── -->
     <section class="panel panel-input" aria-label="입력 패널">
-      <div class="step-divider"><span class="step-num">1</span><span>상황 입력</span></div>
-      <!-- ① 내 상황 -->
-      <div class="block">
-        <h2 class="block-title">내 상황</h2>
-        <div class="selector" data-field="job">
-          <span class="selector-label">내 직군</span>
-          <div class="chips" role="radiogroup" aria-label="내 직군"></div>
-        </div>
-        <div class="selector" data-field="level">
-          <span class="selector-label">내 연차</span>
-          <div class="chips" role="radiogroup" aria-label="내 연차"></div>
-        </div>
-        <div class="selector" data-field="counterpart">
-          <span class="selector-label">상대방과의 관계</span>
-          <div class="chips" role="radiogroup" aria-label="상대방과의 관계"></div>
-        </div>
-      </div>
-
-      <!-- ② 구체적인 상황 -->
-      <div class="block">
-        <h2 class="block-title">구체적인 상황 <span class="optional">비슷하면 클릭(예시 미리보기) · 아래에 입력하면 자동으로 추천됩니다</span></h2>
-        <div class="preset-grid" id="preset-grid"></div>
-      </div>
-
-      <!-- ③ 메시지·메일·대화 내용 -->
-      <div class="block">
-        <div class="block-head">
-          <h2 class="block-title">메시지·메일·대화 내용</h2>
-          <span class="shield-badge" id="shield-badge" title="원문은 브라우저에서 마스킹된 뒤에만 서버로 전송됩니다">
-            <svg class="icon-shield" viewBox="0 0 32 32" width="12" height="12" aria-hidden="true"><path d="M16 5l9 3.2v7.1c0 5.6-3.7 10.3-9 11.7-5.3-1.4-9-6.1-9-11.7V8.2z" fill="currentColor"/></svg>
-            전송 전 자동 가림
-          </span>
-        </div>
-        <textarea id="message" maxlength="800" rows="7" placeholder="카카오톡 메시지, 이메일, 회의 대화록 등 받은 내용을 그대로 붙여넣으세요. 연락처·이메일·금액과 대부분의 이름은 전송 전에 브라우저에서 가려집니다 — 아래 '전송될 내용 확인하기'에서 실제 전송본을 직접 보실 수 있어요."></textarea>
-        <p class="field-hint"><b>상대방이 보낸 부분만</b> 넣어주세요. 여러 번 대화가 오간 경우 내가 답장한 내용까지 같이 넣으면 진단이 부정확해질 수 있어요.</p>
-        <p class="thread-warning" id="thread-warning" hidden>
-          <b>여러 화자 감지</b> — 상대방이 보낸 메시지만 남기면 더 정확하게 분석됩니다.
-        </p>
-        <div class="under-input">
-          <span class="counter"><b id="char-count">0</b> / 800자</span>
-          <button type="button" class="linkish" id="toggle-preview" aria-expanded="false">전송될 내용 확인하기</button>
-        </div>
-        <div class="mask-preview" id="mask-preview" hidden>
-          <div class="mask-preview-head">서버로 실제 전송되는 텍스트 <span class="mask-summary" id="mask-summary">검출 없음</span></div>
-          <pre id="mask-preview-body"></pre>
-          <p class="mask-note">토큰 맵(어떤 토큰이 누구인지)은 이 브라우저 메모리에만 있으며 전송·저장되지 않습니다.</p>
+      <!-- ── 1구역: 나 ──────────────────────────────
+           나에 대한 정보만 담는다. "상대방과의 관계"는 상대방 정보라서
+           2구역으로 옮겼다 — 예전엔 이 블록 안에 섞여 있었다. -->
+      <div class="step-divider"><span class="step-num">1</span><span>내 정보</span></div>
+      <div class="zone zone-me">
+        <div class="block">
+          <div class="selector" data-field="job">
+            <span class="selector-label">내 직군</span>
+            <div class="chips" role="radiogroup" aria-label="내 직군"></div>
+          </div>
+          <div class="selector" data-field="level">
+            <span class="selector-label">내 연차</span>
+            <div class="chips" role="radiogroup" aria-label="내 연차"></div>
+          </div>
         </div>
       </div>
 
-      <div class="step-divider"><span class="step-num">2</span><span>답장 설정</span></div>
-      <!-- ④ 숨은 속사정 -->
-      <div class="block">
-        <h2 class="block-title">나의 숨은 속사정 <span class="optional">선택</span></h2>
-        <input type="text" id="hidden-context" maxlength="120" placeholder="예) 가족 행사로 외지에 있음 / 계약서상 수정은 2회까지" />
-      </div>
+      <!-- ── 2구역: 상대방 ────────────────────────── -->
+      <div class="step-divider"><span class="step-num">2</span><span>상대방 정보</span></div>
+      <div class="zone zone-them">
+        <div class="block">
+          <div class="selector" data-field="counterpart">
+            <span class="selector-label">상대방과의 관계</span>
+            <div class="chips" role="radiogroup" aria-label="상대방과의 관계"></div>
+          </div>
+        </div>
 
-      <!-- ⑤ 방어 목적 -->
-      <div class="block">
-        <h2 class="block-title">방어 목적</h2>
-        <div class="selector" data-field="goal">
-          <div class="chips" role="radiogroup" aria-label="방어 목적"></div>
+        <!-- 상황 예시 카드 -->
+        <div class="block">
+          <h2 class="block-title">이런 상황인가요? <span class="optional">예시 — 비슷한 걸 누르면 입력칸에 미리보기가 뜹니다</span></h2>
+          <div class="preset-grid" id="preset-grid"></div>
+        </div>
+
+        <!-- 받은 메시지 -->
+        <div class="block">
+          <div class="block-head">
+            <h2 class="block-title">받은 메시지</h2>
+            <span class="shield-badge" id="shield-badge" title="원문은 브라우저에서 마스킹된 뒤에만 서버로 전송됩니다">
+              <svg class="icon-shield" viewBox="0 0 32 32" width="12" height="12" aria-hidden="true"><path d="M16 5l9 3.2v7.1c0 5.6-3.7 10.3-9 11.7-5.3-1.4-9-6.1-9-11.7V8.2z" fill="currentColor"/></svg>
+              전송 전 자동 가림
+            </span>
+          </div>
+          <textarea id="message" maxlength="800" rows="7" placeholder="카카오톡 메시지, 이메일, 회의 대화록 등 받은 내용을 그대로 붙여넣으세요. 연락처·이메일·금액과 대부분의 이름은 전송 전에 브라우저에서 가려집니다 — 아래 '전송될 내용 확인하기'에서 실제 전송본을 직접 보실 수 있어요."></textarea>
+          <p class="field-hint"><b>상대방이 보낸 부분만</b> 넣어주세요. 여러 번 대화가 오간 경우 내가 답장한 내용까지 같이 넣으면 진단이 부정확해질 수 있어요.</p>
+          <p class="thread-warning" id="thread-warning" hidden>
+            <b>여러 화자 감지</b> — 상대방이 보낸 메시지만 남기면 더 정확하게 분석됩니다.
+          </p>
+          <div class="under-input">
+            <span class="counter"><b id="char-count">0</b> / 800자</span>
+            <button type="button" class="linkish" id="toggle-preview" aria-expanded="false">전송될 내용 확인하기</button>
+          </div>
+          <div class="mask-preview" id="mask-preview" hidden>
+            <div class="mask-preview-head">서버로 실제 전송되는 텍스트 <span class="mask-summary" id="mask-summary">검출 없음</span></div>
+            <pre id="mask-preview-body"></pre>
+            <p class="mask-note">토큰 맵(어떤 토큰이 누구인지)은 이 브라우저 메모리에만 있으며 전송·저장되지 않습니다.</p>
+          </div>
         </div>
       </div>
 
-      <!-- ⑥ 말투 세기 -->
-      <div class="block">
-        <h2 class="block-title">말투 세기</h2>
-        <div class="selector" data-field="tone">
-          <div class="chips chips-tone" role="radiogroup" aria-label="말투 세기"></div>
+      <!-- ── 3구역: 답장 설정 ────────────────────── -->
+      <div class="step-divider"><span class="step-num">3</span><span>답장 설정</span></div>
+      <div class="zone zone-reply">
+        <div class="block">
+          <h2 class="block-title">나의 숨은 속사정 <span class="optional">선택</span></h2>
+          <input type="text" id="hidden-context" maxlength="120" placeholder="예) 가족 행사로 외지에 있음 / 계약서상 수정은 2회까지" />
         </div>
-        <p class="tone-warning" id="tone-warning" hidden>
-          <b>관계 비용 경고</b> — 이 톤은 사내 갈등이 증폭될 위험이 있습니다. 감정이 가라앉은 후 신중히 전송하세요.
-        </p>
+
+        <div class="block">
+          <h2 class="block-title">방어 목적</h2>
+          <div class="selector" data-field="goal">
+            <div class="chips" role="radiogroup" aria-label="방어 목적"></div>
+          </div>
+        </div>
+
+        <div class="block">
+          <h2 class="block-title">말투 세기</h2>
+          <div class="selector" data-field="tone">
+            <div class="chips chips-tone" role="radiogroup" aria-label="말투 세기"></div>
+          </div>
+          <p class="tone-warning" id="tone-warning" hidden>
+            <b>관계 비용 경고</b> — 이 톤은 사내 갈등이 증폭될 위험이 있습니다. 감정이 가라앉은 후 신중히 전송하세요.
+          </p>
+        </div>
       </div>
 
-      <div class="step-divider"><span class="step-num">3</span><span>실행</span></div>
-      <!-- ⑦ 실행 -->
+      <div class="step-divider"><span class="step-num">4</span><span>실행</span></div>
       <div class="block">
         <button type="button" class="run" id="run">분석하고 답장 만들기</button>
-        <p class="run-hint" id="run-hint">분석은 5초에 한 번 실행됩니다.</p>
+        <p class="run-hint" id="run-hint"></p>
       </div>
     </section>
 

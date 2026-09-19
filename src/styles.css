@@ -170,6 +170,23 @@ html, body {
   font-family: var(--mono); font-weight: 800; font-size: 11px;
 }
 
+/* ── 구역(나 / 상대방 / 답장 설정) ─────────────────────────
+   "상대방과의 관계"가 "내 상황" 안에 섞여 있어서, 사용자가 무엇에 대해
+   답하는 중인지가 흐렸다. 나에 대한 입력과 상대방에 대한 입력을 눈으로
+   갈라 놓는다. 새 컴포넌트를 만들지 않고 Montage 의 중첩 표면 토큰
+   (--bg-soft)과 왼쪽 경계선만으로 묶음을 표시한다. */
+.zone {
+  border-left: 2px solid var(--line);
+  padding: 2px 0 2px 12px;
+  margin-bottom: 4px;
+}
+/* 상대방 구역만 살짝 눌러 "여기서부터는 내 얘기가 아니다"를 드러낸다 */
+.zone-them {
+  border-left-color: var(--accent);
+  background: linear-gradient(90deg, #0066ff08, transparent 60%);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
 .block { margin-bottom: 18px; }
 .block:last-child { margin-bottom: 0; }
 .block-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
