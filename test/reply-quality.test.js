@@ -67,3 +67,39 @@ test('이름이 없는 유관부서 메시지도 첫 번째 답장이 인사/확
   assert.ok(!first.startsWith('{{'), '토큰으로 시작하면 안 된다(주소 대상이 없을 때)');
   assert.ok(/^(요청|판단|검토)/.test(first), `응답체 프레이밍 없이 시작한다: ${first}`);
 });
+
+/**
+ * 화자·수신자 고정 회귀 테스트
+ *
+ * 받은 메시지가 "{{PERSON_1}}님 …" 으로 시작하면 PERSON_1 은 **사용자 본인**이다
+ * (발신자가 사용자를 부른 것). 예전 mock.js 는 PERSON_1 을 "상대 이름"으로
+ * 가정해 답장을 "{{PERSON_1}}님, " 으로 열었고, 그 결과 사용자가 자기 자신에게
+ * 답장을 쓰는 출력이 나왔다. 제품의 핵심 산출물이 틀리는 버그라 고정해 둔다.
+ */
+test('받은 메시지의 호칭 대상(=사용자 본인)을 답장의 호칭으로 되돌려 쓰지 않는다', () => {
+  const ctx = { job: '기획·PM/PO', level: '주니어', counterpart: '직속상사', tone: '보통맛' };
+  const received = '{{PERSON_1}}님 주말에 미안한데, 월요일 오전에 대표님 보고가 잡혀서요. 시간 날 때 가볍게 한번 봐주시면 좋을 것 같아요. 급한 건 아닙니다!';
+
+  for (const goal of ['칼차단', '시간벌기', '공넘기기', '관계보존']) {
+    for (const tone of ['순한맛', '보통맛', '매운맛']) {
+      const result = analyze(received, { ...ctx, goal, tone });
+      for (const reply of result.replies) {
+        assert.ok(
+          !reply.text.includes('{{PERSON_1}}'),
+          `${goal}/${tone} "${reply.label}" 이 사용자 본인을 호칭했다: ${reply.text.slice(0, 60)}`,
+        );
+      }
+    }
+  }
+});
+
+test('답장은 어떤 조합에서도 사람 토큰 호칭으로 시작하지 않는다', () => {
+  // 발신자 이름은 입력 어디에도 없으므로 답장 호칭은 지어낼 수 없다.
+  const received = '{{PERSON_1}}님, {{PERSON_2}} 대리 건은 어떻게 되고 있나요? 확인 부탁드려요.';
+  for (const counterpart of ['직속상사', '임원', '후배', '클라이언트', '민원인']) {
+    const result = analyze(received, { job: '기타', level: '주니어', counterpart, goal: '칼차단', tone: '보통맛' });
+    for (const reply of result.replies) {
+      assert.ok(!/^\{\{PERSON_\d+\}\}/.test(reply.text), `${counterpart}: ${reply.text.slice(0, 40)}`);
+    }
+  }
+});
