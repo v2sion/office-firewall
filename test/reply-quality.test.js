@@ -7,7 +7,7 @@ import { buildMockAnalysis } from '../src/lib/mock.js';
  * 실사용 피드백: "유관부서가 보낸 메시지를 넣었더니 답장이 그 내용에 대한
  * 응답이 아니라 내가 넣은 메시지를 다르게 표현한 것 같다."
  *
- * 원인: MOCK 답장 템플릿이 목적×완곡도로만 갈라지고, 감지된 ambiguityType 을
+ * 원인: MOCK 답장 템플릿이 목적×말투 세기로만 갈라지고, 감지된 ambiguityType 을
  * 반영하지 않은 채 "범위와 기한이 비어 있다"는 subtext 의 진단 문구를 답장에도
  * 그대로 반복해서 썼다. 이 테스트는 (1) 답장이 subtext 의 문구를 그대로
  * 복사하지 않는지, (2) 서로 다른 ambiguityType 을 감지한 메시지끼리는 답장도

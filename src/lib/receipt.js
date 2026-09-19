@@ -47,7 +47,7 @@ export function villainType(xray, context) {
 const GOAL_EMOJI = { '칼차단': '🛑', '시간벌기': '⏳', '공넘기기': '🏓', '관계보존': '🕊️' };
 const TONE_ADJ = { '매운맛': '여지없는', '보통맛': '담백한', '순한맛': '정중한' };
 
-/** "적용 방어 모드" — 목적×완곡도 조합을 사람이 읽는 라벨로. */
+/** "적용 방어 모드" — 목적×말투 세기 조합을 사람이 읽는 라벨로. */
 export function defenseModeLabel(goal, tone) {
   const emoji = GOAL_EMOJI[goal] || '🛡️';
   const adj = TONE_ADJ[tone] || '담백한';

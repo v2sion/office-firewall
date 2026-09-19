@@ -5,7 +5,7 @@ import { buildMockAnalysis } from '../src/lib/mock.js';
 
 /**
  * Sprint 1 Exit: "톤 3단계 차등 생성 확인".
- * 완곡도(순한맛/보통맛/매운맛)를 바꾸면 답장 3개 전부 실제로 문구가 달라져야 한다.
+ * 말투 세기(순한맛/보통맛/매운맛)를 바꾸면 답장 3개 전부 실제로 문구가 달라져야 한다.
  * 하나라도 두 톤에서 같은 문자열이 나오면 "차등 생성"이 아니라 착시다.
  */
 
@@ -19,7 +19,7 @@ function analyzeWith(tone, goal = '칼차단') {
   });
 }
 
-test('완곡도 3단계 — 답장 3개 전부 톤마다 문구가 다르다 (같은 목적 고정)', () => {
+test('말투 세기 3단계 — 답장 3개 전부 톤마다 문구가 다르다 (같은 목적 고정)', () => {
   for (const goal of ['칼차단', '시간벌기', '공넘기기', '관계보존']) {
     const byTone = Object.fromEntries(TONES.map((t) => [t, analyzeWith(t, goal)]));
     for (let i = 0; i < 3; i += 1) {
@@ -43,7 +43,7 @@ test('매운맛은 순한맛보다 쿠션어가 없고 더 직접적이다', () 
   assert.ok(!spicyHasCushion, '매운맛 답장에 쿠션어가 섞여 있다');
 });
 
-test('완곡도를 바꿔도 목적(goal)별 차이는 유지된다 — 톤이 목적을 덮어쓰지 않는다', () => {
+test('말투 세기를 바꿔도 목적(goal)별 차이는 유지된다 — 톤이 목적을 덮어쓰지 않는다', () => {
   const blockOff = analyzeWith('보통맛', '칼차단').replies[0].text;
   const buyTime = analyzeWith('보통맛', '시간벌기').replies[0].text;
   const passOn = analyzeWith('보통맛', '공넘기기').replies[0].text;
