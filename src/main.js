@@ -136,13 +136,12 @@ const strip = (s) => s.replace(/^[^\p{L}\p{N}]+/u, '').trim();
 const apiValue = (raw) => VALUE_OF[raw] || strip(raw);
 
 /**
- * 구체적인 상황 카드 — 예시 문구를 담고 있을 뿐, 폼을 채우지 않는다
- * (applyPreset 참고). 골든 4종(weekend/aislop/pingpong/client)은 텍스트를
- * 자동화 테스트 코퍼스(src/data/golden.json)와 같은 문구를 쓰지만, 이제는
- * 순수 UI 예시 갤러리라서 골든 데이터에 종속되지 않는다 — 새 카드를
+ * 상황 예시 카드("이런 상황인가요?") — 예시 문구를 담고 있을 뿐, 폼을
+ * 채우지 않는다(applyPreset 참고). 골든 4종(weekend/aislop/pingpong/client)은
+ * 텍스트를 자동화 테스트 코퍼스(src/data/golden.json)와 같은 문구로 쓰지만,
+ * 이제는 순수 UI 예시 갤러리라서 골든 데이터에 종속되지 않는다 — 새 카드를
  * 추가할 때 테스트 픽스처를 함께 만들 필요가 없다.
- */
-/**
+ *
  * fits 는 배열이다 — 한 상황이 여러 관계에서 나올 수 있다.
  * "주말 업무 눈치보기"는 직속상사만이 아니라 임원·선배도 시킨다. 예전에
  * 값 하나만 받던 시절엔 관계 8종 중 6종이 매칭 카드 1장뿐이었다(실측).
