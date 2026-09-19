@@ -63,11 +63,19 @@ export function validate(body) {
   return { ok: true, message, contact, wantsUpdates };
 }
 
+/**
+ * 응답 코드까지 남긴다.
+ *
+ * fetch 는 4xx·5xx 에서도 throw 하지 않는다. 그래서 예전에는 릴레이가
+ * 요청을 거절해도 우리 쪽 로그에는 아무것도 안 남았고, "실패 로그가 없다"가
+ * "전달됐다"를 뜻하지 못했다 — 연동이 깨져도 알 방법이 없다는 뜻이다.
+ * 상태 코드를 기록해 로그만 보고 판별할 수 있게 한다.
+ */
 async function notifyWebhook(url, payload) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT_MS);
   try {
-    await fetch(url, {
+    const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       // Slack·Discord 수신 웹훅은 `text` 를 그대로 본문으로 읽는다.
@@ -77,6 +85,8 @@ async function notifyWebhook(url, payload) {
       body: JSON.stringify({ text: payload.text, ...payload.fields }),
       signal: controller.signal,
     });
+    console.log(JSON.stringify({ tag: 'feedback_webhook', status: res.status, ok: res.ok }));
+    if (!res.ok) throw new Error(`webhook responded ${res.status}`);
   } finally {
     clearTimeout(timer);
   }
