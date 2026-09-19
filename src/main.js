@@ -300,6 +300,11 @@ const el = {
   errorBox: $('error-box'),
   busyNote: $('busy-note'),
   feedbackForm: $('feedback-form'),
+  feedbackModal: $('feedback-modal'),
+  feedbackBackdrop: $('feedback-backdrop'),
+  feedbackOpen: $('feedback-open'),
+  feedbackClose: $('feedback-close'),
+  toTop: $('to-top'),
   fbMessage: $('fb-message'),
   fbContact: $('fb-contact'),
   fbUpdates: $('fb-updates'),
@@ -891,12 +896,29 @@ async function sendFeedback(e) {
     // 성공했을 때만 비운다 — 실패했는데 지워버리면 쓴 글이 날아간다.
     el.feedbackForm.reset();
     setFeedbackStatus('보내주셔서 고맙습니다. 읽고 반영하겠습니다.', 'is-ok');
+    // 바로 닫으면 보냈는지 확인할 틈이 없다. 감사 문구를 읽을 만큼만 두고 닫는다.
+    setTimeout(() => {
+      if (!el.feedbackModal.hidden) closeFeedbackModal();
+    }, 1600);
   } catch (err) {
     setFeedbackStatus(err.message || '의견을 보내지 못했습니다.', 'is-error');
   } finally {
     el.fbSubmit.disabled = false;
     el.fbSubmit.textContent = '의견 보내기';
   }
+}
+
+function openFeedbackModal() {
+  el.feedbackModal.hidden = false;
+  document.body.style.overflow = 'hidden';
+  setFeedbackStatus('');
+  el.fbMessage.focus();
+}
+
+function closeFeedbackModal() {
+  el.feedbackModal.hidden = true;
+  document.body.style.overflow = '';
+  el.feedbackOpen.focus();
 }
 
 function setFeedbackStatus(text, cls = '') {
@@ -1325,7 +1347,7 @@ function closeModal(modal) {
 /** 열려 있는 모달 안에 Tab 순환을 가둔다. */
 function trapTabInModal(e) {
   if (e.key !== 'Tab') return;
-  const modal = [el.intro, el.receiptModal, el.historyModal].find((m) => !m.hidden);
+  const modal = [el.intro, el.receiptModal, el.historyModal, el.feedbackModal].find((m) => !m.hidden);
   if (!modal) return;
   const items = focusablesIn(modal);
   if (!items.length) return;
@@ -1568,6 +1590,43 @@ el.introBack.addEventListener('click', () => stepIntro(-1));
 el.introSkip.addEventListener('click', closeIntro);
 el.introReplay.addEventListener('click', openIntro);
 el.feedbackForm.addEventListener('submit', sendFeedback);
+el.feedbackOpen.addEventListener('click', openFeedbackModal);
+el.feedbackClose.addEventListener('click', closeFeedbackModal);
+el.feedbackBackdrop.addEventListener('click', closeFeedbackModal);
+
+/**
+ * 맨 위로.
+ *
+ * 페이지가 입력 → 결과 → 작동 방식 → 푸터로 길어서 아래에서 위로 돌아오는
+ * 비용이 크다. 한 화면 넘게 내려갔을 때만 띄운다 — 항상 떠 있으면 모바일에서
+ * 영수증 발급 버튼 같은 실제 조작을 가린다.
+ */
+const TO_TOP_AT = () => window.innerHeight * 0.9;
+
+/**
+ * 떠 있는 버튼이 실제 조작을 가리면 안 된다.
+ *
+ * 모바일 실측에서 맨 위로 버튼이 '분석하고 답장 만들기'를 덮고 있었다 —
+ * 화면 폭을 꽉 채우는 주요 CTA 라 우하단 어디에 둬도 겹친다. 위치를 옮기는
+ * 대신, 그 버튼들이 화면에 있는 동안에는 맨 위로를 숨긴다. 위로 갈 길은
+ * 스크롤로도 열려 있지만 실행 버튼을 못 누르는 건 대안이 없다.
+ */
+function toTopWouldCover() {
+  const t = el.toTop.getBoundingClientRect();
+  return [el.run, el.receiptOpen].some((node) => {
+    if (!node || !node.offsetParent) return false;
+    const r = node.getBoundingClientRect();
+    return r.bottom > t.top && r.top < t.bottom && r.right > t.left && r.left < t.right;
+  });
+}
+
+const syncToTop = () =>
+  el.toTop.classList.toggle('is-on', window.scrollY > TO_TOP_AT() && !toTopWouldCover());
+window.addEventListener('scroll', syncToTop, { passive: true });
+el.toTop.addEventListener('click', () => {
+  window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+});
+syncToTop();
 
 document.addEventListener('keydown', (e) => {
   trapTabInModal(e);
@@ -1578,6 +1637,7 @@ document.addEventListener('keydown', (e) => {
   }
   if (e.key !== 'Escape') return;
   if (!el.intro.hidden) closeIntro();
+  if (!el.feedbackModal.hidden) closeFeedbackModal();
   if (!el.receiptModal.hidden) closeReceiptModal();
   if (!el.historyModal.hidden) closeHistoryModal();
 });
