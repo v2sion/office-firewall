@@ -538,6 +538,26 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 }
 
 /* ── 답장 ─────────────────────────────── */
+/* ── 케어 안내 (EAP · 원티드) ─────────────────────────
+   경보가 아니다. 위험 등급 색(green~red)을 쓰지 않고 중립 표면으로 두어,
+   "이건 판정이 아니라 도움받을 수 있는 곳"이라는 성격을 색으로 구분한다. */
+.care {
+  border: 1px solid var(--line);
+  background: var(--bg-soft);
+  border-radius: var(--radius);
+  padding: 13px 14px;
+  margin-bottom: 16px;
+}
+/* 주의 이상에서만 왼쪽에 띠를 둬 시선을 조금 더 붙잡는다 */
+.care-serious { border-left: 3px solid var(--accent-dim); }
+.care-title { margin: 0; font-size: 13px; font-weight: 700; color: var(--text); }
+.care-body { margin: 6px 0 0; font-size: 12px; line-height: 1.65; color: var(--text-dim); }
+.care-links { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 10px; }
+.care-link { font-size: 12px; font-weight: 600; color: var(--accent); text-decoration: none; }
+.care-link:hover { text-decoration: underline; }
+.care-link-sub { font-weight: 500; color: var(--text-dim); }
+.care-link-sub:hover { color: var(--accent); }
+
 .section-title { font-size: 13px; font-weight: 700; color: var(--text-dim); margin: 0 0 10px; }
 .reply {
   border: 1px solid var(--line);

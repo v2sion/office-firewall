@@ -209,6 +209,10 @@ const el = {
   hiddenContext: $('hidden-context'),
   toneWarning: $('tone-warning'),
   goalNote: $('goal-note'),
+  care: $('care'),
+  careTitle: $('care-title'),
+  careBody: $('care-body'),
+  careWanted: $('care-wanted'),
   toneNote: $('tone-note'),
   togglePreview: $('toggle-preview'),
   maskPreview: $('mask-preview'),
@@ -610,6 +614,40 @@ function localFallback(payload, startedAt) {
   });
 }
 
+/**
+ * 케어 안내 — 근로복지공단 EAP, 그리고 원티드.
+ *
+ * 이 두 가지는 지금까지 공유용 영수증 안에만 있었다. 영수증을 발급하지
+ * 않은 사람은 끝까지 못 보는 구조였는데, 이 제품이 실제로 하려는 말
+ * ("혼자 감당하지 마세요")이 거기 담겨 있다. 결과를 본 직후 자리로
+ * 끌어올린다.
+ *
+ * 다만 문구는 위험도에 따라 다르게 간다. "정상 업무 신호"가 뜬 화면에
+ * "힘든 날엔 혼자 참지 마세요"를 띄우면 앱이 상황을 과장하는 것으로
+ * 읽히고, 그 순간 진단 자체의 신뢰가 깎인다.
+ *
+ * 이직 링크(원티드)는 경계·심각 구간에서만 붙인다. 순서도 항상 상담이
+ * 먼저다 — 직장 문제를 먼저 "그만두라"로 받으면 조언이 아니라 떠밀기로
+ * 들린다.
+ */
+function renderCare(risk) {
+  const serious = risk.score > 40; // 주의 이상
+  el.care.classList.toggle('care-serious', serious);
+  el.careWanted.hidden = risk.score <= 60; // 경계·심각에서만
+
+  if (serious) {
+    el.careTitle.textContent = '혼자 참지 않아도 됩니다';
+    el.careBody.textContent =
+      '이런 신호가 반복되면 기록으로 남겨 두세요. 사내 고충처리나 외부 상담을 이용할 때 근거가 됩니다. '
+      + "'나의 방어 기록'에 이 브라우저에만 남습니다.";
+  } else {
+    el.careTitle.textContent = '이번 건은 정상 범위입니다';
+    el.careBody.textContent =
+      "같은 상대와의 기록이 쌓이면 흐름이 보입니다. '나의 방어 기록'에서 확인해 보세요. "
+      + '혼자 감당하기 어려운 일이 생기면 아래 상담도 무료로 이용할 수 있습니다.';
+  }
+}
+
 /* ── 렌더 ───────────────────────────── */
 
 function render(result, elapsedMs, context) {
@@ -633,6 +671,7 @@ function render(result, elapsedMs, context) {
   el.modeBadge.title = meta.note || `model: ${meta.model}`;
 
   animateScore(risk.score);
+  renderCare(risk);
   el.scoreLabel.textContent = risk.label;
   el.scoreAction.textContent = risk.action;
   el.scoreBarFill.style.width = `${risk.score}%`;
