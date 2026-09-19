@@ -28,7 +28,7 @@
       API 로 `main` 이 최신 커밋을 가리키는 것 확인
 - [ ] 개발 가이드를 `docs/` 에 커밋 (STEP 0 참고)
 
-이미 끝난 것: README 제출용 재구성, 테스트 136개, CI(.github/workflows/ci.yml)
+이미 끝난 것: README 제출용 재구성, 테스트 146개, CI(.github/workflows/ci.yml)
 
 > **저장소 공개 여부**: 잠깐 public 으로 돌렸다가 다시 private 으로 전환함. STEP 5 의
 > 실제 제출 폼 필드 7개(대표 이미지·제목·문제 정의·AI 활용 방식·기술 스택·서비스
@@ -180,13 +180,13 @@ npx vercel --prod
 | 사용 모델 | `openai/gpt-oss-20b` (env: `GROQ_MODEL`) — 배포본에서 골든 5종 전부 통과 확인(STEP 3) |
 | 실제 스택 | Vite + Vanilla JS · Vercel Serverless Functions · groq-sdk |
 | 저장소 | https://github.com/v2sion/office-firewall |
-| 품질 근거 | 자동화 테스트 136개, 골든 5종 고정(정상 업무 대조군 포함), 보안·접근성 검토 완료 |
+| 품질 근거 | 자동화 테스트 146개, 골든 5종 고정(정상 업무 대조군 포함), 보안·접근성 검토 완료 |
 
 ---
 
 ## STEP 6 — 제출 직전 최종 점검
 
-- [x] `npm test` 136개 통과
+- [x] `npm test` 146개 통과
 - [x] **골든 5종을 배포된 LIVE 모드에서 실제로 돌려봤는가** — 5종 전부 기대 구간
       통과(STEP 3 표). 커밋 `bd18cb3` 기준 실측
 - [ ] 배포 URL 에서 전체 플로우 1회 (모바일 포함)
