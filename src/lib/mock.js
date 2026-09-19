@@ -40,7 +40,13 @@ function buildSubtext(ctx, urgency, ambiguity, slop, signals) {
   if (ctx.counterpart === '클라이언트') {
     return '합의 범위 밖의 재작업을 추가 비용 없이 요구하고 있습니다. 최초 요구사항과의 차이를 문서로 확인하지 않으면, 범위 확대가 기본값으로 굳어집니다.';
   }
-  if (!signals.clicheHits.length && (signals.hasNumbers || signals.hasDeadline)) {
+  // 정상 업무 판정은 **룰엔진이 내린 판정값**을 따른다. 예전에는 여기에
+  // !clicheHits.length 조건이 붙어 있어서, 완곡어가 하나라도 있으면 아무리
+  // 범위·기한이 명시돼도 이 문장에 도달하지 못하고 아래 "범위와 기한이 비어
+  // 있습니다" 로 떨어졌다. 그 결과 카드에는 "요구 모호성 없음 / 범위·기한
+  // 명확"이 뜨는데 바로 위 해설은 비어 있다고 말하는 자가당착이 생겼다.
+  // (cliche.js 의 SUBSTANCE_GATE 와 같은 원칙 — 완곡어는 공허함이 아니다)
+  if (urgency === '없음' && ambiguity === '없음') {
     return '요청 범위·확인 지점·기한이 모두 명시된 정상적인 업무 메시지입니다. 숨은 요구나 과업 전가 신호는 발견되지 않았습니다.';
   }
   return '요구의 핵심은 드러나 있으나 범위와 기한이 비어 있습니다. 수락 전에 무엇을 어디까지 언제까지 할지 먼저 확정하는 편이 안전합니다.';
@@ -167,8 +173,11 @@ export function buildMockAnalysis(maskedText, context = {}) {
   const slop = aiSlopScore(maskedText, signals);
 
   let powerAsymmetry = POWER_BY_COUNTERPART[ctx.counterpart] ?? 3;
-  // 정상 업무 신호가 뚜렷하면 거절 비용이 낮다고 본다
-  if (urgencyType === '없음' && ambiguityType === '없음' && (signals.hasNumbers || signals.hasDeadline) && !signals.clicheHits.length) {
+  // 정상 업무 신호가 뚜렷하면 거절 비용이 낮다고 본다.
+  // 여기서도 클리셰 유무는 보지 않는다 — 정중하게 쓴 정상 요청이 완곡어
+  // 때문에 거절 비용 4로 남으면, 같은 요청을 건조하게 쓴 경우(2)와 점수가
+  // 갈린다. 판단 근거는 urgency/ambiguity 판정값과 알맹이 유무다.
+  if (urgencyType === '없음' && ambiguityType === '없음' && (signals.hasNumbers || signals.hasDeadline)) {
     powerAsymmetry = Math.min(powerAsymmetry, 2);
   }
 

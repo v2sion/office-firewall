@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { calcRisk, substanceGap, riskLabel, GREEN_CAP, SUBSTANCE_METRICS } from '../src/lib/score.js';
 import { extractSubstanceSignals, findCliches, hasDeadline, hasNumbers, avoidsDecision } from '../src/lib/cliche.js';
 import { normalizeXray } from '../src/lib/normalize.js';
+import { buildMockAnalysis } from '../src/lib/mock.js';
 
 const base = {
   powerAsymmetry: 1,
@@ -196,4 +197,27 @@ test('"알아서" 류 강한 범위 신호는 알맹이가 있어도 모호성�
   assert.equal(s.hasDeadline, true);
   assert.equal(avoidsDecision(text, s), false);
   // 강한 신호는 게이트를 통과하지 못한다 — detectAmbiguity 는 cliche.js 에서 검증
+});
+
+test('전체 파이프라인에서도 같은 요청은 말투와 무관하게 같은 점수를 낸다', () => {
+  // scoreOf 는 powerAsymmetry 를 고정해 두므로 규칙 경로만 본다. 여기서는
+  // buildMockAnalysis 까지 태워 powerAsymmetry 하향 판정도 함께 검증한다.
+  const ctx = { counterpart: '직속상사', goal: '칼차단', tone: '보통맛' };
+  const polite = buildMockAnalysis(POLITE_SPECIFIC, ctx);
+  const dry = buildMockAnalysis(DRY_SPECIFIC, ctx);
+
+  assert.equal(calcRisk(polite, POLITE_SPECIFIC), calcRisk(dry, DRY_SPECIFIC));
+  assert.equal(polite.powerAsymmetry, dry.powerAsymmetry, '완곡어가 거절 비용을 올리면 안 된다');
+  assert.equal(polite.subtext, dry.subtext, '해설도 같은 판정을 말해야 한다');
+  assert.equal(polite.ambiguityType, '없음');
+});
+
+test('골든 ① 은 게이트 이후에도 심각 등급을 유지한다', () => {
+  const weekend =
+    '{{PERSON_1}}님 주말에 미안한데, 월요일 오전에 대표님 보고가 잡혀서요. ' +
+    '시간 날 때 가볍게 한번 봐주시면 좋을 것 같아요. 급한 건 아닙니다!';
+  const x = buildMockAnalysis(weekend, { counterpart: '직속상사', goal: '칼차단', tone: '보통맛' });
+  const score = calcRisk(x, weekend);
+  assert.equal(score, 92);
+  assert.equal(riskLabel(score).label, '심각');
 });

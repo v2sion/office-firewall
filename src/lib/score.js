@@ -100,8 +100,20 @@ export function riskLabel(score) {
 export function substanceBreakdown(xray, maskedText) {
   const sentences = xray?.sentenceCount || countSentences(maskedText || '');
   const hits = Array.isArray(xray?.clicheHits) ? xray.clicheHits.length : 0;
+  // calcRisk 와 **같은 게이트**를 태운다. 한쪽에만 넣으면 근거 표가 1.00 을
+  // 보여주는데 점수에는 0 으로 들어가, "근거를 그대로 펼쳐 보여준다"는 이
+  // 제품의 주장이 화면에서 깨진다.
+  const specPresent = Boolean(xray?.hasNumbers || xray?.hasDeadline);
+  const rawDensity = Math.min(1, hits / sentences / CLICHE_DENSITY_CAP);
+
   return [
-    { key: 'clicheDensity', label: '클리셰 밀도', value: Math.min(1, hits / sentences / CLICHE_DENSITY_CAP), detail: `${hits}개 / ${sentences}문장`, enabled: SUBSTANCE_METRICS.clicheDensity },
+    {
+      key: 'clicheDensity',
+      label: '클리셰 밀도',
+      value: specPresent ? 0 : rawDensity,
+      detail: specPresent ? `${hits}개 / ${sentences}문장 — 수치·기한이 있어 미집계` : `${hits}개 / ${sentences}문장`,
+      enabled: SUBSTANCE_METRICS.clicheDensity,
+    },
     { key: 'missingSpec', label: '수치·기한 부재', value: xray?.hasNumbers || xray?.hasDeadline ? 0 : 1, detail: xray?.hasNumbers || xray?.hasDeadline ? '수치/기한 명시됨' : '수치·기한 없음', enabled: SUBSTANCE_METRICS.missingSpec },
     { key: 'avoidsDecision', label: '의사결정 회피', value: xray?.avoidsDecision ? 1 : 0, detail: xray?.avoidsDecision ? '결정을 미루는 표현 있음' : '없음', enabled: SUBSTANCE_METRICS.avoidsDecision },
   ].filter((m) => m.enabled);

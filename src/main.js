@@ -13,6 +13,7 @@ import { looksLikeMultiTurnThread } from './lib/thread-hint.js';
 import { matchSituationId } from './lib/situation-match.js';
 import { entryFromResult, addEntry, getHistory, clearHistory, summarize } from './lib/history.js';
 import { loadPrefs, savePrefs } from './lib/prefs.js';
+import { substanceGap, GREEN_CAP } from './lib/score.js';
 import golden from './data/golden.json';
 import presetWeekend from './data/presets/weekend.json';
 import presetAislop from './data/presets/aislop.json';
@@ -796,6 +797,9 @@ const AMBIGUITY_HINT = {
 };
 
 function renderStats(xray) {
+  // substanceGap 의 두 번째 인자는 sentenceCount 가 없을 때의 폴백인데,
+  // 여기 오는 xray 는 normalize.js 를 거쳐 sentenceCount 를 항상 갖고 있다.
+  const gap = substanceGap(xray);
   const pips = (n, total) =>
     `<div class="stat-meter">${Array.from({ length: total }, (_, i) => `<span class="stat-pip${i < n ? ' on' : ''}"></span>`).join('')}</div>`;
 
@@ -823,13 +827,20 @@ function renderStats(xray) {
       sub: AMBIGUITY_HINT[xray.ambiguityType] || '',
     },
     {
-      // 이 값(aiSlopScore)이 실제로 재는 건 "누가 썼나"가 아니라 "알맹이(숫자·기한·
-      // 산출물·담당)가 몇 % 비었나"다. 예전 이름 'AI 복붙 냄새'는 AI 를 지목해서,
-      // 사람이 쓴 영혼 없는 메일도 AI 탓으로 읽히게 만들었다. 이름을 정의에 맞춘다.
+      // 이 카드는 **점수 계산에 실제로 들어가는 값**(substanceGap)을 보여준다.
+      //
+      // 예전에는 aiSlopScore 를 "내용 공허도"라는 이름으로 띄웠는데, 바로 아래
+      // 판정 근거 표와 계산식은 substanceGap 을 같은 이름으로 쓰고 있었다.
+      // 둘은 다른 지표라(정형구 마커 비율 vs 알맹이 결여 신호) 골든 ① 에서
+      // 카드는 "0% · 구체적 내용 있음", 표는 세 지표 전부 1.00, 계산식은
+      // "공허도×20" 으로 20점 가산 — 한 화면 안에서 서로를 부정했다.
+      // "판정 근거를 그대로 펼쳐 보여준다"가 이 제품의 핵심 주장이라
+      // 근거 화면의 자가당착은 그 주장을 직접 깎는다. 계산에 쓰이는 값으로
+      // 통일한다. aiSlopScore 는 영수증 빌런 유형·상황 매칭에서 계속 쓴다.
       name: '내용 공허도',
-      value: `${xray.aiSlopScore}%`,
-      extra: pips(Math.round(xray.aiSlopScore / 20), 5),
-      sub: xray.aiSlopScore >= 60 ? '알맹이 거의 없음' : '구체적 내용 있음',
+      value: `${Math.round(gap * 100)}%`,
+      extra: pips(Math.round(gap * 5), 5),
+      sub: gap >= 0.6 ? '알맹이 거의 없음' : '구체적 내용 있음',
     },
   ];
 
@@ -846,6 +857,16 @@ function renderStats(xray) {
 }
 
 function renderEvidence(xray, risk) {
+  // 정상 업무 가드(GREEN_CAP)가 걸리면 합계와 표시 점수가 달라진다. 이걸
+  // 숨기면 계산식이 "32 + 0 + 0 + 0 = 20" 이라는 틀린 산수로 읽힌다 —
+  // 근거를 펼쳐 보여주는 화면에서 가장 하면 안 되는 일이다. 가드가 걸렸다는
+  // 사실 자체를 한 줄로 드러낸다.
+  const gapPts = Math.round(substanceGap(xray) * 20);
+  const urgentPts = xray.urgencyType === '없음' ? 0 : 20;
+  const ambiguousPts = xray.ambiguityType === '없음' ? 0 : 20;
+  const rawSum = xray.powerAsymmetry * 8 + urgentPts + ambiguousPts + gapPts;
+  const capped = rawSum > GREEN_CAP && risk.score === GREEN_CAP;
+
   const rows = risk.breakdown
     .map((m) => `<tr><td>${m.label}</td><td>${escapeHtml(m.detail)}</td><td>${m.value.toFixed(2)}</td></tr>`)
     .join('');
@@ -861,8 +882,15 @@ function renderEvidence(xray, risk) {
     ${cliches}
     <p class="evidence-formula">
       점수 = 권력 비대칭(${xray.powerAsymmetry}×8) + 긴급도(${xray.urgencyType === '없음' ? 0 : 20})
-      + 모호성(${xray.ambiguityType === '없음' ? 0 : 20}) + 공허도×20 = <b>${risk.score}</b>
+      + 모호성(${xray.ambiguityType === '없음' ? 0 : 20}) + 공허도(${Math.round(substanceGap(xray) * 20)})
+      = <b>${capped ? GREEN_CAP : risk.score}</b>
     </p>
+    ${
+      capped
+        ? `<p class="evidence-formula">정상 업무 가드 적용 — 긴급도·모호성·공허도가 모두 0이면
+           권력 비대칭만으로 경보를 올리지 않는다(상한 ${GREEN_CAP}점). 가드 전 합계는 ${rawSum}점.</p>`
+        : ''
+    }
     <p class="evidence-formula">이 점수는 AI가 아니라 코드가 계산합니다. 같은 입력이면 항상 같은 값이 나옵니다.</p>
   `;
 }
