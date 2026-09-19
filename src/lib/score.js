@@ -111,7 +111,7 @@ export function substanceBreakdown(xray, maskedText) {
       key: 'clicheDensity',
       label: '클리셰 밀도',
       value: specPresent ? 0 : rawDensity,
-      detail: specPresent ? `${hits}개 / ${sentences}문장 — 수치·기한이 있어 미집계` : `${hits}개 / ${sentences}문장`,
+      detail: specPresent ? `${hits}개 / ${sentences}문장 (수치·기한이 있어 미집계)` : `${hits}개 / ${sentences}문장`,
       enabled: SUBSTANCE_METRICS.clicheDensity,
     },
     { key: 'missingSpec', label: '수치·기한 부재', value: xray?.hasNumbers || xray?.hasDeadline ? 0 : 1, detail: xray?.hasNumbers || xray?.hasDeadline ? '수치/기한 명시됨' : '수치·기한 없음', enabled: SUBSTANCE_METRICS.missingSpec },

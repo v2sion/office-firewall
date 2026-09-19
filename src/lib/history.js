@@ -32,8 +32,8 @@ export function entryFromResult(xray, risk, context, now = new Date()) {
     scoreLabel: risk?.label || '',
     villain: villainType(xray, context),
     defenseMode: defenseModeLabel(context?.goal, context?.tone),
-    job: context?.job || '—',
-    counterpart: context?.counterpart || '—',
+    job: context?.job || '-',
+    counterpart: context?.counterpart || '-',
   };
 }
 

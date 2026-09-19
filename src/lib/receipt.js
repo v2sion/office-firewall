@@ -112,7 +112,7 @@ export function buildReceiptData(xray, risk, context, now = new Date()) {
   const risk_ = politicalRisk(context?.tone);
   return {
     issuedAt: formatIssuedAt(now),
-    job: `${context?.job || '—'} (${context?.level || '—'})`,
+    job: `${context?.job || '-'} (${context?.level || '-'})`,
     villain: villainType(xray, context),
     score: risk?.score ?? 0,
     scoreLabel: risk?.label || '',

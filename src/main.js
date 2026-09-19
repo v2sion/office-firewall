@@ -289,6 +289,13 @@ const el = {
   standby: $('standby'),
   progress: $('progress'),
   standbyTitle: $('standby-title'),
+  intro: $('intro'),
+  introSlides: $('intro-slides'),
+  introProgress: $('intro-progress'),
+  introSkip: $('intro-skip'),
+  introBack: $('intro-back'),
+  introNext: $('intro-next'),
+  introReplay: $('intro-replay'),
   result: $('result'),
   errorBox: $('error-box'),
   xray: $('xray'),
@@ -443,8 +450,8 @@ function applyPresetFilter() {
   }
 
   el.presetHint.textContent = presetsExpanded
-    ? '예시 — 전체 상황'
-    : `예시 — ${who} 관련 상황 ${matches.length}가지`;
+    ? '전체 상황 보기'
+    : `${who} 관련 상황 ${matches.length}가지`;
 
   el.presetToggle.hidden = hiddenCount === 0;
   el.presetToggle.textContent = presetsExpanded
@@ -582,7 +589,7 @@ function updateMaskPreview() {
   // 마스킹 우회 경로가 된다 — 메시지와 함께 마스킹해 실제 전송본을 그대로 보여준다.
   const { maskedMessage, maskedHiddenContext, counts } = maskFields(el.message.value, el.hiddenContext.value.trim());
   const parts = [maskedMessage || '(입력 없음)'];
-  if (maskedHiddenContext) parts.push(`\n— 숨은 속사정 —\n${maskedHiddenContext}`);
+  if (maskedHiddenContext) parts.push(`\n[나의 숨은 속사정]\n${maskedHiddenContext}`);
   el.maskPreviewBody.textContent = parts.join('');
   el.maskSummary.textContent = summarizeMask(counts);
 }
@@ -640,7 +647,7 @@ async function run() {
         model: 'preset-cache',
         latencyMs: Date.now() - startedAt,
       });
-      result.meta.note = '캐시된 프리셋 — API 호출 없음, 비용 $0';
+      result.meta.note = '캐시된 프리셋. API 호출 없음, 비용 $0';
     } else {
       setProgress('analyze');
       const payload = { maskedText: maskedMessage, context: { ...context, hiddenContext: maskedHiddenContext } };
@@ -804,6 +811,80 @@ function renderCare(risk, context) {
   }
 }
 
+/* ── 첫 진입 스토리 ───────────────────────────── */
+
+/**
+ * 이 도구를 왜 만들었는지를 기능 설명이 아니라 장면으로 먼저 전한다.
+ *
+ * 처음 오는 사람에게 "AI는 추출하고 규칙이 판정한다"는 설계 원칙은 아무
+ * 의미가 없다. 필요한 건 "내가 겪는 그 일이 맞다"는 확인이고, 그다음이
+ * 도구다. 순서를 문제 → 고립 → 기술 → 행동으로 잡았고, 마지막 장이
+ * 핵심이다 (진단 자체가 목적이 아니라 상담·이직 같은 실제 행동으로 가는
+ * 근거라는 것).
+ *
+ * 1회만 자동으로 뜬다. 바로 쓰려는 사람을 막으면 안 되므로 건너뛰기를 항상
+ * 열어 두고, 읽고 싶은 사람을 위해 '작동 방식' 섹션에 다시 보기를 둔다.
+ * 저장하는 건 "봤다"는 사실뿐이라 prefs/history 와 같은 원칙을 지킨다.
+ */
+const INTRO_KEY = 'ofw_intro_seen_v1';
+const introSlides = [...el.introSlides.querySelectorAll('.intro-slide')];
+let introAt = 0;
+
+function introSeen() {
+  try {
+    return globalThis.localStorage?.getItem(INTRO_KEY) === '1';
+  } catch {
+    return false; // 프라이빗 브라우징 등. 못 읽으면 그냥 보여준다.
+  }
+}
+
+function markIntroSeen() {
+  try {
+    globalThis.localStorage?.setItem(INTRO_KEY, '1');
+  } catch {
+    // 저장 실패가 진입 자체를 막으면 안 된다.
+  }
+}
+
+function renderIntro() {
+  introSlides.forEach((node, i) => node.classList.toggle('is-active', i === introAt));
+  el.introProgress.innerHTML = introSlides
+    .map((_, i) => `<span class="${i <= introAt ? 'on' : ''}"></span>`)
+    .join('');
+  el.introBack.hidden = introAt === 0;
+  const last = introAt === introSlides.length - 1;
+  el.introNext.textContent = last ? '시작하기' : '다음';
+  el.introSkip.hidden = last; // 마지막 장에서는 건너뛸 게 없다
+}
+
+function openIntro() {
+  introAt = 0;
+  renderIntro();
+  el.intro.hidden = false;
+  document.body.style.overflow = 'hidden';
+  el.introNext.focus();
+}
+
+function closeIntro() {
+  el.intro.hidden = true;
+  document.body.style.overflow = '';
+  markIntroSeen();
+}
+
+function maybeShowIntro() {
+  if (!introSeen()) openIntro();
+}
+
+function stepIntro(delta) {
+  const next = introAt + delta;
+  if (next >= introSlides.length) {
+    closeIntro();
+    return;
+  }
+  introAt = Math.max(0, next);
+  renderIntro();
+}
+
 /* ── 렌더 ───────────────────────────── */
 
 function render(result, elapsedMs, context) {
@@ -839,10 +920,14 @@ function render(result, elapsedMs, context) {
   renderReplies(replies);
   renderRepliesModeNote(meta.mode);
 
-  const tokens = usage?.input_tokens || usage?.output_tokens
-    ? ` · in ${usage.input_tokens} / out ${usage.output_tokens} tokens`
-    : '';
-  el.usageLine.textContent = `${meta.model} · ${elapsedMs}ms${tokens}`;
+  // 모델명·지연시간·토큰 수는 화면에 띄우지 않는다.
+  //
+  // 예전에는 공유 CTA 아래에 "openai/gpt-oss-20b · 1908ms · in 2485 / out 630
+  // tokens" 가 그대로 노출됐다. 개발자에겐 투명성이지만 일반 사용자에겐 읽을
+  // 이유가 없는 문자열이고, 무엇보다 답장 품질에 대한 인상을 "작은 모델이라
+  // 그런가"로 끌고 간다. 모델 정보는 상단 배지의 title 툴팁에 남아 있어
+  // 확인하려는 사람은 여전히 볼 수 있다.
+  el.usageLine.hidden = true;
   // 결과 패널이 아니라 X-Ray 카드(점수·경보) 기준으로 스크롤한다 — 'nearest' 로
   // 패널 전체를 기준 삼으면 가장 중요한 점수/경보가 화면 위로 잘려 나갈 수 있다.
   el.xray.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -962,7 +1047,7 @@ function renderEvidence(xray, risk) {
     </p>
     ${
       capped
-        ? `<p class="evidence-formula">정상 업무 가드 적용 — 긴급도·모호성·알맹이 없음이 모두 0이면
+        ? `<p class="evidence-formula">정상 업무 가드 적용. 긴급도·모호성·알맹이 없음이 모두 0이면
            권력 비대칭만으로 경보를 올리지 않는다(상한 ${GREEN_CAP}점). 가드 전 합계는 ${rawSum}점.</p>`
         : ''
     }
@@ -982,8 +1067,8 @@ function renderRepliesModeNote(mode) {
   }
   el.repliesModeNote.hidden = false;
   el.repliesModeNote.textContent = mode === 'cached'
-    ? 'ℹ️ 캐시된 예시 답장입니다 — 상황 카드 원본 그대로일 때만 나오는 미리 준비된 결과예요.'
-    : 'ℹ️ 지금은 규칙 기반 예시 답장입니다(모델 미연동). 목적·말투에 따라 갈라지긴 하지만 메시지 내용을 세세히 읽고 쓰진 않아요 — 그대로 보내기보다 초안으로 참고해 다듬어 주세요.';
+    ? 'ℹ️ 캐시된 예시 답장입니다. 상황 카드 원본 그대로일 때만 나오는 미리 준비된 결과예요.'
+    : 'ℹ️ 지금은 규칙 기반 예시 답장입니다(모델 미연동). 목적·말투에 따라 갈라지긴 하지만 메시지 내용을 세세히 읽고 쓰진 않아요. 그대로 보내기보다 초안으로 참고해 다듬어 주세요.';
 }
 
 function renderReplies(replies) {
@@ -1146,7 +1231,7 @@ function closeModal(modal) {
 /** 열려 있는 모달 안에 Tab 순환을 가둔다. */
 function trapTabInModal(e) {
   if (e.key !== 'Tab') return;
-  const modal = [el.receiptModal, el.historyModal].find((m) => !m.hidden);
+  const modal = [el.intro, el.receiptModal, el.historyModal].find((m) => !m.hidden);
   if (!modal) return;
   const items = focusablesIn(modal);
   if (!items.length) return;
@@ -1292,7 +1377,7 @@ function renderHistory() {
     const s = summarize(history);
     el.historyCount.textContent = String(s.count);
     el.historyAvg.textContent = String(s.avgScore);
-    el.historyTop.textContent = s.topVillain || '—';
+    el.historyTop.textContent = s.topVillain || '-';
   }
 
   el.historyList.innerHTML = history
@@ -1384,12 +1469,24 @@ el.careHistory.addEventListener('click', openHistoryModal);
 el.historyClose.addEventListener('click', closeHistoryModal);
 el.historyBackdrop.addEventListener('click', closeHistoryModal);
 el.historyClear.addEventListener('click', onClearHistory);
+el.introNext.addEventListener('click', () => stepIntro(1));
+el.introBack.addEventListener('click', () => stepIntro(-1));
+el.introSkip.addEventListener('click', closeIntro);
+el.introReplay.addEventListener('click', openIntro);
+
 document.addEventListener('keydown', (e) => {
   trapTabInModal(e);
+  // 스토리는 좌우 키로도 넘길 수 있게 한다(읽는 흐름을 끊지 않는다).
+  if (!el.intro.hidden) {
+    if (e.key === 'ArrowRight') stepIntro(1);
+    if (e.key === 'ArrowLeft') stepIntro(-1);
+  }
   if (e.key !== 'Escape') return;
+  if (!el.intro.hidden) closeIntro();
   if (!el.receiptModal.hidden) closeReceiptModal();
   if (!el.historyModal.hidden) closeHistoryModal();
 });
 onInput();
 // 재방문자는 첫 화면에서 바로 쌓인 기록 수를 본다.
 renderHistoryBadge();
+maybeShowIntro();

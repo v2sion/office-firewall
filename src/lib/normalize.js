@@ -64,7 +64,7 @@ export function normalizeReplies(aiReplies) {
       label,
       text: found && typeof found.text === 'string' && found.text.trim()
         ? found.text.trim()
-        : '(답장 생성 실패 — 다시 시도해 주세요)',
+        : '(답장 생성에 실패했습니다. 다시 시도해 주세요)',
     };
   });
 }
