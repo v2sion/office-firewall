@@ -57,10 +57,10 @@ test('한 장이 160자를 넘지 않는다 (작은 화면에서 세로로 넘�
 
 test('줄인 뒤에도 각 장의 핵심 주장은 남아 있다', () => {
   const body = html.slice(html.indexOf('class="intro"'), html.indexOf('</div>\n\n      <div class="intro-actions"'));
-  // 3장: 이 도구가 무엇인지 + 재현되는 판정 + 전송 전 마스킹
-  assert.match(body, /커뮤니케이션 문제를 해석해 드립니다/, '3장: 도구 소개가 사라졌다');
-  assert.match(body, /같은 메시지면 늘 같은 점수/, '3장: 재현성 주장이 사라졌다');
-  assert.match(body, /보내기 전에 브라우저에서 가려집니다/, '3장: 마스킹 약속이 사라졌다');
+  // 3장: 이 서비스가 무엇인지 + 무엇을 받는지 + 그래서 그대로 붙여넣어도 된다
+  assert.match(body, /커뮤니케이션 문제를 해석해 드립니다/, '3장: 서비스 소개가 사라졌다');
+  assert.match(body, /답장 3개/, '3장: 사용자가 받는 것이 사라졌다');
+  assert.match(body, /그대로 붙여넣으셔도 됩니다/, '3장: 마스킹의 값어치가 사라졌다');
   // 4장: 기록이 근거가 된다 + 참는 것 말고도 선택지
   assert.match(body, /기분 탓이 아니라 패턴/, '4장: 패턴 주장이 사라졌다');
   assert.match(body, /참는 것 말고도 선택지/, '4장: 이 도구의 목적이 사라졌다');
@@ -87,4 +87,32 @@ test('스토리에서 옮긴 권유 문장이 대기 화면에 살아 있다', (
     .slice(html.indexOf('class="intro"'), html.indexOf('<div class="intro-actions"'))
     .replace(/<!--[\s\S]*?-->/g, '');
   assert.ok(!/기술적으로 해결해 보세요/.test(story), '스토리 본문에 다시 들어왔다');
+});
+
+
+/**
+ * 스토리는 첫인상이라 "그래서 나한테 뭐가 좋은데?"에 답해야 한다.
+ *
+ * 한때 3장이 이렇게 적혀 있었다.
+ *   "같은 메시지면 늘 같은 점수가 나오고, 계산 과정도 펼쳐 볼 수 있습니다."
+ *   "이름과 연락처는 보내기 전에 브라우저에서 가려집니다."
+ *
+ * 둘 다 **만든 사람에게나 값어치가 보이는 문장**이다. 재현성은 설계 자랑이고,
+ * 마스킹은 동작 설명이다. 사용자가 듣고 싶은 건 "답장을 받는다"와 "그래서
+ * 실제 메시지를 그대로 붙여넣어도 된다"이다.
+ *
+ * 구현을 설명하는 표현이 스토리로 다시 새어 들어오지 않게 막는다.
+ */
+test('스토리에 구현 설명이 아니라 사용자가 얻는 것이 적혀 있다', () => {
+  const story = html
+    .slice(html.indexOf('class="intro"'), html.indexOf('<div class="intro-actions"'))
+    .replace(/<!--[\s\S]*?-->/g, '');
+  for (const jargon of ['계산 과정', '규칙 엔진', '토큰', 'JSON', '온도 0', '시드']) {
+    assert.ok(!story.includes(jargon), `스토리에 구현 설명("${jargon}")이 들어왔다`);
+  }
+});
+
+test('사용자에게 보이는 문구는 "도구"가 아니라 "서비스"다', () => {
+  const visible = html.replace(/<!--[\s\S]*?-->/g, '');
+  assert.ok(!/이 도구/.test(visible), '"이 도구" 표현이 화면에 남아 있다');
 });

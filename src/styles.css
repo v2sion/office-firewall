@@ -278,6 +278,41 @@ html, body {
 
 .block { margin-bottom: 18px; }
 .block:last-child { margin-bottom: 0; }
+
+/* ── 다 고른 블록은 한 줄로 접는다 ─────────────────────────────
+   접힌 블록은 **고른 값을 보여주는 버튼 하나**만 남는다. 무엇을 골랐는지
+   확인은 되고, 자리는 칩 그리드 한 벌에서 한 줄로 줄어든다.
+   누르면 다시 펼쳐진다. */
+.block.is-folded > :not(.block-folded) { display: none; }
+.block.is-folded { margin-bottom: 10px; }
+
+.block-folded {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--bg-soft);
+  font-family: var(--font); font-size: 13px;
+  text-align: left; cursor: pointer;
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.block-folded:hover { border-color: var(--accent); background: var(--bg-panel); }
+.block-folded-title { flex-shrink: 0; color: var(--text-faint); }
+.block-folded-value {
+  flex: 1; min-width: 0;
+  font-weight: 700; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* "변경"은 누를 수 있다는 표시다. 버튼 전체가 눌리므로 따로 초점을 받지 않는다. */
+.block-folded-edit {
+  flex-shrink: 0;
+  font-size: 12px; font-weight: 600; color: var(--accent);
+}
+
+@media (max-width: 460px) {
+  .block-folded { padding: 9px 10px; font-size: 12.5px; }
+  .block-folded-title { font-size: 12px; }
+}
 .block-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .block-title {
   font-size: 12px;

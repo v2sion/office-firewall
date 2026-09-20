@@ -313,6 +313,74 @@ let lastReceiptSource = null;
 
 /* ── 셀렉터 / 프리셋 렌더 ───────────────────────────── */
 
+/* ── 다 고른 영역은 접는다 ─────────────────────────────
+
+   입력 폼이 세로로 길다. 칩 그리드만 네 벌(직군 9 · 연차 5 · 관계 9 ·
+   대응 방향 4 · 말투 3)이라, 다 고르고 나서도 그 자리가 그대로 남아 있으면
+   "내가 지금 뭘 하고 있는 거지"가 된다. 고른 값은 이미 정해진 것이라 계속
+   펼쳐 둘 이유가 없다.
+
+   그래서 **한 블록의 항목을 다 고르면 그 블록을 한 줄 요약으로 접는다.**
+   줄이는 건 선택지가 아니라 이미 끝난 일이 차지하는 자리다.
+
+   접는 단위를 블록으로 잡은 이유가 있다. 구역(zone) 단위로 접으면 2구역이
+   통째로 사라지는데, 거기엔 메시지 입력칸이 들어 있다. 반대로 셀렉터 하나
+   단위로 접으면 "내 직군"과 "내 연차"가 따로 접혔다 펴져 산만하다. 블록은
+   화면에서 한 덩어리로 읽히는 단위라 여기가 맞다.
+
+   입력칸(textarea·input)이 있는 블록은 접지 않는다 — 메시지와 속사정은
+   "고르는" 값이 아니라 쓰는 값이고, 접으면 쓰던 글이 숨는다.
+*/
+let foldables = [];
+
+function initFolding() {
+  foldables = [...document.querySelectorAll('.zone .block')]
+    .filter((b) => b.querySelector('.selector[data-field]') && !b.querySelector('textarea, input'))
+    .map((block) => {
+      const fields = [...block.querySelectorAll('.selector[data-field]')].map((sel) => sel.dataset.field);
+      // 접힌 줄에 쓸 제목: 블록 제목이 있으면 그것, 없으면 각 셀렉터의 라벨.
+      const title =
+        block.querySelector('.block-title')?.childNodes[0]?.textContent.trim() ||
+        [...block.querySelectorAll('.selector-label')].map((n) => n.textContent.trim()).join(' · ');
+
+      const summary = document.createElement('button');
+      summary.type = 'button';
+      summary.className = 'block-folded';
+      summary.hidden = true;
+      summary.addEventListener('click', () => unfold(block));
+      block.prepend(summary);
+
+      return { block, fields, title, summary, pinned: false };
+    });
+}
+
+/** 사용자가 직접 펼친 블록은 다시 채워져도 자동으로 접지 않는다. */
+function unfold(block) {
+  const f = foldables.find((x) => x.block === block);
+  if (!f) return;
+  f.pinned = true;
+  f.block.classList.remove('is-folded');
+  f.summary.hidden = true;
+  f.block.querySelector('.chip')?.focus({ preventScroll: true });
+}
+
+function syncFolding() {
+  for (const f of foldables) {
+    const done = f.fields.every((k) => state[k]);
+    // 다 고르지 못한 상태로 돌아오면 다시 접을 수 있게 고정을 푼다.
+    if (!done) f.pinned = false;
+    const fold = done && !f.pinned;
+    f.block.classList.toggle('is-folded', fold);
+    f.summary.hidden = !fold;
+    if (fold) {
+      f.summary.innerHTML = `<span class="block-folded-title">${escapeHtml(f.title)}</span>`
+        + `<span class="block-folded-value">${escapeHtml(f.fields.map((k) => strip(state[k])).join(' · '))}</span>`
+        + '<span class="block-folded-edit" aria-hidden="true">변경</span>';
+      f.summary.setAttribute('aria-label', `${f.title}: ${f.fields.map((k) => strip(state[k])).join(', ')}. 눌러서 다시 고르기`);
+    }
+  }
+}
+
 function renderChips() {
   document.querySelectorAll('.selector').forEach((wrap) => {
     const field = wrap.dataset.field;
@@ -342,6 +410,7 @@ function renderChips() {
         }
         if (field === 'goal' || field === 'tone') updateChoiceNotes();
         renderStepBars();
+        syncFolding();
         savePrefs(state);
         resetResult();
       });
@@ -1701,6 +1770,11 @@ function initHowItWorks() {
 /* ── 초기화 ───────────────────────────── */
 
 renderChips();
+// 칩을 다 그린 뒤에 접기를 준비한다. 지난 방문의 직군·연차가 복원돼 있으면
+// 이 시점에 이미 완성이라 바로 접힌 상태로 시작한다(돌아온 사람은 다시 고를
+// 이유가 없다).
+initFolding();
+syncFolding();
 updateChoiceNotes();
 updatePlaceholders();
 renderPresets();
