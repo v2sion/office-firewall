@@ -292,8 +292,10 @@ html, body {
    대응 방향 → 말투 세기). 같은 덩어리지만 순서가 있는 두 단계다. */
 .block-sub { margin-top: 16px; }
 
+/* 요약은 두 줄이 될 수 있다 — 값 줄과, 그 아래 "어떤 답장이 나올지" 설명.
+   그래서 바깥은 세로, 값 줄만 가로로 쓴다. */
 .block-folded {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; flex-direction: column; align-items: stretch; gap: 5px;
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--line); border-radius: 10px;
@@ -303,7 +305,13 @@ html, body {
   transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
 }
 .block-folded:hover { border-color: var(--accent); background: var(--bg-panel); }
+.block-folded-row { display: flex; align-items: center; gap: 8px; width: 100%; }
 .block-folded-title { flex-shrink: 0; color: var(--text-faint); }
+/* 고를 때 읽는 설명과 같은 내용이지만, 여기서는 확인용이라 한 단 작고 흐리다. */
+.block-folded-note {
+  font-size: 12px; line-height: 1.5; color: var(--text-faint);
+  word-break: keep-all; text-wrap: pretty;
+}
 .block-folded-value {
   flex: 1; min-width: 0;
   font-weight: 700; color: var(--text);
@@ -318,6 +326,7 @@ html, body {
 @media (max-width: 460px) {
   .block-folded { padding: 9px 10px; font-size: 12.5px; }
   .block-folded-title { font-size: 12px; }
+  .block-folded-note { font-size: 11.5px; }
 }
 .block-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .block-title {

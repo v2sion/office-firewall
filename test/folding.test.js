@@ -187,3 +187,46 @@ test('잠긴 버튼은 회색이고 커서로도 눌리지 않음을 알린다',
   assert.match(css, /\.run:disabled\s*\{[^}]*cursor:\s*not-allowed/);
   assert.match(css, /\.run:disabled\s*\{[^}]*background:\s*var\(--line\)/);
 });
+
+/* ── 접힌 뒤에도 "어떤 답장이 나올지"가 남는다 ────────────────
+ * 답장 설정 블록은 마지막 칸(말투 세기)을 고르는 순간 접힌다. 그래서 그
+ * 설명이 뜨자마자 같이 사라졌다 — 대응 방향을 먼저 고르는 사람이 대부분이라
+ * 순서상 **말투 세기 설명은 사실상 아무도 못 봤다.**
+ *
+ * 접는 정책을 되돌리는 대신(완료된 칸을 펼쳐 두면 폼이 다시 길어진다)
+ * 요약 줄에 한 줄 설명을 얹는다.
+ * ──────────────────────────────────────────────────────── */
+
+test('답장 설정 요약에 어떤 답장이 나올지 한 줄이 붙는다', () => {
+  const spec = mainJs.slice(mainJs.indexOf('reply: { title:'), mainJs.indexOf('reply: { title:') + 200);
+  assert.match(spec, /note: replyBrief/, '요약에 설명을 붙이는 note 가 없다');
+  assert.match(mainJs, /class="block-folded-note"/, '설명을 그리는 자리가 없다');
+});
+
+test('목적 4 × 말투 3 = 12조합 전부 한 문장으로 이어진다', () => {
+  const goal = bodyOf('replyBrief');
+  assert.match(goal, /GOAL_BRIEF\[apiValue\(state\.goal\)\]/);
+  assert.match(goal, /TONE_BRIEF\[apiValue\(state\.tone\)\]/);
+  // 하나라도 비면 반쪽 문장이 남는다 — 둘 다 있을 때만 만든다.
+  assert.match(goal, /goal && tone \?/);
+
+  const pick = (name) => {
+    const at = mainJs.indexOf(`const ${name} = {`);
+    return mainJs.slice(at, mainJs.indexOf('\n};', at));
+  };
+  const goals = pick('GOAL_BRIEF');
+  const tones = pick('TONE_BRIEF');
+  for (const g of ['칼차단', '시간벌기', '공넘기기', '관계보존'])
+    assert.ok(goals.includes(`'${g}'`), `GOAL_BRIEF 에 ${g} 가 없다`);
+  for (const t of ['순한맛', '보통맛', '매운맛'])
+    assert.ok(tones.includes(`'${t}'`), `TONE_BRIEF 에 ${t} 가 없다`);
+  // 앞은 "~하고" 로 이어지고 뒤는 "~씁니다." 로 맺어야 한 문장이 된다.
+  for (const line of goals.match(/'[^']*하고'/g) || []) assert.ok(line.endsWith("하고'"), line);
+  for (const line of tones.match(/: '[^']*'/g) || []) assert.ok(line.endsWith("씁니다.'"), line);
+});
+
+test('설명은 스크린리더에도 읽힌다', () => {
+  // 요약은 버튼 하나라, 안쪽 텍스트가 늘어나면 aria-label 도 같이 늘어야 한다.
+  const fn = bodyOf('syncFolding');
+  assert.match(fn, /note \? ` \$\{note\}` : ''/);
+});

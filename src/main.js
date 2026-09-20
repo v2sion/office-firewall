@@ -103,6 +103,36 @@ const TONE_NOTE = {
 };
 
 /**
+ * 접힌 요약에 실을 **한 줄짜리** 설명.
+ *
+ * 위의 NOTE 두 벌은 고르는 동안 읽는 문장이라 두 줄씩이다. 그런데 이 블록은
+ * 마지막 칸(말투 세기)을 고르는 순간 접힌다 — 설명이 뜨자마자 같이 사라져서
+ * **말투 세기 설명은 사실상 아무도 못 봤다.** 대응 방향을 먼저 고르는 사람이
+ * 대부분이라, 순서상 항상 두 번째 설명이 희생된다.
+ *
+ * 접는 정책을 되돌리는 대신(완료된 칸을 계속 펼쳐 두면 폼이 다시 길어진다)
+ * 요약 줄에 설명을 얹는다. 접힌 뒤에도 남으므로 실행 직전까지 "내가 어떤
+ * 답장을 받게 되는지"를 확인할 수 있다.
+ */
+const GOAL_BRIEF = {
+  '칼차단': '수용할 수 없다는 걸 분명히 하고',
+  '시간벌기': '즉답을 피하고 판단에 필요한 정보를 먼저 요구하고',
+  '공넘기기': '선행 조건과 책임 소재를 짚어 공을 돌려보내고',
+  '관계보존': '요구는 받되 범위와 기한을 좁혀 다시 정의하고',
+};
+const TONE_BRIEF = {
+  '순한맛': '상대 체면을 세우는 부드러운 말투로 씁니다.',
+  '보통맛': '감정 없이 담백한 표준 업무 어조로 씁니다.',
+  '매운맛': '완곡어를 걷어낸 단호한 말투로 씁니다.',
+};
+
+function replyBrief() {
+  const goal = GOAL_BRIEF[apiValue(state.goal)];
+  const tone = TONE_BRIEF[apiValue(state.tone)];
+  return goal && tone ? `${goal}, ${tone}` : '';
+}
+
+/**
  * 입력칸 예시 문구 — 고른 관계에 따라 바뀐다.
  *
  * 예전에는 두 칸 모두 고정 문구였다. 위에서 "클라이언트"를 골라도 입력칸은
@@ -370,7 +400,9 @@ const FOLD_SPECS = {
     extra: () => (activePreset ? activePreset.label : '직접 입력'),
     reset: () => clearPresetSelection(),
   },
-  reply: { title: '답장 설정', fields: ['goal', 'tone'] },
+  // 접히고 나서도 "어떤 답장이 나올지"가 요약 줄에 남는다 — 이 블록은
+  // 마지막 칸을 고르는 순간 접혀서, 그 설명을 읽을 틈이 없기 때문이다.
+  reply: { title: '답장 설정', fields: ['goal', 'tone'], note: replyBrief },
 };
 
 let foldables = [];
@@ -435,11 +467,18 @@ function syncFolding() {
     if (!fold) continue;
 
     const values = [...f.spec.fields.map((k) => strip(state[k])), f.spec.extra?.()].filter(Boolean);
+    const note = f.spec.note?.() || '';
     f.summary.innerHTML =
-      `<span class="block-folded-title">${escapeHtml(f.spec.title)}</span>`
+      '<span class="block-folded-row">'
+      + `<span class="block-folded-title">${escapeHtml(f.spec.title)}</span>`
       + `<span class="block-folded-value">${escapeHtml(values.join(' · '))}</span>`
-      + '<span class="block-folded-edit" aria-hidden="true">변경</span>';
-    f.summary.setAttribute('aria-label', `${f.spec.title}: ${values.join(', ')}. 눌러서 다시 고르기`);
+      + '<span class="block-folded-edit" aria-hidden="true">변경</span>'
+      + '</span>'
+      + (note ? `<span class="block-folded-note">${escapeHtml(note)}</span>` : '');
+    f.summary.setAttribute(
+      'aria-label',
+      `${f.spec.title}: ${values.join(', ')}.${note ? ` ${note}` : ''} 눌러서 다시 고르기`,
+    );
   }
 }
 
