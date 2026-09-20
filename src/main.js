@@ -19,6 +19,7 @@ import presetWeekend from './data/presets/weekend.json';
 import presetAislop from './data/presets/aislop.json';
 import presetPingpong from './data/presets/pingpong.json';
 import presetClient from './data/presets/client.json';
+import { PRESETS } from './data/presets.js';
 
 /**
  * 가이드 §9 데모 안전장치: 입력이 상황 카드 원본과 정확히 같으면
@@ -155,107 +156,6 @@ const VALUE_OF = {};
 const strip = (s) => s.replace(/^[^\p{L}\p{N}]+/u, '').trim();
 const apiValue = (raw) => VALUE_OF[raw] || strip(raw);
 
-/**
- * 상황 예시 카드("이런 상황인가요?") — 예시 문구를 담고 있을 뿐, 폼을
- * 채우지 않는다(applyPreset 참고). 골든 4종(weekend/aislop/pingpong/client)은
- * 텍스트를 자동화 테스트 코퍼스(src/data/golden.json)와 같은 문구로 쓰지만,
- * 이제는 순수 UI 예시 갤러리라서 골든 데이터에 종속되지 않는다 — 새 카드를
- * 추가할 때 테스트 픽스처를 함께 만들 필요가 없다.
- *
- * fits 는 배열이다 — 한 상황이 여러 관계에서 나올 수 있다.
- * "주말 업무 눈치보기"는 직속상사만이 아니라 임원·선배도 시킨다. 예전에
- * 값 하나만 받던 시절엔 관계 8종 중 6종이 매칭 카드 1장뿐이었다(실측).
- *
- * 라벨 규칙은 두 가지다.
- *
- * 1) 관계 이름을 넣지 않는다("상사의 주말 업무" ✗). fits 가 배열인 이상
- *    카드를 특정 관계에 고정해 부르면 다른 매칭 관계와 모순된다 —
- *    "후배의 업무 떠넘기기"가 상사 화면에도 뜨면 이상하다.
- *
- * 2) 평가어가 아니라 **일어난 일**로 부른다. 한때 "갑질"로 통일했었는데
- *    (관계 이름이 아니라 권력 남용이라는 행위를 가리키니 여러 관계에
- *    걸려도 모순은 없었다) 10장 중 7장이 "OO 갑질"이 되면서 목록 전체가
- *    한 톤으로 눌렸다. 사용자가 자기 상황을 찾는 갤러리라, 먼저 필요한
- *    건 감정 라벨이 아니라 "내가 겪은 그 일"이라는 알아봄이다. 낙인은
- *    영수증의 빌런 유형("주말 도둑형"·"벼락 마감형")이 이미 맡고 있다.
- *
- * 라벨을 지을 땐 반드시 아래 text 본문과 대조할 것. 예를 들어 "무한
- * 피드백"은 emailcreep(잔 수정 반복)이지 client(한 번에 갈아엎기 + 비용
- * 부정)가 아니고, nightowl 은 본문이 "급한 건 아니니까"라고 못 박고 있어
- * "야간 긴급"으로 부르면 이 카드가 가리키는 문제 자체가 지워진다.
- */
-const PRESETS = [
-  {
-    id: 'weekend',
-    emoji: '📅',
-    fits: ['직속상사', '임원', '선배'],
-    label: '주말 업무 요청',
-    text: '주말에 미안한데, 월요일 오전에 대표님 보고가 잡혀서요. 시간 날 때 가볍게 한번 봐주시면 좋을 것 같아요. 급한 건 아닙니다!',
-  },
-  {
-    id: 'aislop',
-    emoji: '🤖',
-    fits: ['동기', '타부서 동료', '후배'],
-    label: 'AI 복붙 답변',
-    text: '안녕하세요! 말씀해주신 사항에 대해 검토해보았습니다. 전반적으로 긍정적인 방향으로 보이며, 추가적인 논의를 통해 더 나은 결과를 도출할 수 있을 것으로 사료됩니다. 관련하여 지속적인 커뮤니케이션을 이어가면 좋겠습니다. 감사합니다.',
-  },
-  {
-    id: 'pingpong',
-    emoji: '🏓',
-    fits: ['타부서 동료', '동기'],
-    label: '부서 간 떠넘기기',
-    text: '이 건은 저희 쪽 R&R은 아닌 것 같은데요, 아무래도 기획 단계에서 정리되는 게 맞을 것 같습니다. 혹시 먼저 정리해서 공유해주실 수 있을까요? 저희는 그거 받고 나서 진행하겠습니다.',
-  },
-  {
-    id: 'client',
-    emoji: '👑',
-    fits: ['클라이언트', '민원인'],
-    label: '말 바뀐 재작업 요구',
-    text: '이거 처음 얘기했던 거랑 좀 다른데요? 저희가 원한 건 이게 아니었습니다. 내일까지 다시 작업해서 보내주세요. 추가 비용 얘기는 없던 걸로 알고 있습니다.',
-  },
-  {
-    id: 'nightowl',
-    emoji: '🌙',
-    fits: ['직속상사', '선배'],
-    label: '퇴근 후 업무 연락',
-    text: '이렇게 늦은 시간에 톡해서 미안한데 자기 전에 하나만 부탁해도 될까요? 내일 오전 회의자료에 지난달 지표 슬라이드 하나만 껴주면 좋을 것 같아요. 급한 건 아니니까 편하실 때 봐주세요~',
-  },
-  {
-    id: 'emailcreep',
-    emoji: '✉️',
-    fits: ['클라이언트', '민원인'],
-    label: '무한 피드백',
-    text: '안녕하세요, 지난번에 말씀드린 배너 시안 관련해서요. 죄송한데 색감을 조금만 더 밝게, 폰트도 살짝 키워주시고, 로고 위치도 다시 한 번 검토 부탁드려요. 예산 안에서 진행 가능할 것 같아서 말씀드립니다!',
-  },
-  {
-    id: 'groupchat',
-    emoji: '📢',
-    fits: ['임원', '직속상사'],
-    label: '단톡방 공개 지적',
-    text: '다들 보고 계시죠? 이번 프로젝트 일정 늦어진 거 이 자리에서 한번 정리하고 갑시다. 담당자분 답변 부탁드려요.',
-  },
-  {
-    id: 'passthebuck',
-    emoji: '🤐',
-    fits: ['직속상사', '임원'],
-    label: '알아서 하라는 지시',
-    text: '이 부분은 담당자님이 알아서 잘 판단해서 진행해 주세요. 저는 큰 그림만 보고 있어서 세부적인 건 믿고 맡기겠습니다. 결과만 잘 나오면 될 것 같아요!',
-  },
-  {
-    id: 'juniordump',
-    emoji: '🙇',
-    fits: ['후배'],
-    label: '대신 해달라는 부탁',
-    text: '선배님 죄송한데 저 이거 도저히 감이 안 잡혀서요… 내일까지 드려야 하는데 대신 좀 봐주시면 안 될까요? 선배님이 하시면 훨씬 빠를 것 같아서요ㅠㅠ',
-  },
-  {
-    id: 'complainant',
-    emoji: '😤',
-    fits: ['민원인', '클라이언트'],
-    label: '격앙된 항의',
-    text: '지금 몇 시간째 기다리는 줄 아세요? 당장 책임자 나오라고 하세요. 오늘 중으로 처리 안 되면 가만 안 있을 겁니다.',
-  },
-];
 
 /**
  * 선택값은 **아무것도 미리 고르지 않은 상태**로 시작한다.
@@ -279,6 +179,27 @@ const state = {
 
 /** 세션 메모리 토큰 맵 — localStorage 금지, 서버 전송 금지 */
 let sessionTokenMap = Object.create(null);
+
+/**
+ * 기록에서 되살린 화면인지.
+ *
+ * 되살린 결과에는 이 세션의 토큰 맵이 없다(저장하지 않으니까). unmask 는
+ * 맵에 없는 토큰을 그대로 두므로, 그냥 두면 답장에 "{{PERSON_1}}님"이 날것으로
+ * 찍힌다. 저장 시점에 실명을 되돌려 넣는 건 기록이 실명을 갖게 되는 일이라
+ * 하지 않는다 — 대신 보여줄 때 중립 표기로 바꾼다.
+ */
+let restoredView = false;
+
+const TOKEN_LABEL = {
+  PERSON: '○○', ORG: '○○사', PROJECT: '○○ 건',
+  PHONE: '연락처', EMAIL: '메일 주소', AMOUNT: '금액', ACCOUNT: '계좌', LITERAL: '○○',
+};
+
+/** 화면에 내보낼 문자열 — 평소엔 토큰을 실명으로 되돌리고, 복원 화면에선 중립 표기로 바꾼다. */
+function showText(text) {
+  if (!restoredView) return unmask(text, sessionTokenMap);
+  return String(text ?? '').replace(/\{\{([A-Z]+)_\d+\}\}/g, (_, kind) => TOKEN_LABEL[kind] || '○○');
+}
 let cooldownUntil = 0;
 let busy = false;
 let suggestTimer = null;
@@ -332,6 +253,9 @@ const el = {
   fbSubmit: $('fb-submit'),
   fbStatus: $('fb-status'),
   busyNoteBody: $('busy-note-body'),
+  restoredNote: $('restored-note'),
+  restoredNoteBody: $('restored-note-body'),
+  restoredExit: $('restored-exit'),
   xray: $('xray'),
   alertHeader: $('alert-header'),
   modeBadge: $('mode-badge'),
@@ -353,10 +277,12 @@ const el = {
   receiptSave: $('receipt-save'),
   receiptCopy: $('receipt-copy'),
   receiptStatus: $('receipt-status'),
+  receiptWantedLink: $('receipt-wanted-link'),
   rcIssued: $('rc-issued'),
   rcJob: $('rc-job'),
   rcVillain: $('rc-villain'),
   rcScore: $('rc-score'),
+  rcScoreLabel: $('rc-score-label'),
   rcMode: $('rc-mode'),
   rcHours: $('rc-hours'),
   rcHp: $('rc-hp'),
@@ -463,6 +389,27 @@ function renderPresets() {
 }
 
 /**
+ * 같은 상황이라도 **누가 보냈는지**에 따라 문장이 달라진다.
+ *
+ * 예전에는 카드 하나에 text 가 하나뿐이라, fits 에 묶인 관계 2~3종이 전부
+ * 똑같은 문구를 봤다. "주말 업무 요청"을 임원으로 고르든 선배로 고르든
+ * "대표님 보고가 잡혀서요"가 나오는 식인데, 선배가 그렇게 말하지는 않는다.
+ * 예시가 자기 상황처럼 읽히지 않으면 카드를 눌러 볼 이유도 사라진다.
+ *
+ * byCounterpart 에 해당 관계의 변형이 있으면 그걸 쓰고, 없으면 기본 text 를
+ * 쓴다. 관계를 아직 고르지 않았을 때도 기본 text 다 — 빈 값으로 조회하면
+ * 어차피 없다.
+ *
+ * 변형 문구는 **골든 캐시(matchPresetId)와 일부러 어긋나게 둔다.** 캐시는
+ * golden.json 의 원문과 정확히 일치할 때만 맞고, 변형을 고른 사용자는 그냥
+ * 정상 분석 경로로 간다. 변형마다 골든 픽스처를 새로 뜨는 비용을 지우기
+ * 위한 선택이다.
+ */
+function presetText(preset, who = apiValue(state.counterpart)) {
+  return preset?.byCounterpart?.[who] || preset?.text || '';
+}
+
+/**
  * 고른 관계에 맞는 예시만 남기고 나머지는 숨긴다.
  *
  * 예전엔 CSS order 로 "정렬"만 했다 — 카드 10장이 관계와 무관하게 항상
@@ -561,7 +508,7 @@ function applyPreset(p, btn) {
     b.setAttribute('aria-pressed', String(b === btn));
   });
 
-  el.message.placeholder = p.text;
+  el.message.placeholder = presetText(p);
 
   el.message.scrollIntoView({ behavior: 'smooth', block: 'center' });
   el.message.classList.remove('just-filled');
@@ -593,7 +540,7 @@ function applyPresetMessage() {
   const p = activePreset;
   if (!p || busy) return;
 
-  el.message.value = p.text;
+  el.message.value = presetText(p);
   onInput();
 
   el.message.focus({ preventScroll: true });
@@ -1086,14 +1033,19 @@ function stepIntro(delta) {
 
 /* ── 렌더 ───────────────────────────── */
 
-function render(result, elapsedMs, context) {
+function render(result, elapsedMs, context, { restored = false, restoredAt = null } = {}) {
   const { xray, replies, risk, meta, usage } = result;
+
+  restoredView = restored;
 
   // 영수증은 이 스냅샷(xray/risk/context)에서만 값을 읽는다 — 원문·마스킹 토큰과는 무관하다.
   lastReceiptSource = { xray, risk, context };
-  // 나의 방어 기록에도 같은 원칙으로 카테고리·점수만 남긴다(원문 없음).
-  addEntry(entryFromResult(xray, risk, context));
-  renderHistoryBadge();
+  // 되살린 결과를 기록에 다시 쌓으면 한 번 겪은 일이 볼 때마다 늘어난다.
+  if (!restored) {
+    addEntry(entryFromResult(xray, risk, context, { replies, mode: meta.mode }));
+    renderHistoryBadge();
+  }
+  renderRestoredNote(restored, restoredAt);
 
   el.standby.hidden = true;
   el.result.hidden = false;
@@ -1112,7 +1064,7 @@ function render(result, elapsedMs, context) {
   el.scoreLabel.textContent = risk.label;
   el.scoreAction.textContent = risk.action;
   el.scoreBarFill.style.width = `${risk.score}%`;
-  el.subtext.textContent = unmask(xray.subtext, sessionTokenMap);
+  el.subtext.textContent = showText(xray.subtext);
 
   renderBusyNote(meta);
   renderStats(xray);
@@ -1274,7 +1226,7 @@ function renderRepliesModeNote(mode) {
 function renderReplies(replies) {
   el.replies.innerHTML = '';
   replies.forEach((r, i) => {
-    const text = unmask(r.text, sessionTokenMap);
+    const text = showText(r.text);
     const card = document.createElement('div');
     card.className = 'reply';
     card.innerHTML = `
@@ -1381,6 +1333,48 @@ function resetResult() {
   el.standby.hidden = false;
   hideError();
   lastReceiptSource = null;
+  // 되살린 화면도 같이 치운다 — 배너만 남으면 "불러온 결과"라는 안내가
+  // 대기 화면 위에 떠 있게 된다.
+  restoredView = false;
+  renderRestoredNote(false, null);
+}
+
+/**
+ * 되살린 결과라는 표시.
+ *
+ * 점수·답장이 똑같이 보이기 때문에, 표시가 없으면 방금 분석한 결과로 읽힌다.
+ * 언제 받은 메시지였는지와 **입력칸이 비어 있는 이유**를 같이 적는다.
+ */
+function renderRestoredNote(restored, restoredAt) {
+  el.restoredNote.hidden = !restored;
+  if (!restored) return;
+  const when = restoredAt ? new Date(restoredAt) : null;
+  const stamp = when
+    ? `${when.getMonth() + 1}월 ${when.getDate()}일 ${String(when.getHours()).padStart(2, '0')}:${String(when.getMinutes()).padStart(2, '0')}`
+    : '이전';
+  // 입력칸은 건드리지 않는다 — 쓰다 만 메시지를 말없이 지우는 게 더 나쁘다.
+  // 대신 지금 화면이 입력칸 내용의 결과가 아니라는 걸 분명히 적는다.
+  el.restoredNoteBody.textContent =
+    `${stamp}에 분석한 결과입니다. 아래 입력칸의 내용과는 무관합니다.\n메시지 원문은 저장하지 않아 답장에 있던 이름은 ○○로 표시됩니다.`;
+}
+
+/**
+ * 기록 항목을 눌러 그때의 결과 화면으로 돌아간다.
+ *
+ * 되살릴 수 있는 건 **분석 결과뿐이다.** 원문을 저장한 적이 없어서 입력칸은
+ * 채우지 못한다(그게 이 도구의 약속이다). 그래서 "다시 분석"이 아니라
+ * "그때 화면을 다시 펼치기"에 가깝다 — 재분석하면 같은 값이 안 나올 수도
+ * 있는데, 기록은 그때 내린 판정을 보존하는 쪽이 맞다.
+ */
+function restoreFromHistory(entry) {
+  const snap = entry?.snapshot;
+  if (!snap) return;
+  closeHistoryModal();
+  render({ ...snap, replies: snap.replies || [], meta: snap.meta || { mode: 'mock' } }, null, snap.context, {
+    restored: true,
+    restoredAt: entry.ts,
+  });
+  el.result.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function showError(message) {
@@ -1484,12 +1478,16 @@ function openReceiptModal() {
   el.rcIssued.textContent = data.issuedAt;
   el.rcJob.textContent = data.job;
   el.rcVillain.textContent = data.villain;
-  el.rcScore.textContent = `${data.score} / 100`;
+  el.rcScore.textContent = String(data.score);
+  el.rcScoreLabel.textContent = data.scoreLabel;
   el.rcMode.textContent = data.defenseMode;
   el.rcHours.textContent = `+${data.hoursSaved} Hours`;
   el.rcHp.textContent = `+${data.mentalHp} HP`;
   el.rcRisk.textContent = `${data.politicalRiskPercent}% (${data.politicalRiskNote})`;
   el.rcCount.textContent = String(count);
+  // 카드 안의 원티드 문구는 이미지라 누를 수 없다. 모달의 링크만 실제로 동작하고,
+  // 케어 블록과 같은 규칙(연차·직군)으로 주소를 맞춘다.
+  el.receiptWantedLink.href = wantedUrl(context);
 
   el.receiptStatus.textContent = '';
   openModal(el.receiptModal);
@@ -1580,19 +1578,27 @@ function renderHistory() {
     el.historyTop.textContent = s.topVillain || '-';
   }
 
+  // 스냅샷이 남아 있는 기록만 누를 수 있다. 오래된 기록은 용량 때문에
+  // 스냅샷을 떼어냈으므로(history.js MAX_SNAPSHOTS), 누르면 아무 일도
+  // 일어나지 않는 버튼으로 두지 않고 처음부터 버튼이 아니게 그린다.
   el.historyList.innerHTML = history
-    .map((e) => {
+    .map((e, i) => {
       const date = new Date(e.ts);
       const dateStr = `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-      return `<div class="history-item">
-        <span class="history-item-score" style="color:${LEVEL_COLOR[e.level] || 'var(--text-dim)'}">${escapeHtml(e.score)}</span>
+      const body = `<span class="history-item-score" style="color:${LEVEL_COLOR[e.level] || 'var(--text-dim)'}">${escapeHtml(e.score)}</span>
         <div class="history-item-body">
           <div class="history-item-villain">${escapeHtml(e.villain)}</div>
           <div class="history-item-meta">${dateStr} · ${escapeHtml(e.job)} · ${escapeHtml(e.defenseMode)}</div>
-        </div>
-      </div>`;
+        </div>`;
+      return e.snapshot
+        ? `<button type="button" class="history-item is-openable" data-index="${i}">${body}<span class="history-item-go" aria-hidden="true">›</span><span class="sr-only">이 결과 다시 보기</span></button>`
+        : `<div class="history-item">${body}</div>`;
     })
     .join('');
+
+  el.historyList.querySelectorAll('.history-item.is-openable').forEach((btn) => {
+    btn.addEventListener('click', () => restoreFromHistory(history[Number(btn.dataset.index)]));
+  });
 }
 
 function onClearHistory() {
@@ -1648,6 +1654,16 @@ el.hiddenContext.addEventListener('input', () => {
 });
 el.run.addEventListener('click', () => run());
 el.presetRun.addEventListener('click', () => applyPresetMessage());
+// 되살린 화면에서 빠져나오는 유일한 경로. 입력칸이 비어 있으니 그쪽으로 보낸다.
+el.restoredExit.addEventListener('click', () => {
+  restoredView = false;
+  el.result.hidden = true;
+  el.standby.hidden = false;
+  renderRestoredNote(false, null);
+  lastReceiptSource = null;
+  el.message.focus({ preventScroll: true });
+  el.message.scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
 el.presetToggle.addEventListener('click', () => {
   presetsExpanded = !presetsExpanded;
   applyPresetFilter();

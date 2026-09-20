@@ -882,19 +882,43 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
     25% 100%, 20% 97%, 15% 100%, 10% 97%, 5% 100%, 0% 97%
   );
 }
+/* 카드 전체를 mono 로 두던 자리다. --mono 는 라틴 전용 스택이라 한글만
+   시스템 글꼴로 떨어지면서, 같은 행 안에서 "주말 도둑형 상사"와 "+5.5 Hours"의
+   결이 서로 달랐다(본문 전반에서 세 번 잡았던 것과 같은 버그다). 공유되는
+   이미지에서 이 불일치가 카드를 싸구려로 보이게 하는 가장 큰 원인이었다.
+   본문은 --font 로 통일하고, mono 는 아래에서 라틴·숫자 전용 자리에만 남긴다.
+   영수증 특유의 결은 tabular-nums 와 자간이 대신 맡는다. */
 .receipt-card-inner {
   padding: 22px 22px 30px;
-  font-family: var(--mono);
+  font-family: var(--font);
+  font-variant-numeric: tabular-nums;
 }
-.receipt-brand { font-weight: 700; letter-spacing: 0.12em; font-size: 15px; text-align: center; }
-.receipt-brand-sub { text-align: center; font-size: 10px; letter-spacing: 0.08em; color: #6b6455; margin-top: 2px; }
-.receipt-issued { text-align: center; font-size: 10.5px; color: #6b6455; margin-top: 10px; }
+.receipt-brand { font-family: var(--mono); font-weight: 700; letter-spacing: 0.12em; font-size: 16px; text-align: center; }
+.receipt-brand-sub { font-family: var(--mono); text-align: center; font-size: 10px; letter-spacing: 0.08em; color: #6b6455; margin-top: 2px; }
+.receipt-issued { font-family: var(--mono); text-align: center; font-size: 10.5px; color: #6b6455; margin-top: 10px; }
 .receipt-rule { border-top: 1px dashed #8a8272; margin: 14px 0; }
 .receipt-rule-light { border-top-color: #c9c2ae; }
 .receipt-row {
   display: flex; justify-content: space-between; gap: 10px;
-  font-size: 12.5px; line-height: 1.9;
+  font-size: 13px; line-height: 1.9;
 }
+
+/* 위험 지수를 카드의 단일 초점으로 세운다. */
+.receipt-hero { text-align: center; padding: 2px 0 4px; }
+.receipt-hero-label { font-size: 10.5px; letter-spacing: 0.08em; color: #8a8272; }
+.receipt-hero-score {
+  display: flex; align-items: baseline; justify-content: center; gap: 6px;
+  margin-top: 2px;
+}
+.receipt-hero-score b {
+  font-family: var(--mono);
+  font-size: 54px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+.receipt-hero-score span { font-family: var(--mono); font-size: 13px; color: #8a8272; }
+.receipt-hero-verdict { font-size: 12.5px; font-weight: 700; margin-top: 2px; }
 .receipt-row span { color: #6b6455; }
 .receipt-row b { font-weight: 700; text-align: right; }
 .receipt-nudge-title { font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; margin-bottom: 6px; }
@@ -906,8 +930,16 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   margin-bottom: 8px;
 }
 .receipt-nudge-body { font-size: 12px; line-height: 1.7; margin: 0; color: #3a352c; }
-.receipt-eap { font-size: 10.5px; line-height: 1.7; color: #6b6455; margin: 0; }
-.receipt-disclaimer { font-size: 9.5px; color: #9a927e; margin: 10px 0 0; }
+.receipt-eap { font-size: 11px; line-height: 1.7; color: #6b6455; margin: 0; }
+.receipt-disclaimer { font-size: 10px; color: #9a927e; margin: 10px 0 0; }
+.receipt-url {
+  font-family: var(--mono);
+  text-align: center;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: #8a8272;
+  margin-top: 12px;
+}
 
 .receipt-actions { display: flex; gap: 8px; width: 100%; }
 .receipt-action {
@@ -933,6 +965,7 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   text-decoration: none;
 }
 .receipt-eap-link:hover { text-decoration: underline; }
+.receipt-links { display: flex; flex-direction: column; gap: 7px; align-items: center; text-align: center; }
 
 .receipt-status { font-size: 11.5px; color: var(--text-faint); min-height: 1em; margin: 0; text-align: center; }
 
@@ -1019,9 +1052,53 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   text-align: center;
   flex-shrink: 0;
 }
-.history-item-body { flex: 1; min-width: 0; }
+.history-item-body { flex: 1; min-width: 0; text-align: left; }
 .history-item-villain { font-size: 12.5px; font-weight: 600; }
 .history-item-meta { font-size: 12px; color: var(--text-faint); }
+
+/* 스냅샷이 남아 있어 눌러서 되살릴 수 있는 기록. 누를 수 있다는 걸
+   화살표 하나로만 알리면 약해서, 호버·포커스에서 테두리까지 반응시킨다. */
+.history-item.is-openable {
+  width: 100%;
+  font-family: var(--font);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.history-item.is-openable:hover,
+.history-item.is-openable:focus-visible { border-color: var(--accent); background: var(--bg-panel); }
+.history-item.is-openable:hover .history-item-go { color: var(--accent); transform: translateX(2px); }
+.history-item-go {
+  flex-shrink: 0;
+  font-size: 17px;
+  line-height: 1;
+  color: var(--text-faint);
+  transition: color var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+/* ── 기록에서 되살린 결과 안내 ───────────────────────────── */
+.restored-note {
+  margin: 0 0 14px; padding: 12px 14px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--bg-soft);
+}
+.restored-note-title { margin: 0; font-size: 13.5px; font-weight: 700; color: var(--text); }
+.restored-note-body { margin: 5px 0 0; font-size: 12.5px; line-height: 1.65; color: var(--text-dim); white-space: pre-line; }
+.restored-note-exit {
+  margin-top: 10px;
+  padding: 7px 12px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--bg-panel); color: var(--text-dim);
+  font-family: var(--font); font-size: 12.5px; font-weight: 600;
+  cursor: pointer;
+}
+.restored-note-exit:hover { border-color: var(--accent); color: var(--accent); }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
 
 .history-clear {
   width: 100%;

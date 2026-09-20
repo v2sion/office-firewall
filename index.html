@@ -228,6 +228,14 @@
         <p class="busy-note-body" id="busy-note-body"></p>
       </div>
 
+      <!-- 기록에서 되살린 결과. 지금 입력한 내용의 결과가 아니라는 걸
+           화면 안에서 구분할 수 있어야 한다(입력칸은 비어 있다). -->
+      <div class="restored-note" id="restored-note" hidden role="status">
+        <p class="restored-note-title">기록에서 불러온 결과입니다</p>
+        <p class="restored-note-body" id="restored-note-body"></p>
+        <button type="button" class="restored-note-exit" id="restored-exit">새로 분석하기</button>
+      </div>
+
       <div class="result" id="result" hidden>
         <!-- X-Ray 리포트 -->
         <article class="xray" id="xray">
@@ -450,9 +458,18 @@
 
           <div class="receipt-rule"></div>
 
-          <div class="receipt-row"><span>방어 대상 직군</span><b id="rc-job">-</b></div>
+          <!-- 공유되는 이미지라 읽는 사람이 0.5초 안에 잡아야 할 값은 하나뿐이다.
+               나머지 항목과 같은 크기의 행으로 두면 카드에 초점이 없다. -->
+          <div class="receipt-hero">
+            <div class="receipt-hero-label">위험 지수</div>
+            <div class="receipt-hero-score"><b id="rc-score">-</b><span>/ 100</span></div>
+            <div class="receipt-hero-verdict" id="rc-score-label">-</div>
+          </div>
+
+          <div class="receipt-rule"></div>
+
           <div class="receipt-row"><span>상대 빌런 유형</span><b id="rc-villain">-</b></div>
-          <div class="receipt-row"><span>위험 지수</span><b id="rc-score">- / 100</b></div>
+          <div class="receipt-row"><span>방어 대상 직군</span><b id="rc-job">-</b></div>
           <div class="receipt-row"><span>적용 방어 모드</span><b id="rc-mode">-</b></div>
 
           <div class="receipt-rule"></div>
@@ -479,6 +496,9 @@
           </p>
 
           <p class="receipt-disclaimer">* 심리적 체감 지표는 실측값이 아니라, 방어 행동 후 체감을 참고로 환산한 값입니다</p>
+
+          <!-- 공유된 이미지에서 출처로 돌아올 수 있는 유일한 단서다. -->
+          <div class="receipt-url">office-firewall.vercel.app</div>
         </div>
       </div>
 
@@ -486,9 +506,17 @@
         <button type="button" class="receipt-action" id="receipt-save">이미지로 저장하기</button>
         <button type="button" class="receipt-action" id="receipt-copy">이미지 복사하기</button>
       </div>
-      <a class="receipt-eap-link" href="https://welfare.comwel.or.kr/default/eap/board.do?mCode=D020010000" target="_blank" rel="noopener noreferrer">
-        근로복지공단 EAP 무료 심리상담 신청 바로가기 →
-      </a>
+      <!-- 카드 안의 두 제안(원티드·EAP)은 이미지라 누를 수 없다. 모달에는 둘 다
+           실제 링크로 둔다 — 원티드 쪽은 EAP 와 달리 내 정보(연차·직군)에 맞춘
+           주소라 wantedUrl(context) 로 매번 새로 만든다. -->
+      <div class="receipt-links">
+        <a class="receipt-eap-link" id="receipt-wanted-link" href="https://www.wanted.co.kr/wdlist" target="_blank" rel="noopener noreferrer">
+          내 연차에 맞는 원티드 채용 공고 보기 →
+        </a>
+        <a class="receipt-eap-link" href="https://welfare.comwel.or.kr/default/eap/board.do?mCode=D020010000" target="_blank" rel="noopener noreferrer">
+          근로복지공단 EAP 무료 심리상담 신청 바로가기 →
+        </a>
+      </div>
       <p class="receipt-status" id="receipt-status" aria-live="polite"></p>
     </div>
   </div>
@@ -501,7 +529,7 @@
         <h2>나의 방어 기록</h2>
         <button type="button" class="receipt-close" id="history-close" aria-label="닫기">✕</button>
       </div>
-      <p class="history-note">이 브라우저에만 저장됩니다.<br />서버로 전송되지 않고, 원문·실명은 남기지 않습니다.</p>
+      <p class="history-note">기록을 누르면 그때의 결과 화면을 다시 볼 수 있습니다.<br />이 브라우저에만 저장됩니다. 서버로 전송되지 않고, 원문·실명은 남기지 않습니다.</p>
 
       <div class="history-summary" id="history-summary" hidden>
         <div class="history-stat"><span id="history-count">0</span><small>총 기록</small></div>

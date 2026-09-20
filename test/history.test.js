@@ -69,17 +69,44 @@ test('summarize: 평균 점수와 최다 빌런 유형을 계산한다', () => {
   assert.equal(s.topVillain, '주말 도둑형 상사');
 });
 
-test('entryFromResult: 원문 관련 필드를 전혀 참조하지 않고 카테고리만 뽑는다', () => {
-  const xray = { urgencyType: '주말 침범', ambiguityType: '범위 불명', aiSlopScore: 0, avoidsDecision: true, subtext: '원문 유출되면 안 되는 문장' };
+/**
+ * 기록을 눌러 결과 화면을 되살릴 수 있게 되면서 스냅샷(xray/risk/context)이
+ * 엔트리에 들어왔다. 예전 이 테스트는 "xray 의 값이 엔트리에 하나도 없어야
+ * 한다"를 지켰는데, 그건 목적이 아니라 당시의 구현이었다.
+ *
+ * 지켜야 할 불변식은 **원문과 실명이 들어가지 않는다**는 것이다. 그리고 그건
+ * 구현이 아니라 구조가 보장한다 — 이 함수는 원문도 토큰 맵도 인자로 받지
+ * 않는다. 받지 않는 값은 저장될 수 없다. 아래는 그 구조를 고정한다.
+ */
+test('entryFromResult: 목록용 카테고리와 되살리기용 스냅샷을 함께 뽑는다', () => {
+  const xray = { urgencyType: '주말 침범', ambiguityType: '범위 불명', aiSlopScore: 0, avoidsDecision: true, subtext: '{{PERSON_1}}님이 보낸 요청은 범위가 비어 있습니다' };
   const risk = { score: 92, level: 'red', label: '심각' };
   const context = { job: '기획·PM/PO', level: '주니어', counterpart: '직속상사', goal: '칼차단', tone: '매운맛' };
-  const entry = entryFromResult(xray, risk, context, new Date(2026, 8, 12, 10, 0, 0));
+  const entry = entryFromResult(xray, risk, context, {}, new Date(2026, 8, 12, 10, 0, 0));
 
   assert.equal(entry.score, 92);
   assert.equal(entry.level, 'red');
   assert.equal(entry.villain, '주말 도둑형 상사');
   assert.equal(entry.defenseMode, '🛑 여지없는 칼차단');
   assert.equal(entry.job, '기획·PM/PO');
+
+  // 되살리기에 필요한 것은 전부 snapshot 아래에만 있다 (목록 필드와 섞지 않는다).
   assert.ok(!('subtext' in entry));
-  assert.ok(!JSON.stringify(entry).includes('원문 유출'));
+  assert.deepEqual(entry.snapshot.risk, risk);
+  assert.deepEqual(entry.snapshot.context, context);
+  assert.equal(entry.snapshot.xray.subtext, xray.subtext);
+});
+
+test('entryFromResult: 원문도 토큰 맵도 인자로 받지 않는다 (구조가 유출을 막는다)', () => {
+  // 기본값이 있는 now 는 length 에서 빠진다 — 필수 인자는 xray/risk/context 셋뿐이고,
+  // 원문이나 토큰 맵을 넘길 자리 자체가 없다.
+  assert.equal(entryFromResult.length, 3);
+});
+
+test('저장된 사람 이름은 마스킹 토큰 상태 그대로다 (실명이 복원돼 담기지 않는다)', () => {
+  const xray = { subtext: '{{PERSON_1}}님의 요청입니다', replies: [{ label: 'a', text: '{{PERSON_1}}님께 회신드립니다' }] };
+  const entry = entryFromResult(xray, { score: 10 }, { counterpart: '선배' }, { replies: xray.replies });
+  const json = JSON.stringify(entry);
+  assert.ok(json.includes('{{PERSON_1}}'), '토큰이 그대로 남아 있어야 한다');
+  assert.ok(!/[가-힣]{2,4}님의 요청/.test(json), '실명으로 복원된 흔적이 없어야 한다');
 });

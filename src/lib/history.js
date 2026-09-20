@@ -5,8 +5,15 @@
  * 반발 없이 그대로 받아들여야 할 때도 "이게 실제로 몇 번이나 있었는지, 얼마나
  * 위험한 신호였는지" 를 스스로 확인할 수 있게 남겨두는 기록이다.
  *
- * 원칙은 영수증(receipt.js)과 같다: 원문·실명·탐지된 세부값은 저장하지 않는다.
- * 저장하는 건 카테고리(직군·빌런 유형·방어 모드)와 이미 계산된 점수뿐이다.
+ * 저장하는 건 목록에 쓸 카테고리(직군·빌런 유형·방어 모드)와 점수, 그리고
+ * **결과 화면을 되살리는 데 필요한 스냅샷**이다. 기록을 눌렀을 때 점수만
+ * 다시 보여 주면 "그때 뭐라고 답하기로 했더라"에 답하지 못한다.
+ *
+ * 스냅샷에도 **원문은 들어가지 않는다.** 애초에 이 모듈이 원문을 받은 적이
+ * 없다(render 가 넘기지 않는다). 담기는 건 이미 마스킹된 해석(subtext)·규칙이
+ * 뽑은 신호·생성된 답장뿐이라, 화면의 "원문·실명은 남기지 않습니다"는 그대로
+ * 사실이다. 되살린 화면에서 입력칸이 비어 있는 것도 같은 이유다.
+ *
  * 서버로 전송되지 않고, 계정과도 무관하다(로그인이 없다) — 브라우저를 바꾸거나
  * 데이터를 지우면 사라진다.
  */
@@ -14,6 +21,17 @@ import { villainType, defenseModeLabel } from './receipt.js';
 
 export const HISTORY_KEY = 'ofw_history_v1';
 export const MAX_ENTRIES = 200;
+
+/**
+ * 스냅샷을 들고 있을 최근 기록 수.
+ *
+ * 통계(총 건수·평균·자주 만난 유형)는 200건 전부로 내야 하지만, 스냅샷까지
+ * 200개를 들고 있으면 항목당 1~2KB 라 수백 KB 가 된다. localStorage 가 꽉
+ * 차면 새 기록 저장이 조용히 실패하고(아래 addEntry 의 catch), 그때 잃는 건
+ * 오래된 스냅샷이 아니라 **방금 만든 기록**이다. 오래된 쪽부터 스냅샷을
+ * 떼어내 그 상황을 막는다 — 떼어낸 기록도 목록과 통계에는 그대로 남는다.
+ */
+export const MAX_SNAPSHOTS = 30;
 
 function safeLocalStorage() {
   try {
@@ -23,8 +41,16 @@ function safeLocalStorage() {
   }
 }
 
-/** xray/risk/context 스냅샷에서 저장할 값만 뽑는다 — 원문 필드는 아예 읽지 않는다. */
-export function entryFromResult(xray, risk, context, now = new Date()) {
+/**
+ * xray/risk/context 스냅샷에서 저장할 값만 뽑는다 — 원문 필드는 아예 읽지 않는다.
+ *
+ * 목록용 요약값은 평평하게 두고(정렬·통계가 바로 읽는다), 결과 화면을 되살릴
+ * 값은 snapshot 아래로 모은다. replies 는 **마스킹된 상태 그대로** 담는다.
+ * 토큰 맵은 세션 안에만 있어서 되살릴 때 복호화가 안 되는데, 그렇다고 저장
+ * 시점에 실명을 되돌려 넣으면 이 모듈이 실명을 갖게 된다. 남은 토큰은 화면에서
+ * 중립 표기로 바꿔 보여 준다(main.js showText).
+ */
+export function entryFromResult(xray, risk, context, extra = {}, now = new Date()) {
   return {
     ts: now.getTime(),
     score: risk?.score ?? 0,
@@ -34,7 +60,15 @@ export function entryFromResult(xray, risk, context, now = new Date()) {
     defenseMode: defenseModeLabel(context?.goal, context?.tone),
     job: context?.job || '-',
     counterpart: context?.counterpart || '-',
+    snapshot: { xray, risk, context, replies: extra.replies || [], meta: { mode: extra.mode || 'mock' } },
   };
+}
+
+/** 오래된 기록에서 스냅샷만 떼어낸다 — 목록·통계에 쓰는 값은 건드리지 않는다. */
+function stripSnapshot(entry) {
+  if (!entry?.snapshot) return entry;
+  const { snapshot, ...rest } = entry;
+  return rest;
 }
 
 export function getHistory(storage = safeLocalStorage()) {
@@ -49,7 +83,9 @@ export function getHistory(storage = safeLocalStorage()) {
 
 /** 최신이 앞에 오도록 추가하고, MAX_ENTRIES 를 넘으면 오래된 것부터 버린다. */
 export function addEntry(entry, storage = safeLocalStorage()) {
-  const list = [entry, ...getHistory(storage)].slice(0, MAX_ENTRIES);
+  const list = [entry, ...getHistory(storage)]
+    .slice(0, MAX_ENTRIES)
+    .map((e, i) => (i < MAX_SNAPSHOTS ? e : stripSnapshot(e)));
   if (storage) {
     try {
       storage.setItem(HISTORY_KEY, JSON.stringify(list));
