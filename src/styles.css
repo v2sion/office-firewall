@@ -1169,6 +1169,47 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 .history-head h2 { font-size: 15px; margin: 0; }
 .history-note { font-size: 12.5px; color: var(--text-faint); margin: 8px 0 14px; line-height: 1.5; }
 
+/* ── 기록 도구줄 (거르기 · 고르기) ───────────────────────────── */
+.history-tools { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+.history-filter { flex: 1; min-width: 0; display: block; }
+.history-filter select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line); border-radius: 9px;
+  background: var(--bg-panel); color: var(--text);
+  font-family: var(--font); font-size: 13px;
+  cursor: pointer;
+}
+.history-filter select:disabled { color: var(--text-faint); cursor: default; }
+.history-mode {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border: 1px solid var(--line); border-radius: 9px;
+  background: var(--bg-panel); color: var(--text-dim);
+  font-family: var(--font); font-size: 13px; font-weight: 600;
+  cursor: pointer;
+}
+.history-mode:hover { border-color: var(--accent); color: var(--accent); }
+
+/* 고르는 모드에서 줄 맨 앞에 붙는 체크 자리. 빈 칸일 때도 자리를 지켜
+   목록이 좌우로 흔들리지 않게 한다. */
+.history-check {
+  flex-shrink: 0;
+  width: 20px; height: 20px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line); border-radius: 6px;
+  background: var(--bg-panel);
+  font-size: 12px; font-weight: 700; color: transparent;
+}
+.history-item.is-pickable { width: 100%; font-family: var(--font); color: var(--text); cursor: pointer; }
+.history-item.is-picked { border-color: var(--accent); background: var(--bg-panel); }
+.history-item.is-picked .history-check { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.history-actions { display: flex; gap: 8px; margin-top: 14px; }
+.history-actions .history-clear { margin-top: 0; }
+.history-danger:not(:disabled) { border-color: var(--red-text); color: var(--red-text); }
+.history-danger:disabled { opacity: .5; cursor: default; }
+
 .history-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
 .history-stat {
   background: var(--bg-soft);

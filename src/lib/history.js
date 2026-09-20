@@ -97,6 +97,30 @@ export function addEntry(entry, storage = safeLocalStorage()) {
   return list;
 }
 
+/**
+ * 고른 기록만 지운다.
+ *
+ * 전체 삭제밖에 없으면, 한 건이 거슬려도 전부 버리거나 전부 안고 가는 수밖에
+ * 없다. 기록의 값어치가 "쌓여서 패턴이 되는 것"인데 전부 버리게 만들면 그
+ * 값어치를 같이 버린다.
+ *
+ * 인덱스로 받는 이유: 엔트리에는 고유 id 가 없고 ts 는 같은 밀리초에 두 건이
+ * 들어오면 겹칠 수 있다. 화면은 매번 getHistory() 로 다시 그리므로 그 한 번의
+ * 렌더 안에서는 인덱스가 곧 그 줄이다.
+ */
+export function removeEntries(indexes, storage = safeLocalStorage()) {
+  const drop = new Set(indexes);
+  const list = getHistory(storage).filter((_, i) => !drop.has(i));
+  if (storage) {
+    try {
+      storage.setItem(HISTORY_KEY, JSON.stringify(list));
+    } catch {
+      // 저장 실패가 화면을 막지 않게 한다 — 남은 목록은 그대로 돌려준다.
+    }
+  }
+  return list;
+}
+
 export function clearHistory(storage = safeLocalStorage()) {
   if (!storage) return;
   try {

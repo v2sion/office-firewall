@@ -11,7 +11,7 @@ import { buildResult } from './lib/normalize.js';
 import { buildReceiptData } from './lib/receipt.js';
 import { looksLikeMultiTurnThread } from './lib/thread-hint.js';
 import { matchSituationId } from './lib/situation-match.js';
-import { entryFromResult, addEntry, getHistory, clearHistory, summarize } from './lib/history.js';
+import { entryFromResult, addEntry, getHistory, clearHistory, removeEntries, summarize } from './lib/history.js';
 import { loadPrefs, savePrefs } from './lib/prefs.js';
 import { substanceGap, GREEN_CAP } from './lib/score.js';
 import golden from './data/golden.json';
@@ -306,6 +306,11 @@ const el = {
   historyEmpty: $('history-empty'),
   historyList: $('history-list'),
   historyClear: $('history-clear'),
+  historyTools: $('history-tools'),
+  historyFilter: $('history-filter'),
+  historySelect: $('history-select'),
+  historyDelete: $('history-delete'),
+  historyCancel: $('history-cancel'),
 };
 
 /** 마지막으로 렌더링된 결과 — 영수증은 이 스냅샷에서만 값을 읽는다(원문 재접근 없음). */
@@ -1739,26 +1744,60 @@ function closeHistoryModal() {
   closeModal(el.historyModal);
 }
 
+/* ── 기록 목록: 거르기와 고르기 ─────────────────────────────
+
+   기록은 쌓일수록 쓸모가 커진다. 같은 상대가 반복되는지가 보이기 때문이다.
+   그런데 목록이 길어지면 그 패턴이 오히려 묻힌다. 관계로 거를 수 있게 해서
+   "이 사람과 어땠지"를 바로 볼 수 있게 한다.
+
+   삭제도 전체 아니면 아무것도 아닌 상태였다. 한 건이 거슬려도 전부 버리거나
+   전부 안고 가야 했는데, 전부 버리면 패턴이라는 값어치를 같이 버린다.
+
+   고르기는 **모드**로 둔다. 평소에 줄을 누르면 그때 결과가 열리는데, 같은
+   자리에 체크박스를 얹으면 "볼 것"과 "지울 것"이 같은 동작이 된다. 실수로
+   지우는 쪽이 실수로 여는 쪽보다 훨씬 비싸다.
+*/
+let historyFilter = '';
+let historySelectMode = false;
+const historySelected = new Set();
+
+/** 드롭다운 항목은 실제로 기록에 있는 관계만 만든다. */
+function renderHistoryFilter(history) {
+  const seen = [...new Set(history.map((e) => e.counterpart).filter((v) => v && v !== '-'))];
+  // 거르던 관계의 기록을 모두 지우면 그 항목이 사라진다 — 전체로 되돌린다.
+  if (historyFilter && !seen.includes(historyFilter)) historyFilter = '';
+  el.historyFilter.innerHTML =
+    '<option value="">전체 관계</option>'
+    + seen.map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+  el.historyFilter.value = historyFilter;
+  el.historyFilter.disabled = seen.length === 0;
+}
+
 function renderHistory() {
   const history = getHistory();
   const hasEntries = history.length > 0;
+  // 원본 인덱스를 함께 들고 다닌다 — 삭제는 거른 뒤 목록이 아니라 원본을 지운다.
+  const rows = history.map((e, i) => ({ e, i })).filter(({ e }) => !historyFilter || e.counterpart === historyFilter);
 
-  el.historySummary.hidden = !hasEntries;
-  el.historyEmpty.hidden = hasEntries;
-  el.historyClear.hidden = !hasEntries;
-
-  if (hasEntries) {
-    const s = summarize(history);
-    el.historyCount.textContent = String(s.count);
-    el.historyAvg.textContent = String(s.avgScore);
-    el.historyTop.textContent = s.topVillain || '-';
+  el.historyTools.hidden = !hasEntries;
+  el.historySummary.hidden = rows.length === 0;
+  el.historyEmpty.hidden = rows.length > 0;
+  if (rows.length === 0) {
+    el.historyEmpty.textContent = hasEntries
+      ? '이 관계로 남긴 기록이 없습니다.'
+      : '아직 기록이 없습니다. 실행 버튼으로 분석하면 여기 쌓입니다.';
   }
 
-  // 스냅샷이 남아 있는 기록만 누를 수 있다. 오래된 기록은 용량 때문에
-  // 스냅샷을 떼어냈으므로(history.js MAX_SNAPSHOTS), 누르면 아무 일도
-  // 일어나지 않는 버튼으로 두지 않고 처음부터 버튼이 아니게 그린다.
-  el.historyList.innerHTML = history
-    .map((e, i) => {
+  // 요약도 거른 목록 기준이다. 관계를 골라 놓고 전체 평균을 보여주면 어긋난다.
+  if (rows.length) {
+    const sum = summarize(rows.map(({ e }) => e));
+    el.historyCount.textContent = String(sum.count);
+    el.historyAvg.textContent = String(sum.avgScore);
+    el.historyTop.textContent = sum.topVillain || '-';
+  }
+
+  el.historyList.innerHTML = rows
+    .map(({ e, i }) => {
       const date = new Date(e.ts);
       const dateStr = `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
       const body = `<span class="history-item-score" style="color:${LEVEL_COLOR[e.level] || 'var(--text-dim)'}">${escapeHtml(e.score)}</span>
@@ -1766,6 +1805,15 @@ function renderHistory() {
           <div class="history-item-villain">${escapeHtml(e.villain)}</div>
           <div class="history-item-meta">${dateStr} · ${escapeHtml(e.job)} · ${escapeHtml(e.defenseMode)}</div>
         </div>`;
+
+      if (historySelectMode) {
+        const on = historySelected.has(i);
+        return `<button type="button" class="history-item is-pickable${on ? ' is-picked' : ''}" data-index="${i}" aria-pressed="${on}">`
+          + `<span class="history-check" aria-hidden="true">${on ? '✓' : ''}</span>${body}</button>`;
+      }
+      // 스냅샷이 남아 있는 기록만 누를 수 있다. 오래된 기록은 용량 때문에
+      // 스냅샷을 떼어냈으므로(history.js MAX_SNAPSHOTS), 누르면 아무 일도
+      // 일어나지 않는 버튼으로 두지 않고 처음부터 버튼이 아니게 그린다.
       return e.snapshot
         ? `<button type="button" class="history-item is-openable" data-index="${i}">${body}<span class="history-item-go" aria-hidden="true">›</span><span class="sr-only">이 결과 다시 보기</span></button>`
         : `<div class="history-item">${body}</div>`;
@@ -1775,6 +1823,37 @@ function renderHistory() {
   el.historyList.querySelectorAll('.history-item.is-openable').forEach((btn) => {
     btn.addEventListener('click', () => restoreFromHistory(history[Number(btn.dataset.index)]));
   });
+  el.historyList.querySelectorAll('.history-item.is-pickable').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const i = Number(btn.dataset.index);
+      if (historySelected.has(i)) historySelected.delete(i);
+      else historySelected.add(i);
+      renderHistory();
+    });
+  });
+
+  renderHistoryFilter(history);
+  el.historySelect.hidden = !hasEntries || historySelectMode;
+  el.historyClear.hidden = !hasEntries || historySelectMode;
+  el.historyDelete.hidden = !historySelectMode;
+  el.historyCancel.hidden = !historySelectMode;
+  el.historyDelete.disabled = historySelected.size === 0;
+  el.historyDelete.textContent = historySelected.size ? `선택한 ${historySelected.size}건 삭제` : '선택 삭제';
+}
+
+function setHistoryMode(on) {
+  historySelectMode = on;
+  historySelected.clear();
+  renderHistory();
+}
+
+function onDeleteSelected() {
+  if (!historySelected.size) return;
+  // eslint-disable-next-line no-alert
+  if (!window.confirm(`선택한 ${historySelected.size}건을 삭제할까요? 이 작업은 되돌릴 수 없습니다.`)) return;
+  removeEntries([...historySelected]);
+  setHistoryMode(false);
+  renderHistoryBadge();
 }
 
 function onClearHistory() {
@@ -1865,6 +1944,14 @@ el.historyOpen.addEventListener('click', openHistoryModal);
 el.historyClose.addEventListener('click', closeHistoryModal);
 el.historyBackdrop.addEventListener('click', closeHistoryModal);
 el.historyClear.addEventListener('click', onClearHistory);
+el.historyFilter.addEventListener('change', () => {
+  historyFilter = el.historyFilter.value;
+  historySelected.clear();
+  renderHistory();
+});
+el.historySelect.addEventListener('click', () => setHistoryMode(true));
+el.historyCancel.addEventListener('click', () => setHistoryMode(false));
+el.historyDelete.addEventListener('click', onDeleteSelected);
 el.introNext.addEventListener('click', () => stepIntro(1));
 el.introBack.addEventListener('click', () => stepIntro(-1));
 el.introSkip.addEventListener('click', closeIntro);

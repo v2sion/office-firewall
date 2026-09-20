@@ -702,6 +702,24 @@
       </div>
       <p class="history-note">기록을 누르면 그때의 결과 화면을 다시 볼 수 있습니다. <br class="br-wide" />이 브라우저에만 저장됩니다. 서버로 전송되지 않고, 원문·실명은 남기지 않습니다.</p>
 
+      <!--
+        관계로 거르고, 원하는 것만 골라 지운다.
+
+        기록은 쌓일수록 쓸모가 커지는데(같은 상대가 반복되는지가 보인다) 목록이
+        길어지면 그 패턴이 오히려 묻힌다. 관계 드롭다운은 "이 사람과 어땠지"를
+        바로 볼 수 있게 한다 — 기본값은 전체다.
+
+        삭제도 전체 아니면 아무것도 아닌 상태였다. 한 건이 거슬려도 전부 버리거나
+        전부 안고 가야 했다. 골라 지울 수 있어야 기록을 계속 남길 마음이 든다.
+      -->
+      <div class="history-tools" id="history-tools" hidden>
+        <label class="history-filter">
+          <span class="sr-only">상대방과의 관계로 거르기</span>
+          <select id="history-filter"><option value="">전체 관계</option></select>
+        </label>
+        <button type="button" class="history-mode" id="history-select">선택</button>
+      </div>
+
       <div class="history-summary" id="history-summary" hidden>
         <div class="history-stat"><span id="history-count">0</span><small>총 기록</small></div>
         <div class="history-stat"><span id="history-avg">0</span><small>평균 위험 지수</small></div>
@@ -714,7 +732,11 @@
 
       <div class="history-list" id="history-list"></div>
 
-      <button type="button" class="history-clear" id="history-clear" hidden>전체 삭제하기</button>
+      <div class="history-actions">
+        <button type="button" class="history-clear" id="history-clear" hidden>전체 삭제하기</button>
+        <button type="button" class="history-clear history-danger" id="history-delete" hidden>선택 삭제</button>
+        <button type="button" class="history-clear" id="history-cancel" hidden>취소</button>
+      </div>
     </div>
   </div>
 
