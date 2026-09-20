@@ -26,7 +26,8 @@
 - [x] GitHub **Settings → General → Default branch** 를 `main` 으로 전환
       (`main` 은 이미 생성·푸시돼 있고 작업 브랜치와 같은 커밋을 가리킨다) — 완료,
       API 로 `main` 이 최신 커밋을 가리키는 것 확인
-- [ ] 개발 가이드를 `docs/` 에 커밋 (STEP 0 참고)
+- [x] 개발 가이드를 `docs/` 에 커밋 — `docs/SUBMISSION.md`(이 문서), `docs/BACKLOG.md`
+      (밴드 재보정·구조적 사각), `README.md`(설계 근거·룰엔진·코퍼스)
 
 이미 끝난 것: README 제출용 재구성, 테스트 286개, CI(.github/workflows/ci.yml)
 
@@ -232,6 +233,11 @@ npx vercel --prod
 - [x] 기본 브랜치가 `main` 인가
 - [ ] 배포 URL·저장소 링크가 폼에 정확히 들어갔는가
 - [ ] 대표 이미지 1장 + 스크린샷 최대 5장(16:9) 업로드했는가
+      → `node scripts/make-screenshots.mjs https://office-firewall.vercel.app` 로 찍는다.
+      `docs/assets/screenshots/` 에 6장이 생기고, **대표 이미지는 `02-xray.png`** 를 쓴다.
+      **반드시 배포본에서 찍을 것** — 로컬에는 API 키가 없어 모드 배지가
+      "오프라인 분석"으로 박힌다. 스크립트가 마지막에 배지를 확인해 경고한다.
+      현재 저장소에 들어 있는 6장은 **로컬에서 찍은 배치용**이다(배지가 오프라인).
 - [ ] 기술 스택 체크박스에 Vercel 선택했는가(Groq 는 목록에 없어 자유 서술로만 명시)
 - [ ] **"임시저장"이 아니라 "과제 제출하기"까지 눌렀는가** — 임시저장만으로는 심사 대상에서
       제외된다
