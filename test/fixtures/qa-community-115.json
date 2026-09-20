@@ -1,0 +1,943 @@
+{
+ "_source": "직장인 커뮤니티(블라인드·오픈채팅 등)에서 빈번한 빌런 패턴을 QA용으로 압축·정제한 합성 데이터. 특정 개인의 실제 대화를 옮긴 것이 아니라 패턴만 가져와 노이즈와 고유명사를 뺀 것이다.",
+ "_counterpart_note": "원 데이터에 상대방 정보가 없다. 실제 제품에서는 사용자가 직접 고르는 값이고 점수의 40%를 좌우하므로, 카테고리별로 가장 그럼직한 관계를 여기 고정해 재현 가능하게 만들었다.",
+ "_scope_note": "아래 out_of_scope=true 인 6개 유형은 **요구가 없는 메시지**다(인격 공격·감시·공 가로채기·배제·비꼬기·사생활). 우리 네 축은 근로기준법 제76조의2의 ②'업무상 적정범위'를 요구의 형태로 재는 값이라, 이 유형들은 구조적으로 보이지 않는다. 점수를 맞추려고 축을 늘리는 대신 못 본다는 사실을 기록해 둔다.",
+ "counterpart_by_category": {
+  "주말_퇴근후_지시": "직속상사",
+  "모호한_지시_답정너": "직속상사",
+  "가스라이팅_무시": "직속상사",
+  "비합리적_일정": "직속상사",
+  "사생활_침해_강요": "직속상사",
+  "마이크로매니징": "직속상사",
+  "성과_가로채기": "직속상사",
+  "부적절한_언행": "직속상사",
+  "RnR_떠넘기기": "타부서 동료",
+  "업무_배제_사일로": "타부서 동료",
+  "책임_회피": "타부서 동료",
+  "수동_공격": "타부서 동료",
+  "클라이언트_갑질": "클라이언트",
+  "AI_슬롭_복붙": "임원"
+ },
+ "cases": [
+  {
+   "id": "CASE_001",
+   "category": "주말_퇴근후_지시",
+   "raw_text": "김대리, 자요? 급한 건 아닌데 월요일 아침 팀장 회의 때 내가 바로 볼 수 있게 어제 말한 기획안 수치만 좀 업데이트해줘요. 금방 하잖아~",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_002",
+   "category": "주말_퇴근후_지시",
+   "raw_text": "휴가 중에 미안~ A프로젝트 최종본 파일 폴더 위치를 못 찾겠네. 접속해서 링크만 좀 쏴줄 수 있어?",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_003",
+   "category": "RnR_떠넘기기",
+   "raw_text": "이 부분은 저희 부서 R&R이 아닌 것 같은데요. 그쪽에서 기획하신 거니 디자인 베리에이션도 기획팀에서 알아서 하시는 게 맞지 않나요?",
+   "expected_risk_level": "HIGH",
+   "counterpart": "타부서 동료",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_004",
+   "category": "RnR_떠넘기기",
+   "raw_text": "김사원이 요즘 에이스니까 이번 TF 실무도 한번 리드해봐. 나중에 연말 인사평가 때 내가 확실히 챙겨줄게.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "타부서 동료",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_005",
+   "category": "모호한_지시_답정너",
+   "raw_text": "디자인이 좀 밋밋한데... 요즘 애들 좋아하는 엠지(MZ)스럽게 힙하면서도, 우리 브랜드의 클래식한 중후함도 챙기는 그런 느낌 알지? 느낌 느낌!",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_006",
+   "category": "모호한_지시_답정너",
+   "raw_text": "기획안 다 좋은데, 뭔가 딱 '아 이거다!' 하는 한 방이 없네. 훅이 부족해. 주말 동안 다시 딥하게 고민해봐.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_007",
+   "category": "AI_슬롭_복붙",
+   "raw_text": "현 비즈니스 생태계의 패러다임 시프트에 발맞춰, 다차원적인 옴니채널 전략을 통해 시너지를 극대화할 수 있는 혁신적 솔루션을 제안해 주시기 바랍니다.",
+   "expected_risk_level": "LOW",
+   "counterpart": "임원",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_008",
+   "category": "AI_슬롭_복붙",
+   "raw_text": "본 회의에서는 상호간의 건설적인 피드백을 통해 긍정적인 방향성을 모색하였으며, 향후 지속적인 커뮤니케이션을 통해 목표를 달성하기로 협의함.",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "임원",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_009",
+   "category": "클라이언트_갑질",
+   "raw_text": "저희가 이번에 예산은 30% 깎았지만, 퀄리티는 기존 레퍼런스랑 똑같이 맞춰주셔야 해요. 아시죠? 저희 대표님이 워낙 꼼꼼하셔서.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "클라이언트",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_010",
+   "category": "클라이언트_갑질",
+   "raw_text": "일단 내일 오전까지 시안 5개만 러프하게 뽑아주세요. 그거 보고 방향성 정할게요.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "클라이언트",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_011",
+   "category": "가스라이팅_무시",
+   "raw_text": "내가 김대리 생각해서 하는 말인데, 요즘 근태가 좀... 다른 사람들은 말 안 해도 30분씩 일찍 와서 준비하잖아.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_012",
+   "category": "가스라이팅_무시",
+   "raw_text": "이거 내가 지난번 회의 때 분명히 말했던 거 같은데? 기억 안 나? 요즘 뭐 딴 데 정신 팔려 있나 보네.",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_013",
+   "category": "사생활_침해_강요",
+   "raw_text": "이번 주말에 본부장님 모시고 팀원들끼리 가볍게 청계산 등산이나 갈까 하는데, 김사원도 올 거지? 막내가 빠지면 섭섭해~",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_014",
+   "category": "책임_회피",
+   "raw_text": "그건 김대리가 알아서 잘 판단해서 진행해. 나중에 문제 생기면 내가 커버 쳐줄 테니까 편하게 해.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "타부서 동료",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_015",
+   "category": "비합리적_일정",
+   "raw_text": "이거 오늘 퇴근 전까지 다 될까? 분량 얼마 안 되니까 금방 할 것 같은데, 부탁 좀 할게!",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_016",
+   "category": "주말_퇴근후_지시",
+   "raw_text": "김프로님, 퇴근하셨죠? 쉬는데 미안해요. 방금 대표님 피드백이 와서 그런데, 내일 오전에 바로 세팅되게 오늘 밤에 이거 수정 반영만 쓱 해놓고 주무실 수 있을까요?",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_017",
+   "category": "주말_퇴근후_지시",
+   "raw_text": "주말에 푹 쉬어~ 근데 지난주 금요일에 말했던 B사 제휴 건은 어떻게 진행되고 있어? 궁금해서 그래~",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_018",
+   "category": "주말_퇴근후_지시",
+   "raw_text": "밤늦게 톡해서 미안한데, 갑자기 엄청난 아이디어가 떠올라서 까먹기 전에 남겨놔! 내일 아침에 이 방향으로 기획서 전면 수정해봅시다.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_019",
+   "category": "주말_퇴근후_지시",
+   "raw_text": "지금 휴가 중인 거 아는데, 진짜 딱 5분이면 되는 거라 연락했어. 어드민 페이지 권한 좀 나한테 열어줄래?",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_020",
+   "category": "주말_퇴근후_지시",
+   "raw_text": "아까 퇴근할 때 말한다는 걸 깜빡했네 ㅠㅠ 월요일 오전 9시 회의 때 볼 거니까 주말에 시간 날 때 슬라이드 3장만 추가해 줘!",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_021",
+   "category": "RnR_떠넘기기",
+   "raw_text": "저희 팀은 인력이 너무 부족해서 도저히 안 될 것 같아요. 원래 이 서비스 기획하신 기획팀에서 이벤트 운영까지 같이 맡아주시는 게 맞지 않을까요?",
+   "expected_risk_level": "HIGH",
+   "counterpart": "타부서 동료",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_022",
+   "category": "RnR_떠넘기기",
+   "raw_text": "이거 원래 박 대리님 담당이긴 한데, 이대리님이 워낙 엑셀을 잘 다루시니까 이번 건만 좀 도와주세요. 어차피 같은 팀이잖아요.",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "타부서 동료",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_023",
+   "category": "RnR_떠넘기기",
+   "raw_text": "이 부분 법토 검토는 원래 개발팀에서 서비스 올리기 전에 자체적으로 하시는 거 아닌가요? 저희 법무팀은 사후 검토만 합니다.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "타부서 동료",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_024",
+   "category": "RnR_떠넘기기",
+   "raw_text": "제가 하려고 했는데 제 계정으로는 권한이 없다고 나오네요. 매번 권한 요청하기도 번거로우니 그냥 매니저님이 쭉 해주시면 안 될까요?",
+   "expected_risk_level": "LOW",
+   "counterpart": "타부서 동료",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_025",
+   "category": "RnR_떠넘기기",
+   "raw_text": "이거 작년에는 그쪽 부서에서 하셨던데요? 히스토리 찾아보니까 그렇던데 올해도 그냥 이어서 해주시죠.",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "타부서 동료",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_026",
+   "category": "모호한_지시_답정너",
+   "raw_text": "뭔가 좀 아쉬운데... 더 임팩트 있게 갈 수 없을까? 유저들이 봤을 때 '와우!' 할 만한 그런 엣지가 부족해.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_027",
+   "category": "모호한_지시_답정너",
+   "raw_text": "A안은 너무 무난하고 B안은 너무 튀는데, 두 개를 잘 섞어서 파격적이면서도 안정적인 C안을 만들어 볼까요?",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_028",
+   "category": "모호한_지시_답정너",
+   "raw_text": "내가 무슨 말 하는지 알지? 우리 예전에 그 프로젝트 했던 거, 딱 그 느낌 살려서 내일 오전에 봅시다.",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_029",
+   "category": "모호한_지시_답정너",
+   "raw_text": "일단 텍스트부터 디자인까지 A부터 Z까지 쭉 다 풀버전으로 만들어와 봐. 그거 보고 수정 방향 잡을게.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_030",
+   "category": "모호한_지시_답정너",
+   "raw_text": "글쎄, 난 잘 모르겠는데 일단 팀장님이 원하시는 방향 같으니까 그렇게 해보세요. 나중에 문제 생기면 고치면 되지.",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_031",
+   "category": "AI_슬롭_복붙",
+   "raw_text": "급변하는 디지털 트랜스포메이션 시대에 발맞춰, 선제적이고 유연한 애자일 방법론을 도입하여 고객 경험을 극대화할 수 있는 인사이트를 도출해 주시기 바랍니다.",
+   "expected_risk_level": "LOW",
+   "counterpart": "임원",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_032",
+   "category": "AI_슬롭_복붙",
+   "raw_text": "본 프로젝트의 지속가능한 성장을 도모하기 위해 핵심 역량을 집중하고, 다각적인 밸류체인 혁신을 통해 시너지 효과를 창출하는 것이 중요합니다.",
+   "expected_risk_level": "LOW",
+   "counterpart": "임원",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_033",
+   "category": "AI_슬롭_복붙",
+   "raw_text": "글로벌 스탠다드에 부합하는 초격차 기술력을 바탕으로 시장 내 게임 체인저로 도약하기 위한 전략적 로드맵을 선제적으로 구축해야 합니다.",
+   "expected_risk_level": "LOW",
+   "counterpart": "임원",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_034",
+   "category": "AI_슬롭_복붙",
+   "raw_text": "회의 결과: 1. 양 부서 간 긴밀한 협조 체계 구축 2. 긍정적인 방향성 모색 3. 향후 지속적인 커뮤니케이션 진행 4. 최적의 솔루션 도출 예정",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "임원",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_035",
+   "category": "AI_슬롭_복붙",
+   "raw_text": "사용자의 페인 포인트를 심층적으로 분석하여 옴니채널 기반의 심리스한 여정을 제공함으로써 락인 효과를 강화하는 방향으로 기획해 주세요.",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "임원",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_036",
+   "category": "클라이언트_갑질",
+   "raw_text": "계약서상에는 수정 2회로 되어 있긴 한데, 저희 윗선에서 계속 컨펌이 안 나서요. 폰트랑 자간만 살짝 바꾸는 건데 수정 횟수 차감 없이 그냥 서비스로 해주시죠?",
+   "expected_risk_level": "HIGH",
+   "counterpart": "클라이언트",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_037",
+   "category": "클라이언트_갑질",
+   "raw_text": "예산을 이만큼이나 드렸는데 결과물이 이것밖에 안 나오나요? 저희 대표님이 보시고 크게 실망하셨어요. 처음부터 완전히 새롭게 다시 제안해 주세요.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "클라이언트",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_038",
+   "category": "클라이언트_갑질",
+   "raw_text": "오늘 저녁 6시에 자료 넘겨드릴 테니까, 내일 아침 9시 오픈 전까지 세팅 다 끝내주세요. 야간 작업 비용은 따로 책정 안 된 거 아시죠?",
+   "expected_risk_level": "HIGH",
+   "counterpart": "클라이언트",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_039",
+   "category": "클라이언트_갑질",
+   "raw_text": "이전 대행사는 저희가 말 안 해도 알아서 트렌드 맞춰서 시안 3~4개씩 더 뽑아왔어요. 여긴 좀 깐깐하게 구시네요.",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "클라이언트",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_040",
+   "category": "클라이언트_갑질",
+   "raw_text": "주말에 저희 쪽 담당자가 연락할 수도 있으니까 단톡방 알림 꺼두지 마시고요. 급한 건 바로바로 처리해 주셔야 합니다.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "클라이언트",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_041",
+   "category": "가스라이팅_무시",
+   "raw_text": "내가 김프로 생각해서 하는 말인데, 요즘 다른 팀원들에 비해 퍼포먼스가 좀 떨어지는 거 같아. 딴생각해? 나니까 이런 말 해주는 거야.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_042",
+   "category": "가스라이팅_무시",
+   "raw_text": "그건 김사원 이해력이 좀 부족한 거 같은데? 내가 언제 그렇게 하라고 했어. 본인이 잘못 알아듣고 일 쳐놓고 왜 변명이야.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_043",
+   "category": "가스라이팅_무시",
+   "raw_text": "이 정도 연차면 내가 하나하나 안 짚어줘도 알아서 척척 해야지. 아직도 학생인 줄 아나 봐?",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_044",
+   "category": "가스라이팅_무시",
+   "raw_text": "요즘 칼퇴하느라 바쁜가 봐? 팀 분위기는 다들 남아있는데 혼자만 쏙쏙 잘 빠져나가네. 뭐, 규정상 문제는 없지~",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_045",
+   "category": "가스라이팅_무시",
+   "raw_text": "이거 지난번에도 틀리더니 또 틀렸네? 꼼꼼함이 아예 없는 건가? 이래서 큰 프로젝트 맡길 수 있겠어?",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_046",
+   "category": "사생활_침해_강요",
+   "raw_text": "오늘 저녁에 특별한 일 없지? 팀장님이 간만에 번개 회식 하자시는데 다들 참석해. 빠지는 사람 없지?",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_047",
+   "category": "사생활_침해_강요",
+   "raw_text": "김대리, 프사 보니까 주말에 여친이랑 좋은 데 갔나 보네? 어디야 거기? 연애하느라 요즘 일에 집중 못하는 거 아니지?",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_048",
+   "category": "사생활_침해_강요",
+   "raw_text": "김사원 이번 주 토요일에 조기축구 나오면 내가 점심 쏠게! 무조건 나와라. 막내가 안 나오면 분위기 안 산다.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_049",
+   "category": "사생활_침해_강요",
+   "raw_text": "내일 연차 사유가 뭐야? 요즘 바쁜 시기인데 꼭 가야 하는 개인 사정이야? 조율 안 되나?",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_050",
+   "category": "사생활_침해_강요",
+   "raw_text": "회사 공식 인스타에 이벤트 글 올라왔으니까, 팀원들 전부 본인 개인 계정으로 좋아요 누르고 댓글 하나씩 달아주세요. 나중에 확인할 겁니다.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_051",
+   "category": "책임_회피",
+   "raw_text": "난 분명히 그때 일정 타이트하다고 위험하다고 말했어. 김팀장이 강행한 거니까 이번 릴리즈 지연은 그쪽에서 책임지세요.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "타부서 동료",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_052",
+   "category": "책임_회피",
+   "raw_text": "이 건은 제 선에서 결정할 수 있는 문제가 아닌 것 같네요. 본부장님께 직접 다이렉트로 보고하시고 컨펌받으세요. 전 빠지겠습니다.",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "타부서 동료",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_053",
+   "category": "책임_회피",
+   "raw_text": "난 결재만 눌렀지, 실무 데이터 엑셀 취합은 김대리가 다 한 거잖아? 수치 틀린 건 김대리가 알아서 시말서 쓰든가 해.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "타부서 동료",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_054",
+   "category": "책임_회피",
+   "raw_text": "아, 그 메일 참조에 저 들어있었나요? 워낙 스팸이 많이 와서 제대로 못 봤네요. 중요한 거면 전화를 하셨어야죠.",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "타부서 동료",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_055",
+   "category": "책임_회피",
+   "raw_text": "그건 외주 업체에서 코딩을 잘못 짠 거니까 우리 잘못은 아니지. 업체 쪼아서 내일까지 고쳐 놓으라고 해.",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "타부서 동료",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_056",
+   "category": "비합리적_일정",
+   "raw_text": "이거 그냥 템플릿에 글자만 바꾸면 되는 거라 30분이면 하잖아? 빨리해서 넘겨줘. 1시간 뒤에 바로 쓸 거야.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_057",
+   "category": "비합리적_일정",
+   "raw_text": "일단 런칭 일정은 다음 주 월요일로 픽스해서 공지부터 띄우자. 주말에 밤새면 어떻게든 퀄리티 나오겠지 뭐.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_058",
+   "category": "비합리적_일정",
+   "raw_text": "방금 전해준 A, B, C 기획안 오늘 퇴근 전까지 초안 다 볼 수 있지? 분량 얼마 안 되니까 금방 할 거야.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_059",
+   "category": "비합리적_일정",
+   "raw_text": "오늘 오후 5시에 대표님 보고 들어가는 거 알지? 어제 말한 수정사항 아직 덜 됐던데, 4시까지 무조건 다 끝내.",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_060",
+   "category": "비합리적_일정",
+   "raw_text": "외주사에서 내일모레 디자인 넘어온다고? 그럼 우리 개발은 하루 만에 다 붙여서 금요일 오픈 맞추면 되겠네.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_061",
+   "category": "성과_가로채기",
+   "raw_text": "이번 신규 앱 런칭은 제가 리드해서 A부터 Z까지 세팅한 덕분에 성공한 겁니다. 김사원은 옆에서 엑셀 서포트만 좀 거들었고요.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_062",
+   "category": "성과_가로채기",
+   "raw_text": "그 아이디어 처음에 내가 지나가면서 툭 던진 거잖아. 네가 살만 좀 붙인 거고. 기획서 기안자에 내 이름 제일 앞으로 올려 놔.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_063",
+   "category": "성과_가로채기",
+   "raw_text": "임원진 보고는 무조건 내가 들어간다. 넌 아직 직급이 낮아서 질문 들어오면 방어 못해. 슬라이드만 깔끔하게 넘겨.",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_064",
+   "category": "성과_가로채기",
+   "raw_text": "대표님, 제가 어제 지시한 방향대로 김대리를 잘 코칭해서 이번 달 목표 KPI 150% 달성했습니다.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_065",
+   "category": "성과_가로채기",
+   "raw_text": "이거 연말 부서 평가 포트폴리오에 넣을 건데, 실무 담당자 이름은 굳이 안 써도 돼. 어차피 '팀'이 한 거니까 팀장인 내 이름만 들어가면 되지.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_066",
+   "category": "마이크로매니징",
+   "raw_text": "김대리, 지금 외근 나간 지 2시간 지났는데 어디쯤이야? 거래처 도착하면 도착했다고 톡하고, 미팅 끝나면 10분 단위로 요약해서 보고해 줘.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_067",
+   "category": "마이크로매니징",
+   "raw_text": "아까 보낸 메일 말이야, 첫 줄에 '안녕하세요' 말고 '수고 많으십니다'로 바꾸는 게 낫지 않을까? 첨부 파일 이름도 띄어쓰기 한 칸 더 하고. 다시 보내봐.",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_068",
+   "category": "마이크로매니징",
+   "raw_text": "지금 재택근무 중인데 메신저 상태가 5분 동안 '자리 비움'이네? 뭐 해? 집에서 딴짓하는 거 아니지? 웹캠 켜놓고 일해.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_069",
+   "category": "마이크로매니징",
+   "raw_text": "내가 엑셀 시트에 수식 다 걸어놨으니까 넌 값만 입력해. 폰트나 색상 절대 건드리지 말고. 내 방식대로만 해.",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_070",
+   "category": "마이크로매니징",
+   "raw_text": "그 기획안 어제 줬는데 아직도 초안 안 나왔어? 진행 상황 30분 단위로 스크린샷 찍어서 단톡방에 올려.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_071",
+   "category": "수동_공격",
+   "raw_text": "아~ 네네, 김대리님 방식이 다 맞겠죠~ 제가 뭐 알겠습니까. 그냥 하시고 싶은 대로 하세요. 결과는 본인이 책임지시고요.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "타부서 동료",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_072",
+   "category": "수동_공격",
+   "raw_text": "다들 바쁘신데 저 혼자 유난 떠는 것 같아서 죄송하네요. 제가 알아서 야근해서 다 쳐내겠습니다. 수고들 하세요.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "타부서 동료",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_073",
+   "category": "수동_공격",
+   "raw_text": "음, 이 자료 나쁘진 않은데... 작년에 박사원이 했던 거랑 비교해보면 좀... 아, 아닙니다. 고생하셨어요.",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "타부서 동료",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_074",
+   "category": "수동_공격",
+   "raw_text": "제가 몇 번이나 말씀드린 것 같은데 여전히 반영이 안 됐네요. 뭐, 바쁘셔서 제 메일은 안 읽으시는 건지 몰라도...",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "타부서 동료",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_075",
+   "category": "수동_공격",
+   "raw_text": "좋네요. 정말 훌륭합니다.",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "타부서 동료",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_076",
+   "category": "부적절한_언행",
+   "raw_text": "김사원은 옷을 왜 그렇게 입고 다녀? 우리 회사가 아무리 자율복장이라도 좀 여자답게 입고 다니지. 나니까 이런 말 해주는 거야.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_077",
+   "category": "부적절한_언행",
+   "raw_text": "이거 농담인데 왜 이렇게 다큐로 받아들여~ 분위기 삭막하게. 엠지(MZ)라 그런가 사회생활 참 팍팍하게 하네.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_078",
+   "category": "부적절한_언행",
+   "raw_text": "김대리, 결혼 언제 해? 애는 언제 낳고? 요즘 사람들은 이기적이라 애를 안 낳는다니까. 그러다 나중에 후회한다.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_079",
+   "category": "부적절한_언행",
+   "raw_text": "야! 너 머리가 어떻게 된 거 아니야? 초등학생도 이거보단 잘하겠다. 당장 다시 해와!",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_080",
+   "category": "부적절한_언행",
+   "raw_text": "회식 때 술 안 마신다고? 에이, 첫 잔은 무조건 원샷이지. 안 마시면 우리 팀에서 아웃이다~ 농담이야 농담~",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_081",
+   "category": "업무_배제_사일로",
+   "raw_text": "아, 김대리. 어제 저녁에 팀장님이랑 나랑 밥 먹으면서 이번 프로젝트 방향 틀기로 했어. 이미 결정된 거니까 넌 서포트만 해.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "타부서 동료",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_082",
+   "category": "업무_배제_사일로",
+   "raw_text": "그 정보는 보안상 타 부서에는 공유해 드릴 수 없습니다. 그냥 저희가 요약해 드리는 내용만 참고해서 진행하시죠.",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "타부서 동료",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_083",
+   "category": "업무_배제_사일로",
+   "raw_text": "이번 미팅에는 저만 들어갔다 오겠습니다. 김사원은 어차피 들어가도 할 말 없을 텐데 사무실에서 엑셀이나 마저 치시죠.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "타부서 동료",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_084",
+   "category": "업무_배제_사일로",
+   "raw_text": "이 단톡방은 우리 동기들끼리 편하게 얘기하는 방이니까 방금 말한 김대리 험담은 절대 밖으로 새 나가면 안 돼.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "타부서 동료",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_085",
+   "category": "업무_배제_사일로",
+   "raw_text": "왜 저한테 컨펌받으시죠? 이 프로젝트는 김과장님이 전담하시는 거 아닌가요? 전 관련 내용 공유받은 적 없습니다.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "타부서 동료",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_086",
+   "category": "비합리적_일정",
+   "raw_text": "오늘 오후 1시까지 시장 조사 보고서 완성해서 내 자리로 가져와.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_087",
+   "category": "비합리적_일정",
+   "raw_text": "내일 휴가 가신다고요? 그럼 오늘 밤새서라도 이달치 정산 다 끝내놓고 가셔야죠. 다른 사람한테 떠넘길 건 아니죠?",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_088",
+   "category": "클라이언트_갑질",
+   "raw_text": "저희 대표님이 워낙 안목이 높으셔서요. 이번 시안은 10개 정도 넉넉하게 준비해 주셔야 그중 하나 고르실 것 같네요.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "클라이언트",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_089",
+   "category": "클라이언트_갑질",
+   "raw_text": "이전 담당자분은 주말 밤낮없이 연락 잘 받아주셨는데... 담당자 바뀌고 나서 소통이 좀 늦네요. 저희가 돈 내고 이러는 거 맞나요?",
+   "expected_risk_level": "HIGH",
+   "counterpart": "클라이언트",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_090",
+   "category": "책임_회피",
+   "raw_text": "그건 제 담당이긴 한데, 작년에 제가 안 계실 때 다른 분이 세팅한 거라 전 잘 모릅니다. 그분한테 직접 물어보세요.",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "타부서 동료",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_091",
+   "category": "가스라이팅_무시",
+   "raw_text": "김대리, 너 진짜 운 좋은 줄 알아. 다른 회사 가면 너 정도 실력으로 이 정도 연봉 절대 못 받아. 감사한 마음으로 다녀.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_092",
+   "category": "모호한_지시_답정너",
+   "raw_text": "이번 카피라이팅은 뭔가... '심플하지만 꽉 찬 느낌'? 여백의 미가 있으면서도 전달할 건 다 전달되는 그런 걸로 가보자.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_093",
+   "category": "AI_슬롭_복붙",
+   "raw_text": "우리의 지속 가능한 밸류 프로포지션을 통해 고객 여정의 모든 터치포인트에서 심리스한 인게이지먼트를 이끌어내는 것이 핵심 과제입니다.",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "임원",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_094",
+   "category": "RnR_떠넘기기",
+   "raw_text": "어휴, 제가 컴퓨터를 잘 못 만져서... 김사원 컴맹 구제하는 셈 치고 PPT 레이아웃 좀 예쁘게 다듬어 주면 안 될까? 밥 살게!",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "타부서 동료",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_095",
+   "category": "주말_퇴근후_지시",
+   "raw_text": "이거 별거 아닌데 월요일 아침까지 대표님 책상에 올려놔야 하니까 주말에 좀 부탁해. 수고~",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_096",
+   "category": "성과_가로채기",
+   "raw_text": "네, 이번 분기 영업 이익 증대는 제가 낸 아이디어가 시장에 잘 먹힌 결과입니다. 팀원들도 잘 따라와 줬고요.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_097",
+   "category": "책임_회피",
+   "raw_text": "이거 법적 리스크 있다고 지난 회의 때 제가 분명히 뉘앙스 풍겼잖아요. 못 알아채시고 그냥 진행하신 팀장님 책임이 크죠.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "타부서 동료",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_098",
+   "category": "사생활_침해_강요",
+   "raw_text": "이번 워크샵 장기자랑은 막내들이 춤추는 거 국룰인 거 알지? 요즘 유행하는 릴스 같은 거 하나 폼나게 준비해 와.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_099",
+   "category": "가스라이팅_무시",
+   "raw_text": "너 이렇게 일하면 나중에 우리 업계에서 소문 안 좋게 난다? 여기 좁은 거 알지? 처신 잘해.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_100",
+   "category": "모호한_지시_답정너",
+   "raw_text": "뭔가 부족한데 뭐가 부족한지는 나도 딱 꼬집어 말을 못 하겠네. 일단 엎고 백지상태에서 다시 고민해보자.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_101",
+   "category": "수동_공격",
+   "raw_text": "팀장님, 저번 달에 올린 기안 아직 결재 안 해주셨는데... 뭐, 바쁘셔서 제 기안은 항상 후순위이신 거 이해합니다.",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "타부서 동료",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_102",
+   "category": "마이크로매니징",
+   "raw_text": "이 단어는 볼드 처리 말고 밑줄로 하고, 저 단어는 파란색 말고 빨간색으로. 아니, 그냥 내가 옆에 앉아서 부를 테니까 그대로 쳐.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_103",
+   "category": "부적절한_언행",
+   "raw_text": "김대리는 얼굴도 예쁘장한데 왜 여태 남친이 없어? 눈이 너무 높은 거 아니야? 내가 괜찮은 사람 하나 소개해 줘?",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_104",
+   "category": "업무_배제_사일로",
+   "raw_text": "그 건은 저희 부서 내부적으로 이미 결론 난 사안이라, 유관 부서이시더라도 회의록 공유는 어렵습니다.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "타부서 동료",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_105",
+   "category": "비합리적_일정",
+   "raw_text": "이번 주 내내 야근한 거 아는데, 주말에 잠깐 나와서 이거 테스트 한 번만 돌려주고 가면 안 될까? 딱 1시간이면 돼.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_106",
+   "category": "클라이언트_갑질",
+   "raw_text": "저희가 이번에 큰 맘 먹고 밀어주는 프로젝트인데, 이 정도 서비스는 알아서 챙겨주셔야 파트너십이 유지되지 않겠어요?",
+   "expected_risk_level": "HIGH",
+   "counterpart": "클라이언트",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_107",
+   "category": "RnR_떠넘기기",
+   "raw_text": "김프로님, 이번 신입사원 교육 자료 준비는 김프로님이 제일 짬이 안 되니까 도맡아서 좀 해주세요. 다 피가 되고 살이 됩니다.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "타부서 동료",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_108",
+   "category": "가스라이팅_무시",
+   "raw_text": "나 때는 이거 하루면 다 끝냈는데, 요즘 애들은 워라밸 챙기느라 하루 종일 걸리네. 열정이 없어 열정이.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_109",
+   "category": "AI_슬롭_복붙",
+   "raw_text": "미래 지향적인 에코시스템을 구축하기 위해 딥러닝 기반의 혁신적인 솔루션을 도입하여 시장 점유율을 퀀텀 점프시켜야 합니다.",
+   "expected_risk_level": "LOW",
+   "counterpart": "임원",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_110",
+   "category": "책임_회피",
+   "raw_text": "어? 그거 지난주에 제가 구두로 스쳐 지나가듯 말씀드렸잖아요. 기억 안 나세요? 전 분명히 전달했습니다.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "타부서 동료",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_111",
+   "category": "성과_가로채기",
+   "raw_text": "이번 수상은 모두 저의 뛰어난 리더십 덕분입니다. 팀원들은 제가 지시한 대로만 잘 따라줬을 뿐이죠.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_112",
+   "category": "마이크로매니징",
+   "raw_text": "내일 미팅 갈 때 입을 옷이랑 넥타이 색깔 지금 사진 찍어서 나한테 보내봐. 클라이언트한테 깔끔하게 보여야지.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": true
+  },
+  {
+   "id": "CASE_113",
+   "category": "사생활_침해_강요",
+   "raw_text": "아니, 회사 PC 바탕화면에 아이돌 사진은 좀 그렇지 않아? 탕비실에서 다른 팀이 보고 수군대더라. 얼른 기본 배경으로 바꿔.",
+   "expected_risk_level": "MEDIUM",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_114",
+   "category": "모호한_지시_답정너",
+   "raw_text": "이번 영상 편집, 좀 트렌디하게 숏폼 느낌 살려서 템포감 있게 딱딱 치고 나가는 느낌 뭔지 알지? 알아서 센스 있게 해와.",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  },
+  {
+   "id": "CASE_115",
+   "category": "주말_퇴근후_지시",
+   "raw_text": "다들 자요? 내일 일요일 시간 되는 사람 나와서 창고 정리 좀 같이 합시다. 자발적 봉사입니다~",
+   "expected_risk_level": "HIGH",
+   "counterpart": "직속상사",
+   "out_of_scope": false
+  }
+ ]
+}

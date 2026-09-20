@@ -254,14 +254,31 @@ export function buildMockAnalysis(maskedText, context = {}) {
   const ambiguityType = detectAmbiguity(maskedText, signals);
   const slop = aiSlopScore(maskedText, signals);
 
-  let powerAsymmetry = POWER_BY_COUNTERPART[ctx.counterpart] ?? 3;
-  // 정상 업무 신호가 뚜렷하면 거절 비용이 낮다고 본다.
-  // 여기서도 클리셰 유무는 보지 않는다 — 정중하게 쓴 정상 요청이 완곡어
-  // 때문에 거절 비용 4로 남으면, 같은 요청을 건조하게 쓴 경우(2)와 점수가
-  // 갈린다. 판단 근거는 urgency/ambiguity 판정값과 알맹이 유무다.
-  if (urgencyType === '없음' && ambiguityType === '없음' && (signals.hasNumbers || signals.hasDeadline)) {
-    powerAsymmetry = Math.min(powerAsymmetry, 2);
-  }
+  /*
+   * 거절 비용은 **관계의 속성이지 메시지의 속성이 아니다.**
+   *
+   * 예전에는 여기서 "정상 업무 신호가 뚜렷하면 거절 비용이 낮다"며 수치나
+   * 기한이 있으면 powerAsymmetry 를 2로 낮췄다. 의도는 정상 업무 메시지를
+   * Green 에 두는 것이었는데, 두 가지가 틀렸다.
+   *
+   * 첫째, **이미 GREEN_CAP 이 그 일을 하고 있다**(score.js). 긴급도·모호성·
+   * 알맹이가 모두 0이면 권력 비대칭만으로는 20점을 넘지 않는다. 권력을 깎는
+   * 것은 중복이었다.
+   *
+   * 둘째, 부작용이 컸다. 115건 QA 코퍼스에서 실측하니 이 한 줄이 최대
+   * 원인이었다.
+   *
+   *   "예산은 30% 깎았지만 퀄리티는 기존 레퍼런스랑 똑같이 맞춰주셔야 해요"
+   *      → "30%" 라는 숫자 하나로 클라이언트 거절 비용이 5에서 2로 떨어져
+   *        16점(정상)이 나왔다. 명백한 계약 조건 일방 변경인데도.
+   *
+   *   "외근 2시간 지났는데 어디쯤이야? 10분 단위로 보고해"
+   *      → 같은 이유로 16점.
+   *
+   * 상사가 구체적으로 지시했다고 해서 그 지시를 거절하는 비용이 낮아지지
+   * 않는다. 관계가 정한 값을 그대로 쓴다.
+   */
+  const powerAsymmetry = POWER_BY_COUNTERPART[ctx.counterpart] ?? 3;
 
   return {
     subtext: buildSubtext(ctx, urgencyType, ambiguityType, slop, signals),
