@@ -1726,7 +1726,9 @@ const TO_TOP_AT = () => window.innerHeight * 0.9;
  */
 function wouldCover(floatBtn) {
   const t = floatBtn.getBoundingClientRect();
-  return [el.run, el.receiptOpen].some((node) => {
+  // 푸터의 두 버튼도 가림 대상이다 — 페이지 끝까지 내려가면 떠 있는 버튼이
+  // 정확히 그 자리에 앉는다(실측으로 '앱으로 설치'가 눌리지 않았다).
+  return [el.run, el.receiptOpen, el.feedbackOpen, el.installOpen].some((node) => {
     if (!node || !node.offsetParent) return false;
     const r = node.getBoundingClientRect();
     return r.bottom > t.top && r.top < t.bottom && r.right > t.left && r.left < t.right;
@@ -1828,6 +1830,61 @@ const isIosSafari =
   /iPad|iPhone|iPod/.test(navigator.userAgent) &&
   !/CriOS|FxiOS|EdgiOS/.test(navigator.userAgent);
 
+/**
+ * 브라우저마다 설치 경로가 다르다 — 그리고 아예 불가능한 곳도 있다.
+ *
+ * `beforeinstallprompt` 는 크로미움 계열 일부에만 있는 비표준 이벤트다. 그
+ * 이벤트가 오지 않는 브라우저에서 "설치" 버튼을 띄워 두면 **눌러도 아무 일도
+ * 일어나지 않는 버튼**이 된다. 그래서 이벤트를 받지 못한 경우에는 버튼 대신
+ * 그 브라우저의 실제 경로를 문장으로 알려 준다.
+ *
+ * 한국에서 특히 중요한 게 **인앱 브라우저**다. 카카오톡으로 링크를 공유하면
+ * 대부분 카카오 인앱 브라우저에서 열리는데, 여기서는 설치가 아예 불가능하다.
+ * 이때 필요한 안내는 설치 방법이 아니라 "기본 브라우저로 열어라"다.
+ *
+ * 삼성 인터넷은 크로미움 기반이라 설치 자체는 되지만, 버전·설정에 따라
+ * beforeinstallprompt 가 오지 않는다는 제보가 있었다. 그때도 메뉴 경로는 살아
+ * 있으므로 그쪽을 안내한다.
+ */
+function installEnv(ua = navigator.userAgent) {
+  // 인앱 브라우저를 먼저 본다 — UA 에 Chrome/Safari 표기가 함께 들어 있어서
+  // 아래 브라우저 판정보다 뒤에 두면 영영 걸리지 않는다.
+  if (/KAKAOTALK/i.test(ua)) return { kind: 'inapp', label: '카카오톡' };
+  if (/NAVER\(inapp|NAVER /i.test(ua)) return { kind: 'inapp', label: '네이버 앱' };
+  if (/DaumApps/i.test(ua)) return { kind: 'inapp', label: '다음 앱' };
+  if (/Instagram|FBAN|FBAV|Line\//i.test(ua)) return { kind: 'inapp', label: '인앱 브라우저' };
+
+  if (/SamsungBrowser/i.test(ua)) return { kind: 'samsung', label: '삼성 인터넷' };
+  if (/FxiOS/i.test(ua)) return { kind: 'ios-other', label: '파이어폭스' };
+  if (/CriOS|EdgiOS/i.test(ua)) return { kind: 'ios-other', label: '크롬' };
+  if (/iPad|iPhone|iPod/.test(ua)) return { kind: 'ios-safari', label: '사파리' };
+  if (/Firefox/i.test(ua)) return { kind: 'firefox', label: '파이어폭스' };
+  if (/Whale/i.test(ua)) return { kind: 'chromium', label: '웨일' };
+  if (/Edg/i.test(ua)) return { kind: 'chromium', label: '엣지' };
+  if (/Chrome/i.test(ua)) return { kind: 'chromium', label: '크롬' };
+  return { kind: 'unknown', label: '이 브라우저' };
+}
+
+/** 설치 프롬프트를 띄울 수 없을 때 대신 보여줄 경로 안내. */
+function installHowTo(env) {
+  switch (env.kind) {
+    case 'inapp':
+      return `${env.label} 안에서는 앱 설치를 지원하지 않습니다. 오른쪽 위 메뉴에서 "다른 브라우저로 열기"를 눌러 크롬이나 삼성 인터넷에서 열어 주세요.`;
+    case 'ios-safari':
+      return '아래 공유 버튼을 누르고 "홈 화면에 추가"를 선택하세요.';
+    case 'ios-other':
+      return `아이폰에서는 ${env.label}이 아니라 사파리에서만 홈 화면에 추가할 수 있습니다. 사파리로 열어 공유 버튼을 눌러 주세요.`;
+    case 'samsung':
+      return '오른쪽 아래 메뉴를 누르고 "현재 페이지 추가" → "홈 화면"을 선택하세요.';
+    case 'firefox':
+      return '오른쪽 위 메뉴(⋮)를 누르고 "홈 화면에 추가"를 선택하세요.';
+    case 'chromium':
+      return '메뉴(⋮)를 누르고 "앱 설치" 또는 "홈 화면에 추가"를 선택하세요.';
+    default:
+      return '브라우저 메뉴에서 "홈 화면에 추가"를 찾아 선택하세요.';
+  }
+}
+
 let installPrompt = null;
 
 /**
@@ -1842,23 +1899,31 @@ let installPrompt = null;
  */
 let pendingInstall = null;
 
-function showInstallBanner({ ios, force = false }) {
+function showInstallBanner({ force = false } = {}) {
   // force 는 푸터에서 직접 부른 경우다 — 이미 닫았더라도 열어 준다.
   if (!force && (installDismissed() || flag(INSTALL_DONE_KEY))) return;
   if (isInstalled()) return;
   if (!el.intro.hidden) {
-    pendingInstall = { ios };
+    pendingInstall = { force };
     return;
   }
   pendingInstall = null;
   el.installBanner.classList.remove('is-done');
-  // iOS 는 누를 버튼이 없다. 버튼을 남겨 두면 눌러도 아무 일이 없는 버튼이 된다.
-  el.installAccept.hidden = ios;
-  // 데스크톱에는 홈 화면이 없다. 거기서 "홈 화면에 두고 쓰세요"는 틀린 약속이다.
-  el.installBannerTitle.textContent = isMobile ? '앱처럼 홈 화면에 두고 쓰세요' : '앱처럼 창으로 띄워 두고 쓰세요';
-  el.installBannerSub.textContent = ios
-    ? '아래 공유 버튼을 누르고 "홈 화면에 추가"를 선택하세요.'
-    : '설치해도 용량을 거의 쓰지 않습니다.';
+
+  const env = installEnv();
+  // 프롬프트를 실제로 띄울 수 있을 때만 버튼을 남긴다. 누를 수 없는 버튼은
+  // 없는 것만 못하다 — 눌러 보고 아무 일도 안 일어나면 그게 고장으로 읽힌다.
+  const canPrompt = installPrompt !== null;
+  el.installAccept.hidden = !canPrompt;
+
+  if (env.kind === 'inapp') {
+    // 설치가 불가능한 곳이라 "설치하세요"로 시작하면 안 된다.
+    el.installBannerTitle.textContent = '브라우저에서 열면 앱으로 설치할 수 있어요';
+  } else {
+    // 데스크톱에는 홈 화면이 없다. 거기서 "홈 화면에 두고 쓰세요"는 틀린 약속이다.
+    el.installBannerTitle.textContent = isMobile ? '앱처럼 홈 화면에 두고 쓰세요' : '앱처럼 창으로 띄워 두고 쓰세요';
+  }
+  el.installBannerSub.textContent = canPrompt ? '설치해도 용량을 거의 쓰지 않습니다.' : installHowTo(env);
   el.installBanner.hidden = false;
 }
 
@@ -1879,7 +1944,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
   // 이 이벤트가 왔다는 건 지금 설치할 수 있다는 뜻이다 = 설치돼 있지 않다.
   setFlag(INSTALL_DONE_KEY, false);
   el.installOpen.hidden = false; // 배너를 닫아도 푸터로 다시 들어올 수 있게
-  showInstallBanner({ ios: false });
+  showInstallBanner();
 });
 
 /**
@@ -1896,7 +1961,10 @@ window.addEventListener('beforeinstallprompt', (e) => {
  *
  * 위치를 바꿔 줄 수는 없으니, 찾는 곳이라도 정확히 말해 준다.
  */
-const isMobile = navigator.userAgentData?.mobile ?? /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+// 두 신호를 OR 로 본다. userAgentData 는 크로미움에만 있고(iOS 사파리엔 없다),
+// ?? 로 묶으면 userAgentData 가 있는 순간 UA 문자열은 영영 보지 않는다.
+const isMobile =
+  navigator.userAgentData?.mobile === true || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 function showInstalledNote() {
   el.installBanner.classList.add('is-done');
@@ -1940,15 +2008,23 @@ el.installOpen.addEventListener('click', () => {
     return;
   }
   setFlag(INSTALL_DISMISSED_KEY, false);
-  showInstallBanner({ ios: isIosSafari, force: true });
+  showInstallBanner({ force: true });
   el.installBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 });
 
-// iOS 는 이벤트가 오지 않으므로 직접 판단해서 띄운다.
-if (isIosSafari) {
-  el.installOpen.hidden = false;
-  showInstallBanner({ ios: true });
-}
+/**
+ * beforeinstallprompt 가 오지 않는 환경.
+ *
+ * iOS 사파리·파이어폭스·삼성 인터넷(일부 버전)·인앱 브라우저가 여기 해당한다.
+ * 푸터 입구는 **항상** 열어 둔다 — 이벤트가 없다고 설치가 불가능한 건 아니고,
+ * 불가능한 인앱 브라우저에서도 "기본 브라우저로 여세요"라는 할 말이 있다.
+ *
+ * 자동 배너는 iOS 사파리에서만 띄운다. 나머지는 브라우저 자체 UI 가 있거나
+ * (크롬·엣지) 안내가 배너를 띄울 만큼 급하지 않아서, 필요한 사람이 푸터에서
+ * 열게 둔다.
+ */
+el.installOpen.hidden = false;
+if (isIosSafari) showInstallBanner();
 
 /**
  * 서비스 워커 등록.

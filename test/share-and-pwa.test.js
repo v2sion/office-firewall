@@ -129,3 +129,47 @@ test('배너를 닫아도 설치로 돌아올 입구가 남는다', () => {
   const body = handler.slice(0, handler.indexOf('});'));
   assert.match(body, /force:\s*true/, '닫힘 기록을 무시하고 열지 않는다');
 });
+
+/**
+ * 설치 경로는 브라우저마다 다르고, 아예 불가능한 곳도 있다.
+ *
+ * `beforeinstallprompt` 는 크로미움 일부에만 있는 비표준 이벤트다. 그 이벤트가
+ * 없는 브라우저에서 "설치" 버튼을 띄워 두면 눌러도 아무 일도 일어나지 않는
+ * 버튼이 되고, 사용자는 그걸 고장으로 읽는다(삼성 인터넷에서 실제로 제보됐다).
+ *
+ * 한국에서 특히 중요한 건 인앱 브라우저다. 카카오톡으로 공유한 링크는 대부분
+ * 카카오 인앱에서 열리는데 거기서는 설치가 불가능하다 — 필요한 안내는 설치
+ * 방법이 아니라 "기본 브라우저로 열어라"다.
+ */
+test('브라우저를 UA 로 가려낸다 (인앱이 크로미움 판정보다 먼저다)', async () => {
+  // installEnv 는 main.js(DOM 모듈) 안에 있어 소스에서 규칙만 확인한다.
+  const env = mainJs.slice(mainJs.indexOf('function installEnv'), mainJs.indexOf('function installHowTo'));
+  const inappAt = env.indexOf('KAKAOTALK');
+  const chromeAt = env.indexOf("/Chrome/i.test(ua)");
+  assert.ok(inappAt >= 0 && chromeAt >= 0, 'installEnv 를 찾지 못했다');
+  assert.ok(inappAt < chromeAt, '인앱 판정이 크로미움 판정보다 뒤에 있다 (UA 에 둘 다 들어 있어 영영 안 걸린다)');
+  for (const ua of ['SamsungBrowser', 'CriOS', 'Firefox', 'Whale', 'Edg']) {
+    assert.ok(env.includes(ua), `${ua} 판정이 없다`);
+  }
+});
+
+test('프롬프트를 띄울 수 없으면 버튼 대신 경로 안내를 보여준다', () => {
+  const fn = mainJs.slice(mainJs.indexOf('function showInstallBanner'));
+  const body = fn.slice(0, fn.indexOf('\n}'));
+  assert.match(body, /installPrompt !== null/, '프롬프트 가용 여부를 보지 않는다');
+  assert.match(body, /installAccept\.hidden = !canPrompt/, '못 누르는 버튼을 숨기지 않는다');
+  assert.match(body, /installHowTo\(env\)/, '경로 안내로 갈아끼우지 않는다');
+});
+
+test('설치 불가 환경에도 안내할 말이 있으므로 푸터 입구는 항상 연다', () => {
+  assert.match(mainJs, /el\.installOpen\.hidden = false;\nif \(isIosSafari\)/, '푸터 입구를 조건부로 열고 있다');
+});
+
+test('홈 화면 라벨이 잘리지 않을 길이다', () => {
+  // 안드로이드·iOS 모두 10~12자 안팎에서 자른다. "방화벽"만으로는 보안 앱으로
+  // 읽히고, "OFFICE FIREWALL"(15자)은 잘려서 "OFFICE FIRE…" 가 된다.
+  assert.ok(manifest.short_name.length <= 12, `short_name 이 ${manifest.short_name.length}자다`);
+  assert.match(manifest.short_name, /방화벽/);
+  const appleTitle = (html.match(/name="apple-mobile-web-app-title" content="([^"]+)"/) || [])[1];
+  assert.equal(appleTitle, manifest.short_name, 'iOS 와 안드로이드 라벨이 다르다');
+});

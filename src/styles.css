@@ -831,11 +831,21 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 /* ── 푸터 ─────────────────────────────── */
 .footer {
   display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;
-  padding: 20px; font-size: 12.5px; color: var(--text-faint);
+  padding: 20px 20px 28px; font-size: 12.5px; color: var(--text-faint);
   padding-inline: max(var(--page-pad), calc((100% - var(--page-max)) / 2 + var(--page-pad)));
   border-top: 1px solid var(--line); margin-top: 10px;
 }
 .footer .dot { opacity: .5; }
+/* 폭 100% 짜리 빈 칸 하나로 줄을 끊는다 — flex-wrap 이 여기서 반드시 넘어간다. */
+.footer-break { flex-basis: 100%; height: 0; }
+.footer-actions { display: inline-flex; align-items: center; gap: 8px; }
+.footer-info { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
+/* 좁은 화면에서는 두 문구가 각자 줄을 갖는다. 한 줄로 흘리면 사이의 구분점이
+   줄 끝에 홀로 남아 오타처럼 보인다(실측). */
+@media (max-width: 480px) {
+  .footer-info { flex-direction: column; gap: 3px; }
+  .footer-info .dot { display: none; }
+}
 
 .is-loading .run { pointer-events: none; }
 
@@ -1391,6 +1401,8 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 
 /* 두 버튼을 한 줄로 쌓는다. 맨 위로가 아래, 의견 보내기가 그 위다 —
    자주 쓰는 쪽(맨 위로)이 엄지에 가깝다. */
+/* 푸터 버튼과 겹치는 구간에서는 숨는다(wouldCover). 그래도 완전히 붙어
+   있으면 눌러야 할 것이 애매해지므로, 푸터 마지막 줄 아래에 숨 쉴 자리를 둔다. */
 .to-top { bottom: 20px; }
 .float-feedback { bottom: 72px; color: var(--accent); border-color: var(--accent-dim); }
 .float-feedback:hover { background: color-mix(in srgb, var(--accent) 8%, var(--bg-panel)); }
@@ -1594,4 +1606,79 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   .install-banner { padding: 9px 10px; gap: 9px; }
   .install-banner-title { font-size: 12.5px; }
   .install-banner-sub { font-size: 11.5px; }
+}
+
+
+/* ── 모바일 줄바꿈 분기 ─────────────────────────────
+
+   본문 여러 곳이 문자열 안의 \n(pre-line)과 <br> 로 줄을 강제한다. 그 위치는
+   전부 **데스크톱 폭에서 문장당 한 줄**이 되도록 고른 값이다.
+
+   좁은 화면에서는 같은 문장이 이미 2~3줄로 접히기 때문에, 강제 개행이 그 위에
+   반쪽짜리 줄을 하나 더 만든다. 실측하면 최대 폭의 19%밖에 안 되는 중간 줄이
+   생긴다 — 문단이 들쭉날쭉해 보이는 원인이 이것이다.
+
+   그래서 좁은 화면에서는 강제 개행을 풀고 그냥 흐르게 둔다. 문장은 마침표로
+   이미 끝나 있어서 뜻이 흐려지지 않고, 줄 끝이 가지런해진다. 데스크톱은
+   원래대로 둔다 — 거기서는 그 개행이 실제로 문장을 갈라 주고 있다.
+
+   .busy-note-body 는 예외로 남긴다. 세 줄이 "지금 무슨 일인지 / 무엇이 빠졌는지 /
+   언제 다시 오면 되는지"로 성격이 달라서, 한 문단으로 흘리면 마지막의 재시도
+   시각이 문장 속에 묻힌다. */
+@media (max-width: 480px) {
+  .choice-note,
+  .care-body,
+  .replies-mode-note,
+  .restored-note-body {
+    white-space: normal;
+  }
+  /* index.html 의 <br> 중 데스크톱 폭을 전제한 것들 (.br-wide) */
+  br.br-wide { display: none; }
+}
+
+/* 아주 좁은 화면(360px 안팎)에서는 라벨과 본문을 한 줄에 두기에 폭이 모자라
+   본문이 한 글자만 남기고 접힌다. 라벨을 본문 위로 올린다. */
+@media (max-width: 380px) {
+  .care-link { grid-template-columns: 1fr; gap: 3px; }
+  .care-tag { grid-row: auto; justify-self: start; }
+}
+
+
+/* ── 고아 줄 방지 ─────────────────────────────
+
+   강제 개행을 풀고 나니 남은 건 문단 마지막 줄이 한두 글자만 남는 경우였다
+   (실측 최대 폭의 8~13%). 흐르는 글에서 자연히 생기는 현상이라 개행 위치를
+   손으로 고칠 수 있는 종류가 아니다.
+
+   text-wrap: pretty 가 정확히 이 문제를 위해 있는 속성이다. 브라우저가 줄
+   나누기를 한 번 더 계산해 마지막 줄에 한 단어만 남지 않게 한다. 지원하지
+   않는 브라우저는 이 선언을 무시할 뿐이라 회귀가 없다.
+
+   제목에는 balance 를 쓴다 — 두세 줄짜리 짧은 글은 줄 길이를 고르게 맞추는
+   쪽이 낫다. */
+.intro-body,
+.field-hint,
+.standby-copy,
+.standby-sub,
+.feedback-lead,
+.history-note,
+.care-body,
+.care-link-sub,
+.choice-note,
+.replies-mode-note,
+.restored-note-body,
+.busy-note-body,
+.hiw-panel p,
+.hiw-tips span,
+.reply-text,
+.subtext {
+  text-wrap: pretty;
+}
+
+.intro-headline,
+.section-title,
+.hiw-panel h3,
+.care-title,
+.install-banner-title {
+  text-wrap: balance;
 }
