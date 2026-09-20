@@ -485,7 +485,9 @@ function renderChips() {
  */
 function updatePlaceholders() {
   const who = apiValue(state.counterpart);
-  el.hiddenContext.placeholder = HIDDEN_CONTEXT_PLACEHOLDER[who] || '예) 이 건을 거절하기 어려운 사정이 따로 있다면 적어주세요';
+  // 관계별 값 8개가 전부 메모 조각("…있음")이라, 기본값만 문장이면 "예)" 가
+  // 약속한 예시의 결이 깨진다. 같은 형태로 맞춘다.
+  el.hiddenContext.placeholder = HIDDEN_CONTEXT_PLACEHOLDER[who] || '예) 이번 주 안에 마감인 다른 일이 이미 있음';
   if (activePreset) return;
   // 관계 미선택이면 빈 칸이 아니라 "고르면 예시가 나온다"를 알린다.
   el.message.placeholder = MESSAGE_PLACEHOLDER[who] || MESSAGE_PLACEHOLDER_EMPTY;
@@ -1818,6 +1820,9 @@ function openReceiptModal() {
   const data = buildReceiptData(xray, risk, context);
   const count = bumpMonthlyReceiptCount();
 
+  // 등급색을 결과 화면과 맞춘다. 이게 없으면 빨간 92점을 보고 발급한 카드가
+  // 파란 92점으로 나와, 같은 판정이 두 화면에서 다른 색으로 보인다.
+  el.receiptCard.className = `receipt-card level-${risk.level}`;
   el.rcJob.textContent = data.job;
   el.rcVillain.textContent = data.villain;
   el.rcScore.textContent = String(data.score);

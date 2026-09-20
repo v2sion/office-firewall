@@ -1033,9 +1033,12 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   box-shadow: 0 18px 40px rgba(16, 24, 40, 0.22);
   overflow: hidden;
 }
-.receipt-card-inner { padding: 26px 24px 20px; font-family: var(--font); }
+/* 공유 이미지는 **가운데로 읽힌다.**
+   대화방에 올라간 카드는 문서가 아니라 포스터에 가깝다. 왼쪽 정렬이면
+   후킹 한 줄이 두 줄로 갈릴 때 오른쪽이 크게 비어 균형이 무너진다. */
+.receipt-card-inner { padding: 26px 24px 20px; font-family: var(--font); text-align: center; }
 
-.receipt-top { display: flex; align-items: center; gap: 8px; }
+.receipt-top { display: flex; align-items: center; justify-content: center; gap: 8px; }
 .receipt-logo { width: 22px; height: 22px; flex-shrink: 0; }
 .receipt-wordmark {
   font-family: var(--mono); font-size: 12px; font-weight: 700;
@@ -1050,7 +1053,7 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 }
 
 .receipt-gauge { margin-top: 22px; }
-.receipt-gauge-num { display: flex; align-items: baseline; gap: 6px; }
+.receipt-gauge-num { display: flex; align-items: baseline; justify-content: center; gap: 6px; }
 .receipt-gauge-num b {
   font-family: var(--mono); font-size: 46px; font-weight: 700;
   line-height: 1; letter-spacing: -.03em; color: var(--accent);
@@ -1064,7 +1067,7 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 .receipt-gauge-label { margin-top: 8px; font-size: 12.5px; font-weight: 600; color: var(--text-faint); }
 .receipt-gauge-label span { color: var(--text); }
 
-.receipt-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 18px; }
+.receipt-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 18px; }
 .receipt-tag {
   padding: 6px 11px; border-radius: 999px;
   border: 1px solid var(--line); background: var(--bg-soft);
@@ -1085,6 +1088,23 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   margin: 8px 0 0; font-family: var(--mono);
   font-size: 11px; letter-spacing: .08em; color: var(--text-faint);
 }
+
+/* 등급색 — **결과 화면과 같은 값을 쓴다.**
+   예전에는 영수증의 숫자와 막대가 등급과 무관하게 언제나 브랜드 파랑이었다.
+   결과 화면에서 빨간 92점을 보고 발급했는데 카드에서는 파란 92점이 나와,
+   같은 판정이 두 화면에서 다른 색으로 보였다. 공유 카드는 이 제품을 처음
+   보는 사람이 만나는 화면이라 그 불일치가 그대로 인상이 된다.
+   (.score-bar-fill / .score-value 의 등급색과 같은 규칙) */
+.receipt-card.level-green  .receipt-gauge-num b, .receipt-card.level-green  .receipt-gauge-label span { color: var(--green); }
+.receipt-card.level-lime   .receipt-gauge-num b, .receipt-card.level-lime   .receipt-gauge-label span { color: var(--lime); }
+.receipt-card.level-amber  .receipt-gauge-num b, .receipt-card.level-amber  .receipt-gauge-label span { color: var(--amber); }
+.receipt-card.level-orange .receipt-gauge-num b, .receipt-card.level-orange .receipt-gauge-label span { color: var(--orange); }
+.receipt-card.level-red    .receipt-gauge-num b, .receipt-card.level-red    .receipt-gauge-label span { color: var(--red); }
+.receipt-card.level-green  .receipt-gauge-bar i { background: var(--green); }
+.receipt-card.level-lime   .receipt-gauge-bar i { background: var(--lime); }
+.receipt-card.level-amber  .receipt-gauge-bar i { background: var(--amber); }
+.receipt-card.level-orange .receipt-gauge-bar i { background: var(--orange); }
+.receipt-card.level-red    .receipt-gauge-bar i { background: var(--red); }
 
 @media (max-width: 460px) {
   .receipt-card-inner { padding: 22px 18px 18px; }
