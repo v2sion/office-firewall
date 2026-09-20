@@ -3,7 +3,7 @@
  * 테스트에서 이 함수를 직접 호출해 골든 5종을 검증한다.
  */
 import { detectRawPII } from '../../src/lib/mask.js';
-import { buildResult } from '../../src/lib/normalize.js';
+import { buildResult, isUsableReply } from '../../src/lib/normalize.js';
 import { SYSTEM_PROMPT, buildUserMessage } from './prompt.js';
 import { buildMockAnalysis } from '../../src/lib/mock.js';
 
@@ -221,6 +221,20 @@ export async function runAnalyze(input, env = process.env, deps = {}) {
       cache_read_input_tokens: 0,
     };
     model = result.model;
+
+    // 뼈대만 남은 답장은 규칙 엔진 것으로 갈아 끼운다.
+    //
+    // 모델이 지시문을 글자 그대로 따라가다 "1. 산출물 범위는? 2. 확인 포인트는?
+    // … 하겠습니다." 같은 문장을 내놓는 일이 있었다. 형식은 맞지만 그대로 보낼
+    // 수 없고, 그런 답장은 없는 것만 못하다. 셋 중 하나만 망가져도 그 자리만
+    // 바꾸므로 멀쩡한 답장은 그대로 남는다.
+    const fallback = buildMockAnalysis(maskedText, context).replies;
+    if (Array.isArray(aiOut?.replies)) {
+      aiOut.replies = aiOut.replies.map((r, i) =>
+        isUsableReply(r?.text) ? r : { label: r?.label ?? fallback[i]?.label, text: fallback[i]?.text ?? '' });
+    } else {
+      aiOut = { ...aiOut, replies: fallback };
+    }
   }
 
   return buildResult(aiOut, maskedText, {

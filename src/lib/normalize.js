@@ -36,7 +36,9 @@ export function normalizeXray(aiOut, maskedText) {
   const ambiguityType = rawAmbiguity === '기한 불명' && signals.hasDeadline ? '없음' : rawAmbiguity;
 
   return {
-    subtext: typeof ai.subtext === 'string' && ai.subtext.trim() ? ai.subtext.trim() : '분석 결과를 요약하지 못했습니다.',
+    subtext: typeof ai.subtext === 'string' && ai.subtext.trim()
+      ? scrubSchemaLeak(ai.subtext)
+      : '분석 결과를 요약하지 못했습니다.',
     powerAsymmetry: Math.max(1, Math.min(5, Math.round(Number(ai.powerAsymmetry) || 3))),
     urgencyType: pickEnum(ai.urgencyType, URGENCY_VALUES, '없음'),
     ambiguityType,
@@ -56,6 +58,48 @@ export function normalizeXray(aiOut, maskedText) {
   };
 }
 
+/**
+ * 모델이 **스키마의 필드 이름을 문장 속에 흘리는** 경우를 막는다.
+ *
+ * 실제로 이런 문장이 화면에 나왔다:
+ *   "maskedText는 담당자에게 맡기는 내용이지만, 사용자는 수용 여부를…"
+ *
+ * 우리가 JSON 키로 쓰는 말(maskedText·hiddenContext·subtext…)은 사용자에게
+ * 아무 뜻도 없는 내부 용어다. 모델이 지시문을 읽다가 그 단어를 본문으로
+ * 끌어오면 결과가 통째로 고장 난 것처럼 보인다.
+ *
+ * 프롬프트로도 막지만(SYSTEM_PROMPT), 프롬프트는 부탁이고 이건 보장이다.
+ */
+const SCHEMA_WORDS = /\b(maskedText|hiddenContext|subtext|powerAsymmetry|urgencyType|ambiguityType|aiSlopScore|clicheHits|hasNumbers|hasDeadline|avoidsDecision|riskScore|replies)\b/g;
+
+export function scrubSchemaLeak(text) {
+  return String(text ?? '')
+    // "maskedText는" 처럼 조사가 붙어 나오므로 단어만 자연스러운 말로 바꾼다.
+    .replace(SCHEMA_WORDS, '받은 메시지')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+/**
+ * 보낼 수 있는 답장인가.
+ *
+ * 모델이 지시문을 글자 그대로 따라가다 뼈대만 남기는 일이 있었다.
+ *   "1. 산출물 범위는? 2. 확인 포인트는? 3. 마감 시각은? 4. 담당자는? 하겠습니다."
+ *   "이미 잡힌 일정 때문에 이 요청이 부담스럽습니다. 요구합니다."
+ *
+ * 둘 다 형식은 맞지만 **그대로 보낼 수 없는 문장**이다. 이런 답장은 없는 것만
+ * 못하므로, 걸러내고 규칙 엔진이 만든 답장으로 대신한다.
+ */
+export function isUsableReply(text) {
+  const t = String(text ?? '').trim();
+  if (t.length < 40) return false; // 한국어 업무 답장이 40자 미만이면 뼈대다
+  // 지시문의 동사를 그대로 옮겨 적은 흔적
+  if (/(요구합니다|통보합니다|결론을 냅니다)\.?$/.test(t)) return false;
+  // 항목만 나열하고 문장으로 맺지 못한 경우
+  if (/\?\s*(하겠습니다|입니다)\.?$/.test(t)) return false;
+  return true;
+}
+
 export function normalizeReplies(aiReplies) {
   const list = Array.isArray(aiReplies) ? aiReplies : [];
   return REPLY_LABELS.map((label, i) => {
@@ -63,7 +107,7 @@ export function normalizeReplies(aiReplies) {
     return {
       label,
       text: found && typeof found.text === 'string' && found.text.trim()
-        ? found.text.trim()
+        ? scrubSchemaLeak(found.text)
         : '(답장 생성에 실패했습니다. 다시 시도해 주세요)',
     };
   });

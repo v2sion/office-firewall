@@ -227,7 +227,7 @@
           <div class="selector" data-field="job">
             <span class="selector-label">내 직군</span>
             <div class="chips" role="radiogroup" aria-label="내 직군"></div>
-            <p class="field-hint">가장 가까운 쪽으로 고르시면 됩니다. <br class="br-wide" />경영지원은 HR·재무·총무, 전문직은 의료·교육·법무·연구를 포함합니다.</p>
+            <p class="field-hint">가장 가까운 쪽으로 고르시면 됩니다. 경영지원은 HR·재무·총무, 전문직은 의료·교육·법무·연구를 포함합니다.</p>
           </div>
           <div class="selector" data-field="level">
             <span class="selector-label">내 연차</span>
@@ -273,7 +273,7 @@
             </span>
           </div>
           <textarea id="message" maxlength="800" rows="7" placeholder="상대방이 보낸 내용을 그대로 붙여넣으세요."></textarea>
-          <p class="field-hint"><b>상대방이 보낸 부분만</b> 넣어주세요. <br class="br-wide" />여러 번 대화가 오간 경우 내가 답장한 내용까지 같이 넣으면 진단이 부정확해질 수 있어요.</p>
+          <p class="field-hint"><b>상대방이 보낸 부분만</b> 넣어주세요. 여러 번 대화가 오간 경우 내가 답장한 내용까지 같이 넣으면 진단이 부정확해질 수 있어요.</p>
           <p class="thread-warning" id="thread-warning" hidden>
             <b>여러 화자 감지</b><br />상대방이 보낸 메시지만 남기면 더 정확하게 분석됩니다.
           </p>
@@ -333,8 +333,8 @@
       <div class="standby" id="standby">
         <svg class="standby-icon" viewBox="0 0 32 32" width="40" height="40" aria-hidden="true"><path d="M16 5l9 3.2v7.1c0 5.6-3.7 10.3-9 11.7-5.3-1.4-9-6.1-9-11.7V8.2z" fill="currentColor"/></svg>
         <p class="standby-title" id="standby-title">방화벽 대기 중</p>
-        <p class="standby-copy">받은 메시지를 붙여넣으면<br /><b>위험도</b>와 <b>바로 보낼 수 있는 답장 3개</b>를 만들어 드려요.</p>
-        <p class="standby-sub">점수는 AI가 아니라 규칙이 계산하고,<br />판정 근거는 그대로 펼쳐 보여드려요.</p>
+        <p class="standby-copy">받은 메시지를 붙여넣으면 <b>위험도</b>와 <b>바로 보낼 수 있는 답장 3개</b>를 만들어 드려요.</p>
+        <p class="standby-sub">점수는 AI가 아니라 규칙이 계산하고, 판정 근거는 그대로 펼쳐 보여드려요.</p>
         <!--
           진입 스토리 3장 끝에 있던 문장이다. 거기서는 바로 아래 '다음' 버튼과
           겹쳐서 뺐는데, 이 자리에서는 겹치지 않는다 — 왼쪽에서 메시지를 넣고
@@ -456,8 +456,25 @@
               <span class="care-link-sub">종사자 300인 이하 중소기업 재직자 대상</span>
             </a>
 
+          </details>
+
+          <!--
+            이직은 상담과 성격이 다르다.
+
+            "도움받을 수 있는 곳"에 섞여 있을 때는 상담 창구 네 개 밑의 다섯
+            번째 줄이었다. 힘들 때 거는 전화와 "지금 갈 수 있는 자리가 있나"는
+            묻는 시점도, 마음가짐도 다르다. 접힌 상담 블록과 나란히 두되 따로
+            세운다.
+
+            영수증 카드에서 이미 내 연차로 맞춘 공고를 보여주고 있었는데, 결과
+            화면에서는 그 자리가 없었다. 영수증을 발급하지 않은 사람은 볼 수가
+            없던 셈이다.
+          -->
+          <details class="care-links care-jobs" id="care-jobs" hidden>
+            <summary class="care-links-title">지금 이직할 수 있는 곳<span class="care-links-count" id="care-jobs-count">내 조건</span></summary>
+            <p class="care-jobs-note" id="care-jobs-note"></p>
             <a class="care-link care-link-wanted" id="care-wanted" href="https://www.wanted.co.kr" target="_blank" rel="noopener noreferrer">
-              <span class="care-link-text">원티드에서 나를 인정해 주는 팀 찾아보기</span>
+              <span class="care-link-text">원티드에서 지금 열려 있는 공고 보기</span>
             </a>
           </details>
         </aside>
@@ -471,7 +488,7 @@
 
         <!-- ③ 영수증 발급 -->
         <button type="button" class="receipt-btn" id="receipt-open">
-          오늘의 [오피스 방어 영수증] 발급받기 <span class="receipt-btn-sub">(공유용)</span>
+          오늘의 [오피스 방어 영수증] 발급받기
         </button>
 
         <p class="usage-line" id="usage-line" hidden></p>
@@ -485,7 +502,7 @@
   <section class="hiw" aria-labelledby="hiw-heading">
     <div class="hiw-intro">
       <h2 id="hiw-heading">어떻게 작동하나요</h2>
-      <p>AI는 신호를 뽑아내고,<br />위험도는 정해진 규칙이 4단계로 나눠 채점합니다.</p>
+      <p>AI는 신호를 뽑아내고, 위험도는 정해진 규칙이 4단계로 나눠 채점합니다.</p>
       <button type="button" class="intro-replay" id="intro-replay">이 서비스를 왜 만들었는지 다시 보기</button>
     </div>
 
@@ -510,16 +527,16 @@
         <h3>받은 메시지를 그대로 붙여넣으세요</h3>
         <p>맥락(직군·연차·관계)을 고르고 메시지를 넣으면, 이름·연락처·금액처럼 민감한 부분은 서버로 보내기 전에 브라우저에서 먼저 가려집니다.</p>
         <ul class="hiw-notes">
-          <li>상대방이 보낸 부분만 넣으세요. <br class="br-wide" />내가 쓴 답장까지 섞이면 진단이 흐려집니다.</li>
+          <li>상대방이 보낸 부분만 넣으세요. 내가 쓴 답장까지 섞이면 진단이 흐려집니다.</li>
           <li>'전송될 내용 확인하기'로 실제 전송본을 직접 볼 수 있습니다.</li>
-          <li>상대방과의 관계를 고르면 그에 맞는 예시 카드만 보입니다. <br class="br-wide" />눌러서 감을 잡아보세요.</li>
+          <li>상대방과의 관계를 고르면 그에 맞는 예시 카드만 보입니다. 눌러서 감을 잡아보세요.</li>
         </ul>
       </article>
 
       <article class="hiw-panel" role="tabpanel" id="hiw-panel-2" aria-labelledby="hiw-tab-2" tabindex="0" hidden>
         <span class="hiw-panel-eyebrow">Step 02</span>
         <h3>AI는 판단하지 않고, 구조화만 합니다</h3>
-        <p>AI(LLM)는 메시지에서 숨은 요구·마감·톤 같은 신호만 뽑아 값으로 만듭니다. <br class="br-wide" />점수를 매기는 건 AI 몫이 아닙니다.</p>
+        <p>AI(LLM)는 메시지에서 숨은 요구·마감·톤 같은 신호만 뽑아 값으로 만듭니다. 점수를 매기는 건 AI 몫이 아닙니다.</p>
         <ul class="hiw-notes">
           <li>추출값은 근거로 남아 '판정 근거 보기'에서 확인할 수 있습니다.</li>
           <li>서버 API 가 꺼져 있어도 브라우저 안의 규칙 엔진으로 계속 동작합니다.</li>
@@ -530,7 +547,7 @@
       <article class="hiw-panel" role="tabpanel" id="hiw-panel-3" aria-labelledby="hiw-tab-3" tabindex="0" hidden>
         <span class="hiw-panel-eyebrow">Step 03</span>
         <h3>위험도는 정해진 규칙이 계산합니다</h3>
-        <p>권력 비대칭·시간적 긴급도·요구 모호성·알맹이 없음 4가지를 규칙 엔진이 계산해 하나의 위험 지수로 합칩니다. <br class="br-wide" />같은 입력이면 항상 같은 점수가 나옵니다.</p>
+        <p>권력 비대칭·시간적 긴급도·요구 모호성·알맹이 없음 4가지를 규칙 엔진이 계산해 하나의 위험 지수로 합칩니다. 같은 입력이면 항상 같은 점수가 나옵니다.</p>
         <ul class="hiw-notes">
           <li>정상·경미·주의·경계·심각 5단계로 색이 나뉩니다.</li>
           <li>점수만이 아니라 근거 문장도 함께 보여줍니다.</li>
@@ -541,7 +558,8 @@
       <article class="hiw-panel" role="tabpanel" id="hiw-panel-4" aria-labelledby="hiw-tab-4" tabindex="0" hidden>
         <span class="hiw-panel-eyebrow">Step 04</span>
         <h3>목적과 말투에 맞는 답장 3종</h3>
-        <p>대응 방향(칼차단·시간벌기·공넘기기·관계보존)과<br />말투 세기(순한맛·보통맛·매운맛)를 고르면 그에 맞춘 답장 3개가 나옵니다.<br />마음에 들면 복사해서 바로 쓰세요.</p>
+        <p>대응 방향(칼차단·시간벌기·공넘기기·관계보존)과 말투 세기(순한맛·보통맛·매운맛)를 고르면 그에 맞춘 답장 3개가 나옵니다.</p>
+        <p>마음에 들면 복사해서 바로 쓰세요.</p>
         <ul class="hiw-notes">
           <li>관계 비용이 큰 톤은 경고 문구로 한 번 더 확인시켜줍니다.</li>
           <li>오늘의 방어 영수증은 이미지로 저장·복사만 되고 서버에 남지 않습니다.</li>
@@ -552,10 +570,16 @@
   </section>
 
   <footer class="footer">
+    <!--
+      "원문은 서버에 저장되지 않습니다"가 여기 있었다. 뺐다.
+
+      같은 약속을 이미 세 곳에서 한다 — 입력칸 옆의 "전송 전 자동 가림" 배지,
+      진입 스토리 3장, 배지를 누르면 열리는 설명의 1단계. 정작 필요한 순간
+      (메시지를 붙여넣기 직전)에 있는 건 배지이고, 푸터는 아무도 그 시점에
+      보지 않는다. 같은 말을 네 번 하면 무게가 실리는 게 아니라 흐려진다.
+    -->
     <span class="footer-info">
       <span>원티드 AI CHAMPIONSHIP 2026 · 팀 90od</span>
-      <span class="dot">·</span>
-      <span>원문은 서버에 저장되지 않습니다</span>
     </span>
     <!--
       두 버튼은 **항상 새 줄에서 시작한다.**
@@ -599,7 +623,7 @@
         <h2 id="fb-heading" class="feedback-title">써보시니 어떠셨나요?</h2>
         <button type="button" class="receipt-close" id="feedback-close" aria-label="닫기">✕</button>
       </div>
-      <p class="feedback-lead">좋았던 점도, 아쉬웠던 점도 모두 듣고 싶습니다. <br class="br-wide" />직장인이 실제로 겪는 상황을 더 잘 읽어내려면 쓰신 분들의 이야기가 필요합니다. <br class="br-wide" />보내주신 의견은 읽고 반영합니다.</p>
+      <p class="feedback-lead">좋았던 점도, 아쉬웠던 점도 모두 듣고 싶습니다. 직장인이 실제로 겪는 상황을 더 잘 읽어내려면 쓰신 분들의 이야기가 필요합니다. 보내주신 의견은 읽고 반영합니다.</p>
 <form class="feedback-form" id="feedback-form">
         <label class="feedback-label" for="fb-message">의견</label>
         <textarea
@@ -732,22 +756,10 @@
       <p class="how-now" id="how-now"></p>
 
       <ol class="how-steps">
-        <li>
-          <b>이름과 연락처를 먼저 가립니다</b>
-          <span>서버로 떠나기 전에 브라우저에서 바꿔치기합니다. 원문은 어디에도 저장하지 않습니다.</span>
-        </li>
-        <li>
-          <b>AI가 사실만 뽑습니다</b>
-          <span>"주말에 답을 요구하나?", "기한이 적혀 있나?" 같은 것만 골라냅니다. AI는 점수를 매기지 않습니다.</span>
-        </li>
-        <li>
-          <b>위험 지수는 코드가 계산합니다</b>
-          <span>뽑아낸 항목을 정해진 식에 넣어 더합니다. 그래서 같은 메시지면 늘 같은 점수가 나오고, 계산 과정을 '판정 근거 보기'에서 그대로 펼쳐 볼 수 있습니다.</span>
-        </li>
-        <li>
-          <b>답장은 AI가 씁니다</b>
-          <span>고르신 대응 방향과 말투 세기에 맞춰 세 가지를 만듭니다. 보내기 전에 한 번 읽어 보시고 고쳐 쓰셔도 됩니다.</span>
-        </li>
+        <li><div class="how-steps-body"><b>이름과 연락처를 먼저 가립니다</b><span>서버로 떠나기 전에 브라우저에서 바꿔치기합니다. 원문은 어디에도 저장하지 않습니다.</span></div></li>
+        <li><div class="how-steps-body"><b>AI가 사실만 뽑습니다</b><span>"주말에 답을 요구하나?", "기한이 적혀 있나?" 같은 것만 골라냅니다. AI는 점수를 매기지 않습니다.</span></div></li>
+        <li><div class="how-steps-body"><b>위험 지수는 코드가 계산합니다</b><span>뽑아낸 항목을 정해진 식에 넣어 더합니다. 그래서 같은 메시지면 늘 같은 점수가 나오고, 계산 과정을 '판정 근거 보기'에서 그대로 펼쳐 볼 수 있습니다.</span></div></li>
+        <li><div class="how-steps-body"><b>답장은 AI가 씁니다</b><span>고르신 대응 방향과 말투 세기에 맞춰 세 가지를 만듭니다. 보내기 전에 한 번 읽어 보시고 고쳐 쓰셔도 됩니다.</span></div></li>
       </ol>
     </div>
   </div>
@@ -759,7 +771,7 @@
         <h2>나의 방어 기록</h2>
         <button type="button" class="receipt-close" id="history-close" aria-label="닫기">✕</button>
       </div>
-      <p class="history-note">기록을 누르면 그때의 결과 화면을 다시 볼 수 있습니다. <br class="br-wide" />이 브라우저에만 저장됩니다. 서버로 전송되지 않고, 원문·실명은 남기지 않습니다.</p>
+      <p class="history-note">기록을 누르면 그때의 결과 화면을 다시 볼 수 있습니다. 이 브라우저에만 저장됩니다. 서버로 전송되지 않고, 원문·실명은 남기지 않습니다.</p>
 
       <!--
         관계로 거르고, 원하는 것만 골라 지운다.
@@ -776,7 +788,6 @@
           <span class="sr-only">상대방과의 관계로 거르기</span>
           <select id="history-filter"><option value="">전체 관계</option></select>
         </label>
-        <button type="button" class="history-mode" id="history-select">선택</button>
       </div>
 
       <div class="history-summary" id="history-summary" hidden>
@@ -791,8 +802,19 @@
 
       <div class="history-list" id="history-list"></div>
 
+      <!--
+        아래 한 줄이 상황에 따라 바뀐다.
+
+        예전에는 "선택" 버튼이 드롭다운 옆에 있고 삭제는 맨 아래에 있었다.
+        같은 일(지우기)의 시작과 끝이 화면 양 끝에 떨어져 있던 셈이다.
+        누르는 것들을 한 줄에 모으고, 지금 할 수 있는 것만 남긴다.
+
+          평소     [ 선택해서 삭제 ]  [ 전체 삭제 ]
+          고를 때  [ 선택한 N건 삭제 ]  [ 취소 ]
+      -->
       <div class="history-actions">
-        <button type="button" class="history-clear" id="history-clear" hidden>전체 삭제하기</button>
+        <button type="button" class="history-clear" id="history-select" hidden>선택해서 삭제</button>
+        <button type="button" class="history-clear" id="history-clear" hidden>전체 삭제</button>
         <button type="button" class="history-clear history-danger" id="history-delete" hidden>선택 삭제</button>
         <button type="button" class="history-clear" id="history-cancel" hidden>취소</button>
       </div>

@@ -220,6 +220,9 @@ const el = {
   careBody: $('care-body'),
   careWanted: $('care-wanted'),
   careWantedText: document.querySelector('#care-wanted .care-link-text'),
+  careJobs: $('care-jobs'),
+  careJobsCount: $('care-jobs-count'),
+  careJobsNote: $('care-jobs-note'),
   toneNote: $('tone-note'),
   togglePreview: $('toggle-preview'),
   maskPreview: $('mask-preview'),
@@ -1025,21 +1028,28 @@ function renderCare(risk, context) {
   const serious = risk.score > 40; // 주의 이상
   // 문구만 주지 말고 내 연차에 맞는 공고 목록으로 바로 보낸다.
   el.careWanted.href = wantedUrl(context);
-  // 링크 안에 라벨 span 이 함께 있어서 통째로 갈아끼우면 구조가 날아간다.
-  el.careWantedText.textContent = `${context?.level || ''} 경력으로 열려 있는 채용 보기`.trim();
   el.care.classList.toggle('care-serious', serious);
-  el.careWanted.hidden = risk.score <= 60; // 경계·심각에서만
+
+  // 이직 자리는 경계·심각에서만 꺼낸다. 정상 범위인 메시지 하나에 이직을
+  // 권하면 이 서비스가 부추기는 쪽으로 읽힌다.
+  el.careJobs.hidden = risk.score <= 60;
+  el.careJobs.open = false;
+  const who = [context?.job, context?.level].filter(Boolean).join(' · ');
+  el.careJobsCount.textContent = who || '내 조건';
+  el.careJobsNote.textContent = who
+    ? `${who} 조건으로 지금 열려 있는 공고만 골라 보여드립니다.`
+    : '지금 열려 있는 공고를 볼 수 있습니다.';
 
   if (serious) {
     el.careTitle.textContent = '혼자 참지 않아도 됩니다';
     el.careBody.textContent =
-      '이런 신호가 반복되면 기록으로 남겨 두세요.\n사내 고충처리나 외부 상담을 이용할 때 근거가 됩니다. '
-      + "'나의 방어 기록'에 이 브라우저에만 남습니다.";
+      '이런 신호가 반복되면 기록으로 남겨 두세요. 사내 고충처리나 외부 상담을 이용할 때 근거가 됩니다.\n'
+      + '참는 것 말고도 선택지가 있습니다. 아래에서 상담 창구와 지금 옮길 수 있는 자리를 함께 확인해 보세요.';
   } else {
     el.careTitle.textContent = '이번 건은 정상 범위입니다';
     el.careBody.textContent =
       "같은 상대와의 기록이 쌓이면 흐름이 보입니다. '나의 방어 기록'에서 확인해 보세요.\n"
-      + '혼자 감당하기 어려운 일이 생기면 아래 상담도 무료로 이용할 수 있습니다.';
+      + '혼자 감당하기 어려운 일이 생기면 아래 상담을 무료로 이용할 수 있고, 지금 옮길 만한 자리도 함께 확인해 보실 수 있습니다.';
   }
 }
 
@@ -1860,6 +1870,7 @@ function renderHistory() {
   });
 
   renderHistoryFilter(history);
+  // 지금 할 수 있는 것만 남긴다 — 고르는 중에는 "전체 삭제"가 보이면 안 된다.
   el.historySelect.hidden = !hasEntries || historySelectMode;
   el.historyClear.hidden = !hasEntries || historySelectMode;
   el.historyDelete.hidden = !historySelectMode;
