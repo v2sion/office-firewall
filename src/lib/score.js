@@ -55,9 +55,24 @@ export function substanceGap(xray, maskedText) {
  */
 export function calcRisk(xray, maskedText) {
   const power = clamp(Number(xray?.powerAsymmetry) || 0, 0, 5) * 8;      // 0~40
-  const urgent = isPresent(xray?.urgencyType) ? 20 : 0;                  // 0~20
+  // 긴급성은 위험을 키우는 요소가 아니라 **정당화하는 요소**다(고용노동부
+  // 매뉴얼의 근무시간 외 연락 판단 요소: 업무 관련성·필요성·긴급성·빈도).
+  // 장애·사고처럼 지금 대응하지 않으면 손해가 커지는 사유가 본문에 적혀
+  // 있으면 시간대 가산을 하지 않는다. cliche.js 의 URGENCY_JUSTIFIER 참고.
   const ambiguous = isPresent(xray?.ambiguityType) ? 20 : 0;             // 0~20
   const gap = substanceGap(xray, maskedText) * 20;                       // 0~20
+  // 촉박한 마감 **자체**는 문제가 아니다.
+  //
+  // 매뉴얼은 이렇게 본다 — "업무량이 많거나 마감이 촉박한 것 자체는, 특정인을
+  // 겨냥한 부당한 배분이라는 사정이 없는 한 괴롭힘으로 보기 어렵다."
+  // 그리고 당일 마감은 야간(제56조)·휴일(제55조)과 달리 **법이 시간대를 지정한
+  // 보호구간이 아니다.** 정규 근무시간 안의 마감이다.
+  //
+  // 그래서 당일 마감은 홀로 서면 가산하지 않고, 모호성이나 알맹이 결여와
+  // 겹칠 때만 센다. "무엇을 언제까지 할지 다 적힌 오늘 18시"와 "뭘 해야
+  // 하는지도 모르는데 오늘까지"를 같은 점수로 내보내면 그건 판정이 아니다.
+  const sameDayAlone = xray?.urgencyType === '당일 마감' && !ambiguous && gap === 0;
+  const urgent = isPresent(xray?.urgencyType) && !xray?.urgencyJustified && !sameDayAlone ? 20 : 0; // 0~20
   const raw = Math.min(100, Math.round(power + urgent + ambiguous + gap));
 
   // 정상 업무 가드: 기한·수치가 명확하고 긴급 침범도 모호성도 없으면 Green 을 넘지 않는다.

@@ -150,6 +150,47 @@ export function clockHours(text) {
   return out.filter((h) => h >= 0 && h < 24);
 }
 
+/**
+ * 지금이어야 하는 **사유가 본문에 적혀 있는가.**
+ *
+ * 고용노동부 매뉴얼과 행정해석은 근무시간 외 연락을 두고 "업무 관련성,
+ * 필요성, **긴급성**, 연락의 빈도와 시간"을 종합해 판단하라고 한다. 즉
+ * 긴급성은 위험을 키우는 요소가 아니라 **정당화하는 요소**다. 근로기준법
+ * 제56조도 야간근로를 금지하지 않는다 — 가산수당 대상으로 정할 뿐이다.
+ *
+ * 그런데 우리 엔진은 야간·주말이면 무조건 20점을 얹고 있었다. 실측하면
+ * 이렇게 나왔다.
+ *
+ *   "밤 11시에 죄송합니다. 결제 서버 장애로 고객 결제가 전부 실패하고
+ *    있습니다. 로그 확인 가능하실까요?"                      → 52점
+ *   "밤 11시인데 미안해요. 그 자료 지금 한번 봐줄 수 있어요?"  → 52점
+ *
+ * 앞은 정당한 장애 대응 연락이고 뒤는 아니다. 둘을 같은 점수로 내보내면
+ * 그건 판정이 아니라 시계 보기다.
+ *
+ * **좁게 잡는다.** 여기 드는 것은 지금 대응하지 않으면 손해가 커지는 사유다.
+ * "대표님 보고가 잡혀서", "내일 오전에 쓸 거라" 같은 **내부 일정**은 사유가
+ * 아니다 — 그건 보내는 쪽의 편의이지 받는 쪽이 밤에 일할 이유가 아니고,
+ * 매뉴얼이 말하는 긴급성도 그런 뜻이 아니다.
+ */
+const URGENCY_JUSTIFIER =
+  /(장애|먹통|다운|중단|멈춰|마비|사고|유출|해킹|보안\s*사고|긴급\s*복구|오류가|에러가|결제가\s*(안|실패)|서비스가\s*(안|중단)|고객\s*(피해|불편|이탈)|안전|부상|응급|리콜|법적\s*기한|제출\s*마감이\s*오늘)/;
+
+/**
+ * 부정형은 사유가 아니다.
+ *
+ *   "밤 12시인데 미안해요. **장애 없이** 잘 돌아가는지 그냥 한번 봐줄래요?"
+ *
+ * 단어만 세면 이 문장이 장애 대응 연락으로 잡힌다. 사유를 인정하는 쪽은
+ * 점수를 **깎는** 방향이라, 오탐이 곧 과소경보가 된다. 사유 단어 바로 뒤에
+ * 부정이 오면 먼저 지운 다음에 찾는다.
+ */
+const NEGATED_JUSTIFIER = /(장애|오류|에러|사고|중단|문제|이슈)\s*(?:는|은|가|이)?\s*(없|아니|아닌)\S*/g;
+
+export function hasUrgencyJustification(text) {
+  return URGENCY_JUSTIFIER.test(String(text ?? '').replace(NEGATED_JUSTIFIER, ''));
+}
+
 /** 근로기준법 제56조 제3항의 야간근로 시간대에 드는가 (22:00~05:59) */
 export function isLegalNightHour(hour) {
   return hour >= NIGHT_START_HOUR || hour < NIGHT_END_HOUR;
@@ -170,7 +211,13 @@ export function detectUrgency(t) {
   if (/(새벽|퇴근\s*후|야근|자정|늦은\s*시간)/.test(t)) return '야간 침범';
   // 시각으로 드러나는 야간 신호 — 법정 구간(22:00~05:59)에 드는 시각이 있으면
   if (clockHours(t).some(isLegalNightHour)) return '야간 침범';
-  if (/(오늘\s*중|오늘까지|내일까지|당일|금일\s*중|퇴근\s*전까지)/.test(t)) return '당일 마감';
+  // "오늘까지"만 문자열로 찾던 탓에 **시각이 붙으면 전부 놓쳤다** —
+  // "오늘 18시까지", "금일 15시까지", "오늘 6시까지"가 모두 통과했다.
+  // 고용노동부 코퍼스에서 잡힌 구멍이다. 날짜어와 "까지" 사이에 짧은 시각
+  // 표기 하나까지만 허용한다(공백을 넘지 않으므로 "오늘 회의에서 … 다음 주까지"
+  // 같은 문장은 걸리지 않는다).
+  if (/(오늘|금일)\s*\S{0,5}\s*까지/.test(t)) return '당일 마감';
+  if (/(오늘\s*중|내일까지|당일|금일\s*중|퇴근\s*전까지)/.test(t)) return '당일 마감';
   return '없음';
 }
 
@@ -220,6 +267,7 @@ export function extractSubstanceSignals(maskedText) {
   return {
     clicheHits: findCliches(maskedText),
     sentenceCount: countSentences(maskedText),
+    urgencyJustified: hasUrgencyJustification(maskedText),
     ...spec,
     avoidsDecision: avoidsDecision(maskedText, spec),
   };

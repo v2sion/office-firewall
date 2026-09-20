@@ -16,8 +16,13 @@ import { buildResult } from '../src/lib/normalize.js';
 import { buildMockAnalysis } from '../src/lib/mock.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const corpus = JSON.parse(readFileSync(join(root, 'test/fixtures/community-corpus.json'), 'utf8'));
-const base = process.argv[2] || '';
+const args = process.argv.slice(2);
+const base = args.find((a) => a.startsWith('http')) || '';
+const which = args.find((a) => !a.startsWith('http')) || 'community';
+const FILES = { community: 'community-corpus.json', moel: 'moel-corpus.json' };
+if (!FILES[which]) { console.error(`알 수 없는 코퍼스: ${which} (community | moel)`); process.exit(1); }
+const corpus = JSON.parse(readFileSync(join(root, 'test/fixtures', FILES[which]), 'utf8'));
+corpus.cases = corpus.cases.filter((c) => c.testable !== false);
 const GAP_MS = base ? 21_000 : 0; // 분당 3건
 
 const ctxFor = (c) => ({
@@ -53,9 +58,11 @@ for (const c of corpus.cases) {
   rows.push({
     id: c.id, label: c.label, score, level: result.risk.level,
     urgency: result.xray.urgencyType, ambiguity: result.xray.ambiguityType,
+    justified: Boolean(result.xray.urgencyJustified),
     slop: result.xray.aiSlopScore,
     band: `${lo}~${hi}`, ok: score >= lo && score <= hi,
-    urgencyOk: !c.expect.urgency || result.xray.urgencyType === c.expect.urgency,
+    urgencyOk: (!c.expect.urgency || result.xray.urgencyType === c.expect.urgency)
+      && (c.expect.justified === undefined || Boolean(result.xray.urgencyJustified) === c.expect.justified),
     ambiguityOk: !c.expect.ambiguity || result.xray.ambiguityType === c.expect.ambiguity,
     replies: result.replies.map((r) => r.text),
   });
@@ -63,14 +70,15 @@ for (const c of corpus.cases) {
 }
 
 const pad = (s, n) => String(s).padEnd(n);
-console.log(`\n모드: ${base ? `LIVE (${base})` : '로컬 규칙 엔진'}   ·   ${rows.length}건\n`);
+console.log(`\n코퍼스: ${which}   ·   모드: ${base ? `LIVE (${base})` : '로컬 규칙 엔진'}   ·   ${rows.length}건\n`);
 console.log(pad('케이스', 22), pad('점수', 6), pad('등급', 8), pad('기대', 8), pad('긴급도', 10), pad('모호성', 10), 'slop');
 console.log('-'.repeat(84));
 for (const r of rows) {
   if (r.err) { console.log(pad(r.id, 22), '오류:', r.err); continue; }
   const flag = r.ok && r.urgencyOk && r.ambiguityOk ? ' ' : '⚠';
   console.log(flag, pad(r.id, 20), pad(r.score, 6), pad(r.level, 8), pad(r.band, 8),
-    pad(r.urgency + (r.urgencyOk ? '' : '✗'), 10), pad(r.ambiguity + (r.ambiguityOk ? '' : '✗'), 10), r.slop);
+    pad(r.urgency + (r.justified ? '(정당)' : '') + (r.urgencyOk ? '' : '✗'), 14),
+    pad(r.ambiguity + (r.ambiguityOk ? '' : '✗'), 10), r.slop);
 }
 const bad = rows.filter((r) => r.err || !r.ok || !r.urgencyOk || !r.ambiguityOk);
 console.log(`\n기대와 어긋남: ${bad.length}건${bad.length ? ' — ' + bad.map((b) => b.id).join(', ') : ''}`);

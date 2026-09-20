@@ -41,6 +41,8 @@ export function normalizeXray(aiOut, maskedText) {
       : '분석 결과를 요약하지 못했습니다.',
     powerAsymmetry: Math.max(1, Math.min(5, Math.round(Number(ai.powerAsymmetry) || 3))),
     urgencyType: pickEnum(ai.urgencyType, URGENCY_VALUES, '없음'),
+    // 규칙이 원문에서 직접 확인하는 값이라 AI 판단을 받지 않는다(설계원칙 1.1).
+    urgencyJustified: signals.urgencyJustified,
     ambiguityType,
     aiSlopScore: Math.max(0, Math.min(100, Math.round(Number(ai.aiSlopScore) || 0))),
     clicheHits,

@@ -1316,7 +1316,12 @@ function renderStats(xray) {
       name: '시간적 긴급도',
       value: xray.urgencyType,
       extra: '',
-      sub: xray.urgencyType === '없음' ? '업무 시간 내 요청' : '경계 침범 신호',
+      // 침범 시간대인데 **왜 지금이어야 하는지**가 적혀 있으면 가산하지 않는다.
+      // 그 사실을 카드에서 바로 말해 주지 않으면, 밤 11시 장애 연락에 점수가
+      // 안 붙은 것이 고장으로 읽힌다.
+      sub: xray.urgencyType === '없음'
+        ? '업무 시간 내 요청'
+        : xray.urgencyJustified ? '긴급 사유 명시 · 미집계' : '경계 침범 신호',
     },
     {
       name: '요구 모호성',
@@ -1367,7 +1372,7 @@ function renderEvidence(xray, risk) {
   // 근거를 펼쳐 보여주는 화면에서 가장 하면 안 되는 일이다. 가드가 걸렸다는
   // 사실 자체를 한 줄로 드러낸다.
   const gapPts = Math.round(substanceGap(xray) * 20);
-  const urgentPts = xray.urgencyType === '없음' ? 0 : 20;
+  const urgentPts = xray.urgencyType === '없음' || xray.urgencyJustified ? 0 : 20;
   const ambiguousPts = xray.ambiguityType === '없음' ? 0 : 20;
   const rawSum = xray.powerAsymmetry * 8 + urgentPts + ambiguousPts + gapPts;
   const capped = rawSum > GREEN_CAP && risk.score === GREEN_CAP;
@@ -1386,10 +1391,18 @@ function renderEvidence(xray, risk) {
     </table>
     ${cliches}
     <p class="evidence-formula">
-      점수 = 권력 비대칭(${xray.powerAsymmetry}×8) + 긴급도(${xray.urgencyType === '없음' ? 0 : 20})
+      점수 = 권력 비대칭(${xray.powerAsymmetry}×8) + 긴급도(${urgentPts})
       + 모호성(${xray.ambiguityType === '없음' ? 0 : 20}) + 알맹이 없음(${Math.round(substanceGap(xray) * 20)})
       = <b>${capped ? GREEN_CAP : risk.score}</b>
     </p>
+    ${
+      xray.urgencyType !== '없음' && xray.urgencyJustified
+        ? `<p class="evidence-formula">긴급 사유가 본문에 있어 시간대 가산을 하지 않았습니다
+           (${escapeHtml(xray.urgencyType)} 감지). 고용노동부 매뉴얼은 근무시간 외 연락을
+           업무 관련성·필요성·<b>긴급성</b>·빈도로 함께 보라고 합니다 — 장애·사고처럼 지금
+           대응하지 않으면 손해가 커지는 사유는 위험이 아니라 정당한 사유입니다.</p>`
+        : ''
+    }
     ${
       capped
         ? `<p class="evidence-formula">정상 업무 가드 적용. 긴급도·모호성·알맹이 없음이 모두 0이면
