@@ -173,3 +173,43 @@ test('홈 화면 라벨이 잘리지 않을 길이다', () => {
   const appleTitle = (html.match(/name="apple-mobile-web-app-title" content="([^"]+)"/) || [])[1];
   assert.equal(appleTitle, manifest.short_name, 'iOS 와 안드로이드 라벨이 다르다');
 });
+
+
+/**
+ * 아이콘의 투명도는 용도마다 규칙이 다르다.
+ *
+ * 한 벌로 찍으면 어딘가는 반드시 어색해진다. 실제로 네 파일을 모두 흰 배경째로
+ * 구워서, **윈도우 바탕화면의 둥근 모서리 바깥이 흰색으로 드러났다**(제보).
+ *
+ *  · purpose="any"  — 둥근 아이콘을 그대로 쓴다. 바깥은 투명이어야 한다.
+ *  · purpose="maskable" — 안드로이드가 잘라낸다. 투명하면 잘린 자리가 구멍이 된다.
+ *  · apple-touch-icon — iOS 가 알아서 둥글리고, 투명한 부분은 검정으로 채운다.
+ *
+ * 눈으로는 배경이 흰 화면에서 구분되지 않아서(흰 모서리가 안 보인다) 파일을
+ * 직접 뜯어 본다.
+ */
+function pngMeta(path) {
+  const b = readFileSync(path);
+  assert.equal(b.toString('ascii', 1, 4), 'PNG', `${path} 가 PNG 가 아니다`);
+  return { w: b.readUInt32BE(16), h: b.readUInt32BE(20), colorType: b[25] };
+}
+const HAS_ALPHA = new Set([4, 6]);
+
+test('purpose="any" 아이콘은 모서리 바깥이 투명하다', () => {
+  for (const icon of manifest.icons.filter((i) => i.purpose === 'any')) {
+    const { colorType } = pngMeta(join(root, 'public', icon.src.replace(/^\//, '')));
+    assert.ok(HAS_ALPHA.has(colorType), `${icon.src} 에 알파 채널이 없다 — 둥근 모서리가 흰색으로 찍힌다`);
+  }
+});
+
+test('maskable 아이콘은 불투명하다 (잘린 자리가 구멍이 되면 안 된다)', () => {
+  const maskable = manifest.icons.find((i) => i.purpose === 'maskable');
+  assert.ok(maskable, 'maskable 아이콘이 없다');
+  const { colorType } = pngMeta(join(root, 'public', maskable.src.replace(/^\//, '')));
+  assert.ok(!HAS_ALPHA.has(colorType), `${maskable.src} 가 투명하다 — 안드로이드가 잘라내면 구멍이 보인다`);
+});
+
+test('apple-touch-icon 은 불투명하다 (iOS 는 투명을 검정으로 채운다)', () => {
+  const { colorType } = pngMeta(join(root, 'public/apple-touch-icon.png'));
+  assert.ok(!HAS_ALPHA.has(colorType), '투명한 부분이 iOS 에서 검정으로 나온다');
+});
