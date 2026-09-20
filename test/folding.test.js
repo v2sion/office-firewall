@@ -126,3 +126,48 @@ test('접힌 줄의 값이 길어도 레이아웃을 밀지 않는다', () => {
   assert.match(rule, /text-overflow: ellipsis/);
   assert.match(rule, /white-space: nowrap/);
 });
+
+/* ── 실행 버튼 잠금 ───────────────────────────────────────────
+ * 예전에는 버튼이 늘 파랗게 활성이었고, 누르면 그제야 "상대방과의 관계를
+ * 먼저 골라 주세요"가 떴다. 누를 수 있게 생긴 버튼을 눌렀더니 혼나는
+ * 구조라, 무엇이 비었는지도 누른 뒤에야 알 수 있었다.
+ * ──────────────────────────────────────────────────────── */
+
+test('실행 버튼의 disabled 를 건드리는 곳은 한 군데뿐이다', () => {
+  // 바쁨·쿨다운·필수 입력이 서로 다른 곳에서 버튼을 건드리면, 쿨다운이
+  // 끝나는 순간 필수 입력이 비었는데도 버튼이 살아나는 식으로 어긋난다.
+  const hits = mainJs.match(/el\.run\.disabled\s*=/g) || [];
+  assert.equal(hits.length, 1, `el.run.disabled 를 쓰는 곳이 ${hits.length}군데다 — syncRunButton 하나로 모아야 한다`);
+  assert.match(mainJs, /function syncRunButton\(\)/);
+});
+
+test('필수는 상대방과의 관계·받은 메시지 둘뿐이다', () => {
+  // 직군·연차·대응 방향·말투는 없어도 판정이 달라지지 않는다. 필수로
+  // 묶으면 채울 것만 늘고 첫 실행까지의 거리가 멀어진다.
+  const fn = mainJs.slice(mainJs.indexOf('function requiredMissing()'), mainJs.indexOf('function syncRunButton()'));
+  assert.match(fn, /counterpart: !state\.counterpart/);
+  assert.match(fn, /message: !text/);
+  for (const optional of ['state.job', 'state.level', 'state.goal', 'state.tone'])
+    assert.ok(!fn.includes(optional), `${optional} 이 필수로 들어가 있다`);
+});
+
+test('무엇이 비었는지를 누르기 전에 말한다', () => {
+  const fn = mainJs.slice(mainJs.indexOf('function syncRunButton()'));
+  assert.match(fn, /상대방과의 관계를 고르고 받은 메시지를 넣으면/);
+  assert.match(fn, /상대방과의 관계를 고르면 실행할 수 있어요/);
+  assert.match(fn, /받은 메시지를 넣으면 실행할 수 있어요/);
+});
+
+test('선택·입력·초기화·블록 해제가 모두 버튼 상태를 다시 맞춘다', () => {
+  // 한 경로라도 빠지면 그 경로에서만 버튼이 옛 상태로 남는다.
+  const calls = (mainJs.match(/syncRunButton\(\)/g) || []).length;
+  assert.ok(calls >= 6, `syncRunButton 호출이 ${calls}군데뿐이다 — 입력·칩·변경·바쁨·쿨다운·초기화를 모두 덮어야 한다`);
+  // 관계를 비우는 '변경'에서도 다시 잠겨야 한다.
+  const reset = mainJs.slice(mainJs.indexOf('function resetBlock('), mainJs.indexOf('function syncFolding('));
+  assert.match(reset, /syncRunButton\(\)/, "'변경'으로 관계를 비웠는데 버튼이 안 잠긴다");
+});
+
+test('잠긴 버튼은 회색이고 커서로도 눌리지 않음을 알린다', () => {
+  assert.match(css, /\.run:disabled\s*\{[^}]*cursor:\s*not-allowed/);
+  assert.match(css, /\.run:disabled\s*\{[^}]*background:\s*var\(--line\)/);
+});

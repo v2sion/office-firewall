@@ -406,6 +406,8 @@ function resetBlock(key) {
       .forEach((c) => c.setAttribute('aria-checked', 'false'));
   }
 
+  syncRunButton();
+
   // 관계가 비면 상황 카드 목록과 입력칸 안내도 함께 되돌아가야 한다.
   if (f.spec.fields.includes('counterpart')) {
     presetsExpanded = false;
@@ -471,6 +473,7 @@ function renderChips() {
         if (field === 'goal' || field === 'tone') updateChoiceNotes();
         renderStepBars();
         syncFolding();
+        syncRunButton();
         savePrefs(state);
         resetResult();
       });
@@ -770,6 +773,7 @@ function onInput() {
   counter.classList.toggle('over', len > MAX_CHARS);
   el.threadWarning.hidden = !looksLikeMultiTurnThread(el.message.value);
   renderStepBars();
+  syncRunButton();
   // 2구역은 메시지가 채워졌을 때 접힌다(FOLD_SPECS.them). 입력이 바뀌면
   // 접힘 여부도 같이 따라가야 한다.
   syncFolding();
@@ -1521,7 +1525,6 @@ async function copyText(text, btn) {
 /* ── 상태 표시 ───────────────────────────── */
 
 function setBusy(on) {
-  el.run.disabled = on;
   el.run.textContent = on ? '분석 중…' : '분석하고 답장 만들기';
   document.body.classList.toggle('is-loading', on);
   el.progress.hidden = !on;
@@ -1535,6 +1538,7 @@ function setBusy(on) {
   // 진행 표시가 도는데 제목이 "대기 중"이면 서로 어긋난다.
   el.standbyTitle.textContent = on ? '방화벽 가동 중' : '방화벽 대기 중';
   if (!on) setProgress(null);
+  syncRunButton();
 }
 
 /* ── 전환 속도 ─────────────────────────────
@@ -1635,17 +1639,61 @@ function setHint(msg) {
   el.runHint.textContent = msg;
 }
 
+/**
+ * 실행 버튼의 **유일한 주인.**
+ *
+ * 예전에는 버튼이 늘 파랗게 활성이었고, 누르면 그제야 "상대방과의 관계를
+ * 먼저 골라 주세요"라는 오류가 떴다. 누를 수 있게 생긴 버튼을 눌렀더니
+ * 혼나는 구조라, 무엇이 비었는지도 **누른 뒤에야** 알 수 있었다.
+ *
+ * 지금은 채워지기 전에는 회색으로 두고, 무엇이 비었는지를 버튼 아래 한 줄로
+ * 미리 말한다. 눌러 보기 전에 알 수 있으면 오류는 애초에 일어나지 않는다.
+ *
+ * `disabled` 를 쓰는 곳을 여기 하나로 모았다. 바쁨·쿨다운·필수 입력이 서로
+ * 다른 곳에서 버튼을 건드리면, 쿨다운이 끝나는 순간 필수 입력이 비었는데도
+ * 버튼이 살아나는 식으로 어긋난다.
+ */
+function requiredMissing() {
+  const text = el.message.value.trim();
+  return {
+    counterpart: !state.counterpart,
+    message: !text,
+    tooLong: text.length > MAX_CHARS,
+    length: text.length,
+  };
+}
+
+function syncRunButton() {
+  const need = requiredMissing();
+  const cooling = Date.now() < cooldownUntil;
+  el.run.disabled = busy || cooling || need.counterpart || need.message || need.tooLong;
+
+  // 바쁨·쿨다운일 때의 문구는 각자(setBusy·startCooldownTimer)가 쓴다.
+  if (busy || cooling) return;
+
+  if (need.tooLong) {
+    setHint(`메시지는 ${MAX_CHARS}자까지 분석합니다. 현재 ${need.length}자입니다.`);
+  } else if (need.counterpart && need.message) {
+    setHint('상대방과의 관계를 고르고 받은 메시지를 넣으면 실행할 수 있어요.');
+  } else if (need.counterpart) {
+    setHint('상대방과의 관계를 고르면 실행할 수 있어요.');
+  } else if (need.message) {
+    setHint('받은 메시지를 넣으면 실행할 수 있어요.');
+  } else {
+    setHint('');
+  }
+}
+
 function startCooldownTimer() {
   const tick = () => {
     const left = Math.ceil((cooldownUntil - Date.now()) / 1000);
+    syncRunButton();
     if (left > 0) {
-      el.run.disabled = true;
+      // syncRunButton 은 쿨다운 중에 문구를 쓰지 않는다 — 남은 초를 여기서 쓴다.
       setHint(`${left}초 후 다시 실행할 수 있습니다.`);
       setTimeout(tick, 250);
-    } else {
-      el.run.disabled = busy;
-      setHint('분석은 5초에 한 번 실행됩니다.');
     }
+    // 끝나면 syncRunButton 이 필수 입력 상태에 맞는 문구로 돌려놓는다.
   };
   tick();
 }
@@ -2086,6 +2134,9 @@ function initHowItWorks() {
 /* ── 초기화 ───────────────────────────── */
 
 renderChips();
+// 버튼의 첫 상태를 맞춘다. 지난 방문의 직군·연차는 복원되지만 받은 메시지는
+// 저장하지 않으므로(prefs.js), 새로 열면 항상 잠긴 상태에서 시작한다.
+syncRunButton();
 // 칩을 다 그린 뒤에 접기를 준비한다. 지난 방문의 직군·연차가 복원돼 있으면
 // 이 시점에 이미 완성이라 바로 접힌 상태로 시작한다(돌아온 사람은 다시 고를
 // 이유가 없다).
