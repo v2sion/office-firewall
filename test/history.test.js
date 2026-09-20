@@ -110,3 +110,40 @@ test('저장된 사람 이름은 마스킹 토큰 상태 그대로다 (실명이
   assert.ok(json.includes('{{PERSON_1}}'), '토큰이 그대로 남아 있어야 한다');
   assert.ok(!/[가-힣]{2,4}님의 요청/.test(json), '실명으로 복원된 흔적이 없어야 한다');
 });
+
+/* ── 기록 팝업의 생김새 ───────────────────────────────────────
+ * 제보 두 가지다.
+ *  · 요약 세 칸 중 "가장 흔한 유형"만 값이 한글 두 줄이라 위로 쏠려 보인다.
+ *  · 관계 드롭다운의 화살표가 패널 오른쪽 끝에 붙어, 글자와 한 뼘 떨어져 있다.
+ * 둘 다 CSS 한 줄이 원인이라 그 한 줄을 고정해 둔다.
+ * ──────────────────────────────────────────────────────────── */
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const css = readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), '..', 'src/styles.css'),
+  'utf8',
+);
+
+function ruleBody(selector) {
+  const at = css.indexOf(`\n${selector} {`);
+  if (at < 0) return '';
+  return css.slice(at, css.indexOf('}', at));
+}
+
+test('요약 칸은 가로·세로 모두 가운데 정렬이다', () => {
+  const body = ruleBody('.history-stat');
+  assert.ok(body, '.history-stat 규칙을 찾지 못했다');
+  assert.match(body, /justify-content:\s*center/, '세로 가운데 정렬이 없다 (내용이 위로 쏠린다)');
+  assert.match(body, /align-items:\s*center/, '가로 가운데 정렬이 없다');
+  assert.match(body, /flex-direction:\s*column/, '세로 정렬이 먹으려면 flex 컬럼이어야 한다');
+});
+
+test('관계 드롭다운은 내용 폭에 맞춰 줄고, 화살표는 글자 뒤에 붙는다', () => {
+  const body = ruleBody('.history-filter select');
+  assert.ok(body, '.history-filter select 규칙을 찾지 못했다');
+  assert.ok(!/[^-]width:\s*100%/.test(body), 'select 가 패널 전체 폭이라 화살표가 끝으로 밀린다');
+  assert.match(body, /width:\s*auto/, '내용 폭에 맞추지 않는다');
+  assert.match(body, /appearance:\s*none/, '기본 화살표를 지우지 않으면 두 개가 된다');
+});

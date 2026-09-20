@@ -80,6 +80,72 @@ export function scrubSchemaLeak(text) {
     .trim();
 }
 
+/** 문장 단위로 쪼갠다. 마침표·물음표·느낌표 뒤 공백이 경계다. */
+function splitSentences(text) {
+  return String(text)
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+/**
+ * 동사 줄기 없이 어미만 남은 꼬리 문장.
+ *
+ *   "… 다른 동료에게 맡기거나 일정 조정 부탁드립니다. 해 주십시오."
+ *                                                  ^^^^^^^^^^
+ * 앞 문장을 쓰고 나서 지시문의 "~해 주십시오로 맺는다"를 한 번 더 실행한
+ * 흔적이다. 무엇을 해 달라는 건지가 없어서 문장이 아니다.
+ */
+const DANGLING_TAIL = [
+  /^(해|하여|해서|되어|드려|주어)\s*주(십시오|세요|시기\s*바랍니다|시길\s*바랍니다)$/,
+  /^(하겠습니다|드리겠습니다|하십시오|합니다|입니다|있습니다|됩니다)$/,
+];
+function isDanglingTail(sentence) {
+  const bare = sentence.replace(/[.!?\s]+$/, '').trim();
+  return DANGLING_TAIL.some((re) => re.test(bare));
+}
+
+/**
+ * 번호 목록을 만들기 직전에 그 항목들을 미리 읊어 버린 경우.
+ *
+ *   "먼저, 산출물 범위와 확인 포인트를 명확히 해 주십시오.
+ *    1. 산출물 범위 2. 확인 포인트 3. 마감 시각 4. 담당 주체. …"
+ *
+ * 목록이 앞 문장의 되풀이라 읽는 사람 입장에서는 같은 말을 두 번 듣는다.
+ * 항목 라벨이 앞 문장에 두 개 이상 그대로 있으면 되풀이로 본다.
+ */
+const LIST_ITEM = /[(\[]?\d[).\]]\s*([가-힣]+(?:\s[가-힣]+)*)/g;
+function repeatsOwnList(text) {
+  const items = [];
+  let m;
+  LIST_ITEM.lastIndex = 0;
+  while ((m = LIST_ITEM.exec(text))) items.push({ label: m[1].trim(), at: m.index });
+  if (items.length < 3) return false;
+  const lead = text.slice(0, items[0].at);
+  const echoed = items.filter((it) => it.label.length >= 3 && lead.includes(it.label));
+  return echoed.length >= 2;
+}
+
+/**
+ * 말투 세기와 어긋나는 종결.
+ *
+ * 보통맛·매운맛의 규칙은 "종결을 평서형(~합니다/~하겠습니다)으로 통일한다"이다
+ * (api/_lib/prompt.js 의 TONE_RULES). 그런데 실제로 이런 답장이 나왔다.
+ *
+ *   "이번 건은 수용이 어렵습니다. 이미 잡힌 일정이 있어요. … 부탁드립니다."
+ *                              ^^^^^^^^^^^^^^^^^^^^
+ * 한 답장 안에서 합쇼체와 해요체가 섞이면 두 사람이 이어 쓴 글처럼 읽힌다.
+ * 순한맛은 부드럽게 쓰는 것이 규칙이라 해요체가 정상이므로 검사하지 않는다.
+ * "~해 주세요"(청유)와 "~할까요?"(의문)는 합쇼체와 같이 써도 어색하지 않아
+ * 뺀다 — 걸러내는 건 **평서형 해요체**뿐이다.
+ */
+const CASUAL_DECLARATIVE = /(아요|어요|여요|에요|예요|네요|게요|거든요|더라고요|라고요|는데요|군요)[.!?]?$/;
+function mixesRegister(sentences) {
+  const formal = sentences.some((s) => /(니다|십시오)[.!?]?$/.test(s));
+  const casual = sentences.some((s) => CASUAL_DECLARATIVE.test(s));
+  return formal && casual;
+}
+
 /**
  * 보낼 수 있는 답장인가.
  *
@@ -89,14 +155,24 @@ export function scrubSchemaLeak(text) {
  *
  * 둘 다 형식은 맞지만 **그대로 보낼 수 없는 문장**이다. 이런 답장은 없는 것만
  * 못하므로, 걸러내고 규칙 엔진이 만든 답장으로 대신한다.
+ *
+ * @param {string} text
+ * @param {{tone?: string}} [opts] 말투 세기. 종결 검사를 여기에 맞춘다.
  */
-export function isUsableReply(text) {
+export function isUsableReply(text, opts = {}) {
   const t = String(text ?? '').trim();
   if (t.length < 40) return false; // 한국어 업무 답장이 40자 미만이면 뼈대다
   // 지시문의 동사를 그대로 옮겨 적은 흔적
   if (/(요구합니다|통보합니다|결론을 냅니다)\.?$/.test(t)) return false;
   // 항목만 나열하고 문장으로 맺지 못한 경우
   if (/\?\s*(하겠습니다|입니다)\.?$/.test(t)) return false;
+  // 의지 어미를 붙일 수 없는 형용사에 붙인 경우("조정 가능하겠습니다")
+  if (/가능하겠(습니다|어요)/.test(t)) return false;
+
+  const sentences = splitSentences(t);
+  if (sentences.some(isDanglingTail)) return false;
+  if (repeatsOwnList(t)) return false;
+  if (opts.tone && opts.tone !== '순한맛' && mixesRegister(sentences)) return false;
   return true;
 }
 

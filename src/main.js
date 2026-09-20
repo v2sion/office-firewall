@@ -232,6 +232,8 @@ const el = {
   run: $('run'),
   runHint: $('run-hint'),
   standby: $('standby'),
+  skeleton: $('skeleton'),
+  panelResult: document.querySelector('.panel-result'),
   progress: $('progress'),
   standbyTitle: $('standby-title'),
   intro: $('intro'),
@@ -833,27 +835,30 @@ async function run() {
   sessionTokenMap = map;
 
   busy = true;
-  setBusy(true);
+  morphPanel(() => setBusy(true));
   // 마스킹은 위에서 이미 끝났다 — 사용자에겐 그 사실 자체가 정보라 한 박자 보여준다.
   setProgress('mask');
   hideError();
   const startedAt = Date.now();
+  pacedMs = 0;
 
   try {
     let result;
     const context = contextFields();
     const presetId = matchPresetId(text, hiddenContextRaw, context);
 
+    // 어느 경로든 '가리는 중'을 다 보여준 뒤 '분석 중'으로 넘어간다.
+    await advanceProgress('analyze');
+
     if (presetId) {
       // 상황 카드 원본 그대로 — 네트워크·룰엔진 계산 없이 캐시를 바로 렌더링한다.
       result = buildResult(PRESET_CACHE[presetId], maskedMessage, {
         mode: 'cached',
         model: 'preset-cache',
-        latencyMs: Date.now() - startedAt,
+        latencyMs: Date.now() - startedAt - pacedMs,
       });
       result.meta.note = '캐시된 프리셋. API 호출 없음, 비용 $0';
     } else {
-      setProgress('analyze');
       const payload = { maskedText: maskedMessage, context: { ...context, hiddenContext: maskedHiddenContext } };
       try {
         result = await postAnalyze(payload);
@@ -868,15 +873,28 @@ async function run() {
         }
       }
     }
-    setProgress('reply');
-    render(result, Date.now() - startedAt, context);
+    // 답장은 위에서 이미 만들어져 있다. 마지막 단계도 제 시간만큼 보여주고
+    // 나서 결과를 건네야 세 단계가 같은 속도로 흐른다.
+    await advanceProgress('reply');
+    await holdStep();
+    // 실제로 걸린 시간만 보고한다 — 일부러 기다린 시간은 처리 시간이 아니다.
+    if (result?.meta) result.meta.latencyMs = Math.max(0, Date.now() - startedAt - pacedMs);
+    // 뼈대를 치우는 것과 결과를 세우는 것은 **한 번의 전환**이어야 한다.
+    // 둘을 나누면 결과가 들어온 뒤 뼈대가 빠지면서 패널이 한 번 더 튄다.
+    morphPanel(() => {
+      el.skeleton.hidden = true;
+      render(result, Date.now() - startedAt - pacedMs, context);
+    });
+    playResultEntrance();
     cooldownUntil = Date.now() + COOLDOWN_MS;
     startCooldownTimer();
   } catch (err) {
     showError(err.message || '분석에 실패했습니다. 잠시 후 다시 시도하거나 좌측 상황 카드를 사용하세요.');
   } finally {
     busy = false;
-    setBusy(false);
+    // 실패해서 뼈대만 남은 경우에도 높이는 이어서 줄어든다. 성공한 경우엔
+    // 위에서 이미 치웠으므로 높이 차이가 없어 아무 일도 일어나지 않는다.
+    morphPanel(() => setBusy(false));
   }
 }
 
@@ -1461,9 +1479,88 @@ function setBusy(on) {
   el.run.textContent = on ? '분석 중…' : '분석하고 답장 만들기';
   document.body.classList.toggle('is-loading', on);
   el.progress.hidden = !on;
+  // 결과 자리를 미리 그려 둔다. 실행 중에는 이전 결과를 치우고 뼈대를 세워,
+  // 끝나는 순간 빈 화면 → 긴 결과로 한 번에 뛰는 전환을 없앤다.
+  if (on) {
+    el.result.hidden = true;
+    el.result.classList.remove('is-entering');
+  }
+  el.skeleton.hidden = !on;
   // 진행 표시가 도는데 제목이 "대기 중"이면 서로 어긋난다.
   el.standbyTitle.textContent = on ? '방화벽 가동 중' : '방화벽 대기 중';
   if (!on) setProgress(null);
+}
+
+/* ── 전환 속도 ─────────────────────────────
+ *
+ * 눌렀는데 결과가 튀어나오기까지 아무 일도 없어 보이는 게 문제였다. 캐시된
+ * 상황 카드는 계산이 0ms 라 세 단계가 한 프레임에 지나가 버리고, LIVE 도
+ * 1~3초 안에 끝나면 무엇을 하고 있었는지 읽을 새가 없다.
+ *
+ * 그래서 **각 단계가 최소 1.5초는 화면에 머물도록** 한다. 기다리게 만들려는
+ * 게 아니라, 첫 단계가 "이름·연락처 가리는 중"이라 이 제품이 전송 전에
+ * 무엇을 하는지가 그 시간에 읽히기 때문이다. 이미 그만큼 걸린 단계는 더
+ * 기다리지 않는다(남은 시간만 채운다).
+ */
+const STEP_MIN_MS = 1500;
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+let stepShownAt = 0;
+let pacedMs = 0; // 일부러 기다린 시간 — 표시되는 처리 시간에서 빼야 정직하다.
+
+async function holdStep() {
+  const left = STEP_MIN_MS - (Date.now() - stepShownAt);
+  if (left > 0) {
+    pacedMs += left;
+    await sleep(left);
+  }
+}
+
+/** 지금 단계를 최소 시간만큼 보여준 뒤 다음 단계로 넘어간다. */
+async function advanceProgress(step) {
+  await holdStep();
+  setProgress(step);
+}
+
+/**
+ * 오른쪽 패널의 높이 변화를 이어서 보여준다.
+ *
+ * 대기(420px) → 결과(1,000px 이상)는 한 프레임 만에 일어나던 점프였다.
+ * 바꾸기 전후 높이를 직접 재서 그 사이를 애니메이션으로 잇는다. 높이만
+ * 움직이므로 안의 내용은 다시 그려지지 않는다.
+ *
+ * 움직임을 줄이도록 설정한 사용자와 Web Animations 가 없는 환경에서는
+ * 그냥 바꾼다 — 전환은 거들 뿐이고, 화면이 바뀌는 것 자체는 막지 않는다.
+ */
+const MORPH_MS = 420;
+
+/**
+ * 뼈대가 빠지고 진짜 결과가 들어올 때 한 번 올라오며 나타나게 한다.
+ * 클래스를 다시 붙이려면 먼저 떼야 해서(같은 클래스는 재생되지 않는다)
+ * 한 프레임 비운 뒤 붙인다.
+ */
+function playResultEntrance() {
+  el.result.classList.remove('is-entering');
+  requestAnimationFrame(() => el.result.classList.add('is-entering'));
+}
+function morphPanel(mutate) {
+  const panel = el.panelResult;
+  const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  if (!panel || reduced || typeof panel.animate !== 'function') {
+    mutate();
+    return;
+  }
+  const from = panel.getBoundingClientRect().height;
+  mutate();
+  const to = panel.getBoundingClientRect().height;
+  if (Math.abs(to - from) < 8) return; // 눈에 안 띄는 차이까지 애니메이션할 이유는 없다
+  panel.classList.add('is-morphing');
+  const anim = panel.animate(
+    [{ height: `${from}px` }, { height: `${to}px` }],
+    { duration: MORPH_MS, easing: 'cubic-bezier(.22,.61,.36,1)' },
+  );
+  const done = () => panel.classList.remove('is-morphing');
+  anim.addEventListener('finish', done);
+  anim.addEventListener('cancel', done);
 }
 
 /**
@@ -1480,6 +1577,7 @@ function setBusy(on) {
 const PROGRESS_ORDER = ['mask', 'analyze', 'reply'];
 function setProgress(step) {
   const at = PROGRESS_ORDER.indexOf(step);
+  if (at >= 0) stepShownAt = Date.now();
   for (const node of el.progress.querySelectorAll('.progress-step')) {
     const i = PROGRESS_ORDER.indexOf(node.dataset.step);
     node.classList.toggle('active', i === at);
@@ -1519,9 +1617,11 @@ function startCooldownTimer() {
 function resetResult() {
   if (busy) return;
   if (el.result.hidden && el.errorBox.hidden) return;
-  el.result.hidden = true;
-  el.standby.hidden = false;
-  hideError();
+  morphPanel(() => {
+    el.result.hidden = true;
+    el.standby.hidden = false;
+    hideError();
+  });
   lastReceiptSource = null;
   // 되살린 화면도 같이 치운다 — 배너만 남으면 "불러온 결과"라는 안내가
   // 대기 화면 위에 떠 있게 된다.
@@ -1560,10 +1660,13 @@ function restoreFromHistory(entry) {
   const snap = entry?.snapshot;
   if (!snap) return;
   closeHistoryModal();
-  render({ ...snap, replies: snap.replies || [], meta: snap.meta || { mode: 'mock' } }, null, snap.context, {
-    restored: true,
-    restoredAt: entry.ts,
+  morphPanel(() => {
+    render({ ...snap, replies: snap.replies || [], meta: snap.meta || { mode: 'mock' } }, null, snap.context, {
+      restored: true,
+      restoredAt: entry.ts,
+    });
   });
+  playResultEntrance();
   el.result.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -1955,9 +2058,11 @@ el.presetRun.addEventListener('click', () => applyPresetMessage());
 // 되살린 화면에서 빠져나오는 유일한 경로. 입력칸이 비어 있으니 그쪽으로 보낸다.
 el.restoredExit.addEventListener('click', () => {
   restoredView = false;
-  el.result.hidden = true;
-  el.standby.hidden = false;
-  renderRestoredNote(false, null);
+  morphPanel(() => {
+    el.result.hidden = true;
+    el.standby.hidden = false;
+    renderRestoredNote(false, null);
+  });
   lastReceiptSource = null;
   el.message.focus({ preventScroll: true });
   el.message.scrollIntoView({ behavior: 'smooth', block: 'center' });

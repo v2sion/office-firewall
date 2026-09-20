@@ -231,7 +231,9 @@ export async function runAnalyze(input, env = process.env, deps = {}) {
     const fallback = buildMockAnalysis(maskedText, context).replies;
     if (Array.isArray(aiOut?.replies)) {
       aiOut.replies = aiOut.replies.map((r, i) =>
-        isUsableReply(r?.text) ? r : { label: r?.label ?? fallback[i]?.label, text: fallback[i]?.text ?? '' });
+        isUsableReply(r?.text, { tone: context.tone })
+          ? r
+          : { label: r?.label ?? fallback[i]?.label, text: fallback[i]?.text ?? '' });
     } else {
       aiOut = { ...aiOut, replies: fallback };
     }

@@ -210,6 +210,8 @@ html, body {
   padding: 16px;
 }
 .panel-result { min-height: 420px; }
+/* 높이 애니메이션(main.js morphPanel) 동안만 내용이 밖으로 새지 않게 잠근다. */
+.panel-result.is-morphing { overflow: hidden; }
 @media (min-width: 992px) {
   /* 데스크톱 2컬럼에서 입력 폼을 내려서 채우는 동안 결과 패널이 항상 시야에
      머물게 한다 — 입력 폼이 훨씬 길어서 스크롤해야 하는 구조라, 고정해두지
@@ -1183,13 +1185,24 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 /* ── 기록 도구줄 (거르기 · 고르기) ───────────────────────────── */
 .history-tools { margin-bottom: 12px; }
 .history-filter { display: block; }
+/* 예전에는 select 가 width:100% 였다. 그러면 브라우저가 그리는 화살표는
+   항상 패널 오른쪽 끝에 붙고, 글자("전체 관계")는 왼쪽 끝에 남아 둘 사이가
+   한 뼘씩 벌어졌다 — 화살표가 무엇에 달린 표시인지 읽히지 않는다.
+   내용 폭에 맞춰 줄이고(width:auto) 화살표를 직접 그려 글자 바로 뒤에
+   붙인다. 기본 화살표는 appearance:none 으로 지운다. */
 .history-filter select {
-  width: 100%;
-  padding: 8px 10px;
+  width: auto; max-width: 100%;
+  padding: 8px 30px 8px 11px;
   border: 1px solid var(--line); border-radius: 9px;
   background: var(--bg-panel); color: var(--text);
   font-family: var(--font); font-size: 13px;
   cursor: pointer;
+  appearance: none; -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+                    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 17px) calc(50% + 1px), calc(100% - 12px) calc(50% + 1px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
 }
 .history-filter select:disabled { color: var(--text-faint); cursor: default; }
 
@@ -1214,12 +1227,18 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 .history-danger:disabled { opacity: .5; cursor: default; }
 
 .history-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+/* 세 칸 중 '가장 흔한 유형'만 값이 한글 두 줄이라, text-align:center 만으로는
+   가로만 맞고 세로는 위로 쏠렸다. 그리드가 칸 높이를 이미 맞춰 주므로
+   (align-items 기본값 stretch) 칸 **안에서** 내용을 세로로도 가운데 모은다. */
 .history-stat {
   background: var(--bg-soft);
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 10px 8px;
   text-align: center;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 2px;
 }
 /* 이 자리에는 숫자(총 기록·평균)와 **한글 유형명**("주말 도둑형")이 같이
    들어온다. mono 는 라틴 전용이라 한글만 시스템 글꼴로 떨어져 세 칸의 결이
@@ -1230,6 +1249,7 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 .history-stat span {
   display: block; font-size: 17px; font-weight: 700;
   font-variant-numeric: tabular-nums;
+  text-wrap: balance;
 }
 .history-stat small { font-size: 12px; color: var(--text-faint); }
 
@@ -1495,7 +1515,9 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 .feedback-input { min-height: 44px; }
 .feedback-textarea:focus, .feedback-input:focus { outline: none; border-color: var(--accent); }
 .feedback-textarea::placeholder, .feedback-input::placeholder { color: var(--text-faint); }
-.feedback-hint { margin: 7px 0 16px; font-size: 12px; line-height: 1.6; color: var(--text-faint); }
+.feedback-hint { margin: 7px 0 16px; font-size: 12px; line-height: 1.6; color: var(--text-faint); text-wrap: pretty; }
+/* 라벨과 입력칸 **사이**에 오는 안내라 위아래 간격이 반대다. */
+.feedback-hint-lead { margin: 0 0 7px; }
 .feedback-check {
   display: flex; align-items: center; gap: 8px;
   margin: 10px 0 0; font-size: 13px; color: var(--text-dim); cursor: pointer;
@@ -1900,4 +1922,66 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 .how-steps span {
   display: block; font-size: 12.5px; line-height: 1.65; color: var(--text-dim);
   word-break: keep-all; text-wrap: pretty;
+}
+
+
+/* 가동 중에는 대기 안내를 접는다.
+   "받은 메시지를 붙여넣으면…", "이제, 커뮤니케이션도 기술적으로 해결해
+   보세요."는 **누르기 전**에 읽는 문장이다. 이미 누른 사람에게는 방금 한
+   일을 다시 시키는 말이 되고, 진행 단계와 뼈대까지 함께 떠 있으면 읽을
+   것만 세 겹이 된다. 제목(가동 중)과 단계·뼈대만 남긴다. */
+body.is-loading .standby-copy,
+body.is-loading .standby-sub,
+body.is-loading .standby-cta { display: none; }
+/* 대기 안내가 빠지면 대기 블록이 380px 안에서 가운데에 떠, 단계 표시와
+   아래 뼈대 사이가 한 화면만큼 벌어진다. 가동 중에는 위로 붙여 단계 →
+   뼈대가 이어지게 한다. */
+body.is-loading .standby { min-height: 0; justify-content: flex-start; padding-top: 14px; margin-bottom: 14px; }
+
+/* ── 결과 뼈대(스켈레톤) ─────────────────────────────────────
+   분석 중에 결과가 들어올 자리를 미리 그려 둔다. 실행 직후 오른쪽 패널이
+   빈 채로 멈춰 있다가 결과가 한 번에 튀어나오는 전환을 없애는 게 목적이라,
+   실제 결과와 **같은 순서·비슷한 높이**로 만든다(점수 카드 → 답장 3장).
+
+   움직임을 끈 사용자에게는 반짝임 없이 회색 자리만 남는다 — 자리를 잡아
+   두는 기능은 애니메이션 없이도 그대로 동작한다. */
+.skeleton { display: flex; flex-direction: column; gap: 10px; }
+.sk-card {
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--bg-panel);
+  padding: 14px;
+  display: flex; flex-direction: column; gap: 9px;
+}
+.sk-reply { gap: 8px; }
+.sk-row { display: flex; align-items: center; gap: 12px; }
+.sk { display: block; border-radius: 6px; background: var(--bg-soft); }
+.sk-score { width: 84px; height: 34px; border-radius: 8px; }
+.sk-meta { flex: 1; height: 18px; max-width: 150px; }
+.sk-bar { width: 100%; height: 8px; border-radius: 999px; }
+.sk-line { width: 100%; height: 12px; }
+.sk-line.w80 { width: 80%; }
+.sk-line.w60 { width: 60%; }
+.sk-tag { width: 118px; height: 15px; border-radius: 999px; }
+.sk-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 2px; }
+.sk-stat { height: 46px; border-radius: 10px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .sk {
+    background-image: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, .55) 50%, transparent 100%);
+    background-size: 220px 100%;
+    background-repeat: no-repeat;
+    animation: sk-shimmer 1.25s linear infinite;
+  }
+  @keyframes sk-shimmer {
+    from { background-position: -220px 0; }
+    to { background-position: calc(100% + 220px) 0; }
+  }
+
+  /* 뼈대가 사라지고 진짜 결과가 들어올 때 한 번 올라오며 나타난다.
+     높이 애니메이션(morphPanel)과 같은 길이라 둘이 같이 끝난다. */
+  .result:not([hidden]).is-entering { animation: result-in .42s cubic-bezier(.22, .61, .36, 1) both; }
+  @keyframes result-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+  }
 }

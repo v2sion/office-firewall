@@ -284,7 +284,7 @@
           <div class="mask-preview" id="mask-preview" hidden>
             <div class="mask-preview-head">서버로 실제 전송되는 텍스트 <span class="mask-summary" id="mask-summary">검출 없음</span></div>
             <pre id="mask-preview-body"></pre>
-            <p class="mask-note">토큰 맵(어떤 토큰이 누구인지)은 이 브라우저 메모리에만 있으며 전송·저장되지 않습니다.</p>
+            <p class="mask-note">가려진 자리가 원래 누구였는지는 이 브라우저 안에만 잠깐 남습니다. 서버로 보내지도, 어디에 저장하지도 않습니다.</p>
           </div>
         </div>
       </div>
@@ -349,6 +349,30 @@
           <div class="progress-step" data-step="analyze"><span class="dot"></span>숨은 요구 분석 중</div>
           <div class="progress-step" data-step="reply"><span class="dot"></span>답장 3개 만드는 중</div>
         </div>
+      </div>
+
+      <!--
+        분석 중에 보이는 **결과의 뼈대**.
+
+        예전에는 실행을 누르면 오른쪽이 대기 문구 그대로 멈춰 있다가, 끝나는
+        순간 결과가 통째로 튀어나왔다. 패널 높이가 420px 에서 1,200px 로 한
+        프레임 만에 뛰니 "만들어지는 중"이 아니라 "화면이 튀었다"로 읽힌다.
+
+        뼈대를 먼저 깔아 두면 두 가지가 해결된다. 무엇이 어디에 올지 미리
+        보이고(점수 · 해설 · 답장 3개), 결과가 들어올 때 높이 차이가 작아
+        전환이 덜컥거리지 않는다.
+      -->
+      <div class="skeleton" id="skeleton" hidden aria-hidden="true">
+        <div class="sk-card">
+          <div class="sk-row"><span class="sk sk-score"></span><span class="sk sk-meta"></span></div>
+          <span class="sk sk-bar"></span>
+          <span class="sk sk-line"></span>
+          <span class="sk sk-line w80"></span>
+          <div class="sk-stats"><span class="sk sk-stat"></span><span class="sk sk-stat"></span><span class="sk sk-stat"></span></div>
+        </div>
+        <div class="sk-card sk-reply"><span class="sk sk-tag"></span><span class="sk sk-line"></span><span class="sk sk-line w60"></span></div>
+        <div class="sk-card sk-reply"><span class="sk sk-tag"></span><span class="sk sk-line"></span><span class="sk sk-line w60"></span></div>
+        <div class="sk-card sk-reply"><span class="sk sk-tag"></span><span class="sk sk-line"></span><span class="sk sk-line w60"></span></div>
       </div>
 
       <!-- 혼잡 안내. 에러가 아니라 "AI 분석만 빠졌다"는 상태라 결과 위에 둔다. -->
@@ -637,17 +661,25 @@
         <p class="feedback-hint">분석하신 메시지 원문이나 실명은 넣지 말아주세요. 이 폼의 내용만 전달됩니다.</p>
 
         <label class="feedback-label" for="fb-contact">연락처 <span class="optional">선택</span></label>
+        <!--
+          이 안내는 placeholder 가 아니라 **화면에 남는 문장**이다.
+          한 문장으로 쓰면 390px 폭에서 입력칸 안에 다 들어가지 않아
+          "…받고 싶으시면 이메"에서 잘린다. 잘린 안내는 안내가 아니다.
+          칸 위에 두면 폭과 상관없이 끝까지 읽히고, 칸 안에는 무엇을 넣는
+          자리인지만 남긴다.
+        -->
+        <p class="feedback-hint feedback-hint-lead">답변이나 업데이트 소식을 받고 싶으시면 이메일 주소를 남겨주세요.</p>
         <input
           id="fb-contact"
           class="feedback-input"
           type="text"
           maxlength="200"
           autocomplete="email"
-          placeholder="이메일 주소 (답변이나 업데이트 소식을 받고 싶으시면)"
+          placeholder="이메일 주소"
         />
         <label class="feedback-check">
           <input type="checkbox" id="fb-updates" />
-          <span>업데이트 소식을 받아볼래요 <em class="feedback-note">(준비되면 메일로 안내드려요)</em></span>
+          <span>업데이트 소식을 받아볼래요. <em class="feedback-note">(소식 전달 외 목적으로 사용하지 않습니다.)</em></span>
         </label>
 
         <div class="feedback-actions">
