@@ -148,19 +148,23 @@
   </header>
 
   <!--
-    홈 화면에 추가 배너.
+    홈 화면에 추가 배너 — 상단에 떠 있는 카드(position: fixed).
 
     기본은 숨김이고, 설치가 실제로 가능할 때만 main.js 가 연다. 안드로이드/크롬은
     beforeinstallprompt 가 왔을 때, iOS 사파리는 설치 프롬프트 API 가 없어서
     직접 안내 문구를 띄운다(문구는 main.js 가 갈아끼운다).
 
-    상단바 바로 아래에 두는 이유: 우하단은 이미 '맨 위로'와 '의견 보내기'
+    **자리를 차지하지 않는다.** 문서 흐름에 두면 배너가 뜨고 질 때마다 아래
+    내용이 통째로 밀려서, 읽던 자리를 잃는다. 떠 있게 두고 닫으면 흔적 없이
+    사라진다.
+
+    우하단이 아니라 상단인 이유: 우하단은 이미 '맨 위로'와 '의견 보내기'
     플로팅 버튼이 쓰고 있어서, 배너를 거기 두면 실행 버튼까지 세 겹으로 겹친다.
   -->
-  <div class="install-banner" id="install-banner" hidden>
+  <div class="install-banner" id="install-banner" hidden role="status">
     <img class="install-banner-icon" src="/icon-192.png" alt="" width="34" height="34" />
     <div class="install-banner-body">
-      <p class="install-banner-title">앱처럼 홈 화면에 두고 쓰세요</p>
+      <p class="install-banner-title" id="install-banner-title">앱처럼 홈 화면에 두고 쓰세요</p>
       <p class="install-banner-sub" id="install-banner-sub">설치해도 용량을 거의 쓰지 않습니다.</p>
     </div>
     <button type="button" class="install-banner-cta" id="install-accept">설치</button>
@@ -337,12 +341,48 @@
           <p class="care-title" id="care-title"></p>
           <p class="care-body" id="care-body"></p>
           <button type="button" class="care-history" id="care-history">📁 나의 방어 기록 보기</button>
-          <div class="care-links">
-            <a class="care-link" href="https://welfare.comwel.or.kr/default/eap/board.do?mCode=D020010000" target="_blank" rel="noopener noreferrer">
-              근로복지공단 EAP 무료 심리상담 →
+          <!--
+            도움받을 수 있는 곳.
+
+            예전에는 근로복지공단 EAP 하나만 걸어 뒀다. 그런데 그 프로그램은
+            **중소기업 재직자 등 대상이 정해져 있어서**, 해당되지 않는 사람에게는
+            눌러 봐야 "대상이 아닙니다"로 끝나는 링크다. 힘들어서 누른 사람에게
+            그 경험을 주면 안 된다.
+
+            그래서 **조건 없이 누구나 쓸 수 있는 창구를 먼저** 놓고, 조건이 있는
+            것은 조건을 라벨로 밝혀 뒤에 둔다. 전화번호는 tel: 로 걸어 둬서
+            휴대폰에서는 바로 연결된다 — 힘든 상태에서 번호를 옮겨 적게 하지
+            않는다.
+          -->
+          <div class="care-links" id="care-links">
+            <p class="care-links-title">도움받을 수 있는 곳</p>
+
+            <a class="care-link" href="tel:1350" target="_blank" rel="noopener noreferrer">
+              <span class="care-tag">누구나</span>
+              <span class="care-link-text"><b>1350</b> 직장 내 괴롭힘·근로조건 상담</span>
+              <span class="care-link-sub">고용노동부 고객상담센터 · 무료</span>
             </a>
-            <a class="care-link care-link-sub" id="care-wanted" href="https://www.wanted.co.kr" target="_blank" rel="noopener noreferrer">
-              원티드에서 나를 인정해 주는 팀 찾아보기 →
+
+            <a class="care-link" href="tel:1577-0199" target="_blank" rel="noopener noreferrer">
+              <span class="care-tag">누구나</span>
+              <span class="care-link-text"><b>1577-0199</b> 마음이 많이 힘들 때</span>
+              <span class="care-link-sub">정신건강 상담전화 · 24시간 · 무료</span>
+            </a>
+
+            <a class="care-link" href="https://gabjil119.com" target="_blank" rel="noopener noreferrer">
+              <span class="care-tag">누구나</span>
+              <span class="care-link-text">직장갑질119 무료 제보·상담</span>
+              <span class="care-link-sub">노무사·변호사가 답변하는 민간 단체</span>
+            </a>
+
+            <a class="care-link" href="https://welfare.comwel.or.kr/default/eap/board.do?mCode=D020010000" target="_blank" rel="noopener noreferrer">
+              <span class="care-tag care-tag-cond">조건 확인</span>
+              <span class="care-link-text">근로복지공단 EAP 심리상담</span>
+              <span class="care-link-sub">중소기업 재직자·특고·프리랜서 대상</span>
+            </a>
+
+            <a class="care-link care-link-wanted" id="care-wanted" href="https://www.wanted.co.kr" target="_blank" rel="noopener noreferrer">
+              <span class="care-link-text">원티드에서 나를 인정해 주는 팀 찾아보기</span>
             </a>
           </div>
         </aside>
@@ -551,9 +591,11 @@
 
           <div class="receipt-rule receipt-rule-light"></div>
 
+          <!-- 공유되는 이미지라 링크가 아니라 번호를 적는다. EAP 는 대상이
+               정해져 있어서, 누구나 걸 수 있는 번호로 바꿨다. -->
           <p class="receipt-eap">
             힘든 날엔 혼자 참지 마세요.<br>
-            근로복지공단 EAP 무료 심리상담 (welfare.comwel.or.kr)
+            직장 내 괴롭힘 상담 1350 · 마음이 힘들 때 1577-0199
           </p>
 
           <p class="receipt-disclaimer">* 심리적 체감 지표는 실측값이 아니라, 방어 행동 후 체감을 참고로 환산한 값입니다</p>
@@ -567,17 +609,14 @@
         <button type="button" class="receipt-action" id="receipt-save">이미지로 저장하기</button>
         <button type="button" class="receipt-action" id="receipt-copy">이미지 복사하기</button>
       </div>
-      <!-- 카드 안의 두 제안(원티드·EAP)은 이미지라 누를 수 없다. 모달에는 둘 다
-           실제 링크로 둔다 — 원티드 쪽은 EAP 와 달리 내 정보(연차·직군)에 맞춘
-           주소라 wantedUrl(context) 로 매번 새로 만든다. -->
-      <div class="receipt-links">
-        <a class="receipt-eap-link" id="receipt-wanted-link" href="https://www.wanted.co.kr/wdlist" target="_blank" rel="noopener noreferrer">
-          내 연차에 맞는 원티드 채용 공고 보기 →
-        </a>
-        <a class="receipt-eap-link" href="https://welfare.comwel.or.kr/default/eap/board.do?mCode=D020010000" target="_blank" rel="noopener noreferrer">
-          근로복지공단 EAP 무료 심리상담 신청 바로가기 →
-        </a>
-      </div>
+      <!--
+        상담·채용 바로가기는 여기에 두지 않는다.
+
+        모달 맨 아래는 작은 화면에서 카드에 밀려 잘리거나, 잘리지 않아도 시선이
+        닿지 않는 자리다(영수증 카드 자체가 세로로 길다). 같은 링크를 결과 화면
+        본문의 '도움받을 수 있는 곳'에 제대로 된 크기로 뒀다 — 영수증 발급 버튼
+        바로 위라 이미 지나온 자리다.
+      -->
       <p class="receipt-status" id="receipt-status" aria-live="polite"></p>
     </div>
   </div>

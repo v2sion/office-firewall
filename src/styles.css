@@ -697,11 +697,47 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 .care-serious { border-left: 3px solid var(--accent-dim); }
 .care-title { margin: 0; font-size: 13px; font-weight: 700; color: var(--text); }
 .care-body { margin: 6px 0 0; font-size: 12px; line-height: 1.65; color: var(--text-dim); }
-.care-links { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 10px; }
-.care-link { font-size: 12px; font-weight: 600; color: var(--accent); text-decoration: none; }
-.care-link:hover { text-decoration: underline; }
-.care-link-sub { font-weight: 500; color: var(--text-dim); }
-.care-link-sub:hover { color: var(--accent); }
+/* 도움받을 수 있는 곳.
+   작은 텍스트 링크 두 개였던 자리다. 힘든 상태에서 누를 대상이라 손가락이
+   닿는 크기가 필요하고, 조건이 있는 창구는 누르기 **전에** 그 사실이 보여야
+   한다(눌러서 "대상이 아닙니다"를 보는 게 최악이다). */
+.care-links { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.care-links-title {
+  margin: 0 0 2px; font-size: 12px; font-weight: 700; color: var(--text-dim);
+}
+.care-link {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 8px;
+  align-items: baseline;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-panel);
+  text-decoration: none;
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.care-link:hover { border-color: var(--accent); background: var(--bg-soft); }
+.care-tag {
+  grid-row: 1 / span 2;
+  align-self: center;
+  flex-shrink: 0;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+/* 조건이 있는 창구는 색부터 다르게 — "누구나"와 같은 색이면 라벨을 안 읽는다. */
+.care-tag-cond { background: var(--bg-soft); color: var(--text-dim); border: 1px solid var(--line); }
+.care-link-text { font-size: 12.5px; font-weight: 600; color: var(--text); word-break: keep-all; }
+.care-link-text b { color: var(--accent); font-variant-numeric: tabular-nums; }
+.care-link-sub { font-size: 11.5px; color: var(--text-faint); word-break: keep-all; }
+/* 채용 링크는 상담 창구와 성격이 달라 라벨 없이 한 줄로 둔다. */
+.care-link-wanted { grid-template-columns: 1fr; margin-top: 2px; }
+.care-link-wanted .care-link-text { color: var(--accent); font-weight: 600; }
 
 .section-title { font-size: 13px; font-weight: 700; color: var(--text-dim); margin: 0 0 10px; }
 .reply {
@@ -965,7 +1001,6 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   text-decoration: none;
 }
 .receipt-eap-link:hover { text-decoration: underline; }
-.receipt-links { display: flex; flex-direction: column; gap: 7px; align-items: center; text-align: center; }
 
 .receipt-status { font-size: 11.5px; color: var(--text-faint); min-height: 1em; margin: 0; text-align: center; }
 
@@ -1477,15 +1512,36 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 
 
 /* ── 홈 화면에 추가 배너 ─────────────────────────────
-   상단바 바로 아래의 한 줄짜리 띠. 우하단은 플로팅 버튼 두 개가 이미
-   쓰고 있어서 거기에 두지 않았다(실행 버튼까지 세 겹으로 겹친다). */
+   상단바 아래에 **떠 있는** 카드. 문서 흐름에 두면 배너가 뜨고 질 때마다
+   아래 내용이 통째로 밀려서 읽던 자리를 잃는다. 우하단은 플로팅 버튼 두 개가
+   이미 쓰고 있어서 거기에 두지 않았다(실행 버튼까지 세 겹으로 겹친다).
+
+   z-index 는 모달(100)보다 낮게 둔다 — 진입 스토리나 영수증이 열렸을 때
+   배너가 그 위로 튀어나오면 안 된다. */
 .install-banner {
+  position: fixed;
+  z-index: 60;
+  top: calc(var(--topbar-h) + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 24px);
+  max-width: 460px;
   display: flex;
   align-items: center;
   gap: 11px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--line);
-  background: var(--bg-soft);
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-panel);
+  box-shadow: var(--shadow-lg);
+  animation: install-in var(--dur) var(--ease);
+}
+@keyframes install-in {
+  from { opacity: 0; transform: translate(-50%, -8px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .install-banner { animation: none; }
 }
 .install-banner-icon { border-radius: 8px; flex-shrink: 0; }
 .install-banner-body { flex: 1; min-width: 0; }
@@ -1509,8 +1565,11 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 }
 .install-banner-close:hover { background: var(--bg-panel); color: var(--text); }
 
+/* 설치 완료 안내로 바뀌면 누를 것이 없다 — 강조를 걷고 닫기만 남긴다. */
+.install-banner.is-done { border-color: var(--accent-dim); }
+
 @media (max-width: 460px) {
-  .install-banner { padding: 9px 12px; gap: 9px; }
+  .install-banner { padding: 9px 10px; gap: 9px; }
   .install-banner-title { font-size: 12.5px; }
   .install-banner-sub { font-size: 11.5px; }
 }

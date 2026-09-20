@@ -219,6 +219,7 @@ const el = {
   careTitle: $('care-title'),
   careBody: $('care-body'),
   careWanted: $('care-wanted'),
+  careWantedText: document.querySelector('#care-wanted .care-link-text'),
   toneNote: $('tone-note'),
   togglePreview: $('toggle-preview'),
   maskPreview: $('mask-preview'),
@@ -257,6 +258,7 @@ const el = {
   restoredNoteBody: $('restored-note-body'),
   restoredExit: $('restored-exit'),
   installBanner: $('install-banner'),
+  installBannerTitle: $('install-banner-title'),
   installBannerSub: $('install-banner-sub'),
   installAccept: $('install-accept'),
   installDismiss: $('install-dismiss'),
@@ -281,7 +283,6 @@ const el = {
   receiptSave: $('receipt-save'),
   receiptCopy: $('receipt-copy'),
   receiptStatus: $('receipt-status'),
-  receiptWantedLink: $('receipt-wanted-link'),
   rcIssued: $('rc-issued'),
   rcJob: $('rc-job'),
   rcVillain: $('rc-villain'),
@@ -872,7 +873,8 @@ function renderCare(risk, context) {
   const serious = risk.score > 40; // 주의 이상
   // 문구만 주지 말고 내 연차에 맞는 공고 목록으로 바로 보낸다.
   el.careWanted.href = wantedUrl(context);
-  el.careWanted.textContent = `${context?.level || ''} 경력으로 열려 있는 채용 보기 →`.trim();
+  // 링크 안에 라벨 span 이 함께 있어서 통째로 갈아끼우면 구조가 날아간다.
+  el.careWantedText.textContent = `${context?.level || ''} 경력으로 열려 있는 채용 보기`.trim();
   el.care.classList.toggle('care-serious', serious);
   el.careWanted.hidden = risk.score <= 60; // 경계·심각에서만
 
@@ -1491,9 +1493,6 @@ function openReceiptModal() {
   el.rcHp.textContent = `+${data.mentalHp} HP`;
   el.rcRisk.textContent = `${data.politicalRiskPercent}% (${data.politicalRiskNote})`;
   el.rcCount.textContent = String(count);
-  // 카드 안의 원티드 문구는 이미지라 누를 수 없다. 모달의 링크만 실제로 동작하고,
-  // 케어 블록과 같은 규칙(연차·직군)으로 주소를 맞춘다.
-  el.receiptWantedLink.href = wantedUrl(context);
 
   el.receiptStatus.textContent = '';
   openModal(el.receiptModal);
@@ -1827,8 +1826,11 @@ function showInstallBanner({ ios }) {
     return;
   }
   pendingInstall = null;
+  el.installBanner.classList.remove('is-done');
   // iOS 는 누를 버튼이 없다. 버튼을 남겨 두면 눌러도 아무 일이 없는 버튼이 된다.
   el.installAccept.hidden = ios;
+  // 데스크톱에는 홈 화면이 없다. 거기서 "홈 화면에 두고 쓰세요"는 틀린 약속이다.
+  el.installBannerTitle.textContent = isMobile ? '앱처럼 홈 화면에 두고 쓰세요' : '앱처럼 창으로 띄워 두고 쓰세요';
   el.installBannerSub.textContent = ios
     ? '아래 공유 버튼을 누르고 "홈 화면에 추가"를 선택하세요.'
     : '설치해도 용량을 거의 쓰지 않습니다.';
@@ -1842,6 +1844,7 @@ function flushPendingInstall() {
 
 function hideInstallBanner() {
   el.installBanner.hidden = true;
+  el.installBanner.classList.remove('is-done');
 }
 
 window.addEventListener('beforeinstallprompt', (e) => {
@@ -1851,10 +1854,36 @@ window.addEventListener('beforeinstallprompt', (e) => {
   showInstallBanner({ ios: false });
 });
 
+/**
+ * 설치가 끝난 뒤 **어디로 갔는지** 알려 준다.
+ *
+ * 아이콘이 어디에 놓이는지는 브라우저와 OS 가 정한다. 웹에서 위치를 지정할
+ * 방법은 없다. 그래서 "설치했는데 안 보인다"가 생기는데, 실제로는 플랫폼마다
+ * 간 곳이 다르다.
+ *
+ *  - 안드로이드 크롬: 홈 화면 + 앱 서랍. 런처 설정에 따라 앱 서랍에만 들어간다.
+ *  - 데스크톱 크롬/엣지: 홈 화면이라는 개념이 없다. 앱 목록·작업 표시줄에 앉는다.
+ *  - iOS 사파리: 공유 시트로 직접 추가하므로 항상 홈 화면이다(appinstalled 이벤트
+ *    자체가 오지 않아 이 경로를 타지 않는다).
+ *
+ * 위치를 바꿔 줄 수는 없으니, 찾는 곳이라도 정확히 말해 준다.
+ */
+const isMobile = navigator.userAgentData?.mobile ?? /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+function showInstalledNote() {
+  el.installBanner.classList.add('is-done');
+  el.installAccept.hidden = true;
+  el.installBannerTitle.textContent = '설치를 마쳤습니다';
+  el.installBannerSub.textContent = isMobile
+    ? '홈 화면에 "방화벽"이 추가됩니다. 안 보이면 앱 서랍(전체 앱)에서 찾아 홈 화면으로 끌어다 놓으세요.'
+    : '홈 화면 대신 앱 목록에 설치됩니다. 크롬 주소창의 앱 아이콘이나 시작 메뉴에서 "방화벽"을 찾으세요.';
+  el.installBanner.hidden = false;
+}
+
 window.addEventListener('appinstalled', () => {
   installPrompt = null;
   markInstallDismissed();
-  hideInstallBanner();
+  showInstalledNote();
 });
 
 el.installAccept.addEventListener('click', async () => {
