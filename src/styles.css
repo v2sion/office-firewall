@@ -701,10 +701,35 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
    작은 텍스트 링크 두 개였던 자리다. 힘든 상태에서 누를 대상이라 손가락이
    닿는 크기가 필요하고, 조건이 있는 창구는 누르기 **전에** 그 사실이 보여야
    한다(눌러서 "대상이 아닙니다"를 보는 게 최악이다). */
-.care-links { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+/* 접혀 있을 때는 한 줄, 펼치면 창구 목록. 펼친 상태에서만 세로 간격을 준다
+   (접힌 <details> 에 gap 을 주면 summary 아래에 빈 칸이 남는다). */
+.care-links { margin-top: 12px; }
+.care-links[open] { display: flex; flex-direction: column; gap: 6px; }
 .care-links-title {
-  margin: 0 0 2px; font-size: 12px; font-weight: 700; color: var(--text-dim);
+  display: flex; align-items: center; gap: 6px;
+  margin: 0; padding: 8px 10px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--bg-panel);
+  font-size: 12.5px; font-weight: 700; color: var(--text-dim);
+  cursor: pointer; list-style: none;
+  transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease);
 }
+.care-links-title::-webkit-details-marker { display: none; }
+/* 기본 삼각형 대신 방향이 분명한 화살표를 직접 그린다. */
+.care-links-title::after {
+  content: '⌄';
+  margin-left: auto;
+  font-size: 14px; line-height: 1;
+  transition: transform var(--dur) var(--ease);
+}
+.care-links[open] .care-links-title::after { transform: rotate(180deg); }
+.care-links-title:hover { border-color: var(--accent); color: var(--accent); }
+.care-links-count {
+  padding: 2px 7px; border-radius: 999px;
+  background: var(--bg-soft); color: var(--text-faint);
+  font-size: 11px; font-weight: 600;
+}
+.care-links[open] .care-links-title { margin-bottom: 2px; }
 .care-link {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -915,18 +940,22 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 .receipt-close:active { transform: scale(.92); }
 
 /* ── 영수증 카드 (실제 캡처 대상) — 종이 영수증 느낌으로 앱과 다른 결을 준다 ── */
+/* 아래쪽 톱니(clip-path)를 뺐다.
+
+   화면에서는 영수증이 뜯긴 모양으로 읽혔지만, **이미지로 내보내면 톱니 사이가
+   투명해진다.** 공유받은 쪽의 대화방 배경(밝은 테마면 흰색, 어두운 테마면
+   검정)이 그 사이로 비치면서 카드가 뜯긴 게 아니라 **잘못 잘린 것처럼** 보였다.
+   받는 사람은 이게 디자인인지 오류인지 알 수 없다.
+
+   영수증다움은 톱니가 아니라 크림색 용지·점선 구분선·mono 숫자가 이미 만들고
+   있어서, 톱니를 빼도 성격은 그대로다. 내보낼 때 배경색을 함께 칠해
+   (captureReceiptPng) 투명 영역 자체를 없앴다. */
 .receipt-card {
   width: 100%;
   background: #f6f1e4;
   color: #2a2620;
-  border-radius: 4px;
+  border-radius: 10px;
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
-  clip-path: polygon(
-    0% 0%, 100% 0%, 100% 97%,
-    95% 100%, 90% 97%, 85% 100%, 80% 97%, 75% 100%, 70% 97%, 65% 100%,
-    60% 97%, 55% 100%, 50% 97%, 45% 100%, 40% 97%, 35% 100%, 30% 97%,
-    25% 100%, 20% 97%, 15% 100%, 10% 97%, 5% 100%, 0% 97%
-  );
 }
 /* 카드 전체를 mono 로 두던 자리다. --mono 는 라틴 전용 스택이라 한글만
    시스템 글꼴로 떨어지면서, 같은 행 안에서 "주말 도둑형 상사"와 "+5.5 Hours"의
@@ -935,7 +964,7 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
    본문은 --font 로 통일하고, mono 는 아래에서 라틴·숫자 전용 자리에만 남긴다.
    영수증 특유의 결은 tabular-nums 와 자간이 대신 맡는다. */
 .receipt-card-inner {
-  padding: 22px 22px 30px;
+  padding: 22px 22px 24px;
   font-family: var(--font);
   font-variant-numeric: tabular-nums;
 }
@@ -1030,7 +1059,7 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 
 @media (max-width: 460px) {
   .receipt-modal { padding: 16px 12px; }
-  .receipt-card-inner { padding: 18px 16px 26px; }
+  .receipt-card-inner { padding: 18px 16px 20px; }
 }
 
 /* ── 상단바 우측 (기록 버튼) ─────────────────────────────── */
@@ -1188,16 +1217,6 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   border-radius: 9px; background: var(--accent); color: #fff;
   font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums;
 }
-.care-history {
-  display: inline-flex; align-items: center; gap: 6px;
-  margin: 10px 0 2px; padding: 8px 13px; min-height: 36px;
-  border: 1px solid var(--accent-dim); border-radius: 8px;
-  background: transparent; color: var(--accent);
-  font-family: var(--font); font-size: 13px; font-weight: 600; cursor: pointer;
-  transition: background .12s, border-color .12s;
-}
-.care-history:hover { background: #0066ff14; border-color: var(--accent); }
-@media (max-width: 991px) { .care-history { min-height: 44px; } }
 
 /* ── 첫 진입 스토리 ─────────────────────────────
    기능 설명 전에 "왜 이게 필요한가"를 장면으로 전한다. 전체 화면을 덮지만
@@ -1480,11 +1499,11 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 
 /* 그 외 조작 버튼 — 누르면 반응한다 */
 .copy-btn, .receipt-open, .feedback-submit, .intro-next, .intro-back,
-.preset-run, .history-open, .care-history, .receipt-save, .receipt-copy {
+.preset-run, .history-open, .receipt-save, .receipt-copy {
   transition: background var(--dur-fast), border-color var(--dur-fast), color var(--dur-fast), transform var(--dur-fast), box-shadow var(--dur-fast);
 }
 .copy-btn:active, .receipt-open:active, .feedback-submit:active, .intro-next:active,
-.intro-back:active, .preset-run:active, .history-open:active, .care-history:active,
+.intro-back:active, .preset-run:active, .history-open:active,
 .receipt-save:active, .receipt-copy:active { transform: scale(.97); }
 .receipt-open { box-shadow: var(--shadow-sm); }
 .receipt-open:hover { box-shadow: var(--shadow-md); }
@@ -1528,7 +1547,7 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   .result:not([hidden]), .reply { animation: none; }
   .chip:active, .preset:active, .run:hover:not(:disabled), .run:active:not(:disabled),
   .copy-btn:active, .receipt-open:active, .feedback-submit:active, .intro-next:active,
-  .intro-back:active, .preset-run:active, .history-open:active, .care-history:active,
+  .intro-back:active, .preset-run:active, .history-open:active,
   .receipt-save:active, .receipt-copy:active, .to-top:active { transform: none; }
 }
 

@@ -22,7 +22,14 @@
  * 해시가 붙은 정적 자산(/assets/index-XXXX.js)만 캐시 우선으로 둔다. 내용이
  * 바뀌면 파일 이름이 바뀌므로 낡은 것을 돌려줄 수가 없다.
  */
-const VERSION = 'ofw-v1';
+/**
+ * 버전을 올리면 activate 에서 이전 캐시를 전부 지운다.
+ *
+ * 해시가 붙은 자산은 이름이 곧 버전이라 낡을 수 없지만, 캐시에 남은 옛 자산이
+ * 용량만 차지하고 "업데이트가 반영 안 된 것 같다"는 의심을 만든다. 배포에서
+ * 캐시 동작이 달라졌거나 그런 의심이 생기면 이 숫자를 올린다.
+ */
+const VERSION = 'ofw-v2';
 const SHELL = `${VERSION}-shell`;
 
 self.addEventListener('install', (e) => {

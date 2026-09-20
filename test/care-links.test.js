@@ -22,7 +22,7 @@ const html = readFileSync(join(root, 'index.html'), 'utf8');
 
 /** #care-links 안의 링크를 순서대로 뽑는다. */
 function careLinks() {
-  const block = html.slice(html.indexOf('<div class="care-links"'), html.indexOf('</aside>'));
+  const block = html.slice(html.indexOf('class="care-links"'), html.indexOf('</aside>'));
   return [...block.matchAll(/<a class="care-link([^"]*)"[^>]*href="([^"]+)"[\s\S]*?<\/a>/g)].map((m) => ({
     cls: m[1],
     href: m[2],
@@ -104,4 +104,35 @@ test('공유되는 영수증 카드의 상담 안내도 조건 없는 창구다'
   assert.ok(!/comwel|EAP/.test(card), '이미지에 조건부 창구가 남아 있다');
   assert.match(card, /1350/);
   assert.match(card, /1577-0199/);
+});
+
+
+/**
+ * 상담 창구는 접어 둔다.
+ *
+ * 펼쳐 두면 창구 4개가 200px 넘게 차지하는데 이 블록이 **추천 답장 위에** 있다.
+ * 결과를 보러 온 사람이 답장을 보려면 상담 창구를 전부 지나쳐야 했다 —
+ * 급하지 않은 것이 급한 것을 가리는 배치였다.
+ *
+ * 이 창구가 필요한 순간은 답장을 확인한 다음이다. 필요 없는 사람에게는 한 줄,
+ * 필요한 사람에게는 한 번의 탭이면 된다.
+ */
+test('상담 창구는 기본이 접힌 상태다', () => {
+  const at = html.indexOf('class="care-links"');
+  const openTag = html.slice(html.lastIndexOf('<', at), html.indexOf('>', at) + 1);
+  assert.match(openTag, /^<details/, `<details> 가 아니다: ${openTag}`);
+  assert.ok(!/\sopen[\s>]/.test(openTag), '기본이 펼친 상태다 — 답장이 다시 밀려난다');
+  assert.match(html.slice(at), /<summary class="care-links-title"/, 'summary 가 없다');
+});
+
+test('결과 화면에서 상담 창구가 추천 답장보다 위에 있다 (접혀 있어야 하는 이유)', () => {
+  const care = html.indexOf('class="care-links"');
+  const replies = html.indexOf('<article class="replies">');
+  assert.ok(care >= 0 && replies >= 0, '구조를 찾지 못했다');
+  assert.ok(care < replies, '순서가 바뀌었다면 접는 근거를 다시 따져야 한다');
+});
+
+test('결과 안쪽에 방어 기록 버튼을 중복해 두지 않는다 (상단바에 항상 있다)', () => {
+  assert.ok(!html.includes('id="care-history"'), '케어 블록에 기록 버튼이 남아 있다');
+  assert.match(html, /class="history-open"/, '상단바 기록 버튼이 사라졌다');
 });

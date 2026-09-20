@@ -295,7 +295,6 @@ const el = {
   rcCount: $('rc-count'),
   historyOpen: $('history-open'),
   historyBadge: $('history-badge'),
-  careHistory: $('care-history'),
   historyModal: $('history-modal'),
   historyBackdrop: $('history-backdrop'),
   historyClose: $('history-close'),
@@ -1503,10 +1502,20 @@ function closeReceiptModal() {
   closeModal(el.receiptModal);
 }
 
+/**
+ * 내보낼 때 배경색을 반드시 칠한다.
+ *
+ * 카드에 둥근 모서리가 있어서, 배경을 지정하지 않으면 네 귀퉁이가 투명하게
+ * 남는다. 공유받은 쪽의 대화방 배경(밝은 테마면 흰색, 어두운 테마면 검정)이
+ * 거기로 비치면 카드가 잘못 잘린 것처럼 보인다. 카드와 같은 색으로 칠해
+ * 투명 픽셀 자체를 없앤다.
+ */
+const RECEIPT_BG = '#f6f1e4';
+
 async function captureReceiptPng() {
   // 폰트 로딩 등으로 인한 첫 캡처 오차를 줄이기 위해 한 프레임 양보한다.
   await new Promise((r) => requestAnimationFrame(r));
-  return toPng(el.receiptCard, { pixelRatio: 2, cacheBust: true });
+  return toPng(el.receiptCard, { pixelRatio: 2, cacheBust: true, backgroundColor: RECEIPT_BG });
 }
 
 async function saveReceiptImage() {
@@ -1537,7 +1546,7 @@ async function copyReceiptImage() {
     // NotAllowedError 로 실패한다 — 화면에는 "브라우저 미지원"으로 잘못 표시된다.
     // ClipboardItem 에 Promise 를 그대로 넘기면 생성이 동기적으로 일어나 이를 피한다.
     const png = new Promise((resolve) => requestAnimationFrame(resolve))
-      .then(() => toBlob(el.receiptCard, { pixelRatio: 2, cacheBust: true }))
+      .then(() => toBlob(el.receiptCard, { pixelRatio: 2, cacheBust: true, backgroundColor: RECEIPT_BG }))
       .then((blob) => {
         if (!blob) throw new Error('blob-failed');
         return blob;
@@ -1687,7 +1696,6 @@ el.receiptBackdrop.addEventListener('click', closeReceiptModal);
 el.receiptSave.addEventListener('click', saveReceiptImage);
 el.receiptCopy.addEventListener('click', copyReceiptImage);
 el.historyOpen.addEventListener('click', openHistoryModal);
-el.careHistory.addEventListener('click', openHistoryModal);
 el.historyClose.addEventListener('click', closeHistoryModal);
 el.historyBackdrop.addEventListener('click', closeHistoryModal);
 el.historyClear.addEventListener('click', onClearHistory);
@@ -1836,9 +1844,15 @@ const isIosSafari =
  * 대부분 카카오 인앱 브라우저에서 열리는데, 여기서는 설치가 아예 불가능하다.
  * 이때 필요한 안내는 설치 방법이 아니라 "기본 브라우저로 열어라"다.
  *
- * 삼성 인터넷은 크로미움 기반이라 설치 자체는 되지만, 버전·설정에 따라
- * beforeinstallprompt 가 오지 않는다는 제보가 있었다. 그때도 메뉴 경로는 살아
- * 있으므로 그쪽을 안내한다.
+ * 삼성 인터넷은 한 겹 더 있다. 크로미움 기반이라 설치는 되지만, 삼성이 직접
+ * 만드는 WebAPK 가 구형 targetSdkVersion 으로 서명돼 최신 안드로이드의
+ * **Google Play Protect 가 "Unsafe app blocked" 로 막는 사례**가 확인됐다.
+ * (실제 문구: "This app was built for an older version of Android and doesn't
+ * include the latest privacy protections.")
+ *
+ * 이건 웹에서 고칠 수 있는 값이 아니다. targetSdkVersion 은 브라우저가 만드는
+ * APK 안에 있고 웹 매니페스트에는 그런 필드가 없다. 그래서 고치는 대신,
+ * 막힐 수 있다는 사실과 **크롬으로 열면 된다**는 우회로를 먼저 알려 준다.
  */
 function installEnv(ua = navigator.userAgent) {
   // 인앱 브라우저를 먼저 본다 — UA 에 Chrome/Safari 표기가 함께 들어 있어서
@@ -1869,7 +1883,7 @@ function installHowTo(env) {
     case 'ios-other':
       return `아이폰에서는 ${env.label}이 아니라 사파리에서만 홈 화면에 추가할 수 있습니다. 사파리로 열어 공유 버튼을 눌러 주세요.`;
     case 'samsung':
-      return '오른쪽 아래 메뉴를 누르고 "현재 페이지 추가" → "홈 화면"을 선택하세요.';
+      return '삼성 인터넷에서는 설치가 Play Protect 에 차단될 수 있습니다. 크롬으로 열어 설치하시면 정상 동작합니다. (삼성 인터넷에서 계속하려면 메뉴 → "현재 페이지 추가" → "홈 화면")';
     case 'firefox':
       return '오른쪽 위 메뉴(⋮)를 누르고 "홈 화면에 추가"를 선택하세요.';
     case 'chromium':
