@@ -70,6 +70,25 @@
   -->
   <div class="intro" id="intro" hidden role="dialog" aria-modal="true" aria-labelledby="intro-title">
     <div class="intro-panel">
+      <!--
+        서비스명은 **네 장 내내 같은 자리**에 둔다.
+
+        예전에는 3장 헤드라인에만 "OFFICE FIREWALL"이 있었다. 1·2장을 읽다가
+        3장에서 갑자기 제목으로 튀어나와 뜬금없었고, 네 장의 생김새도 거기서만
+        달라졌다. 이름은 장마다 등장할 것이 아니라 **처음부터 계속 있어야 할
+        것**이라 진행 표시 위로 올렸다.
+      -->
+      <div class="intro-brandbar">
+        <svg class="intro-brandbar-logo" viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M16 1.6l13 4.6v10.3c0 8-5.3 14.9-13 16.9C8.3 31.4 3 24.5 3 16.5V6.2z" fill="var(--accent)"/>
+          <g fill="var(--bg-panel)">
+            <rect x="7.6" y="11.2" width="7.4" height="3.6" rx="1"/><rect x="16.6" y="11.2" width="7.8" height="3.6" rx="1"/>
+            <rect x="7.6" y="16.4" width="11" height="3.6" rx="1"/><rect x="20.2" y="16.4" width="4.2" height="3.6" rx="1"/>
+            <rect x="7.6" y="21.6" width="5.4" height="3.6" rx="1"/><rect x="14.6" y="21.6" width="9.8" height="3.6" rx="1"/>
+          </g>
+        </svg>
+        <span class="intro-brandbar-name">OFFICE FIREWALL</span>
+      </div>
       <div class="intro-progress" id="intro-progress" aria-hidden="true"></div>
 
       <div class="intro-slides" id="intro-slides">
@@ -89,7 +108,7 @@
 
         <section class="intro-slide" data-slide="2">
           <p class="intro-eyebrow">03. 그래서 준비했습니다</p>
-          <h2 class="intro-headline"><b class="intro-brand">OFFICE FIREWALL</b><br />감정이 아니라 근거로 말할 수 있게.</h2>
+          <h2 class="intro-headline">감정이 아니라<br />근거로 말할 수 있게.</h2>
           <!--
             3장은 한때 218자였다(1·2장은 122자). 세로로 넘쳐서 읽기 전에
             지치는 장이 됐다. 줄인 건 분량이 아니라 **중복**이다.

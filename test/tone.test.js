@@ -124,3 +124,68 @@ test('세기를 올려도 존댓말과 비즈니스 매너를 벗어나지 않�
     assert.ok(!/[!]{1,}/.test(t), `${goal}: 매운맛에 느낌표가 있다`);
   }
 });
+
+/**
+ * 숨은 속사정은 결과에 나타나야 한다.
+ *
+ * 이 값은 ctx 에 담겨만 있고 어디서도 쓰이지 않았다. "주말엔 가족 행사로
+ * 외지에 있음"이라고 적어도 답장이 한 글자도 달라지지 않았다는 뜻이다.
+ * **적은 것이 결과에 나타나지 않으면 그 칸은 없는 것과 같다.**
+ *
+ * 다만 적은 문장을 그대로 옮기지는 않는다. 상대에게 내 사생활을 알릴 이유는
+ * 없고, 그래서 화면에서도 "숨은" 속사정이라 부른다. 거절·지연에 무게를 싣는
+ * 일반화된 근거로만 쓴다.
+ */
+const HIDDEN = '주말엔 가족 행사로 외지에 있고 조카 돌잔치가 있음';
+
+function repliesWith(hiddenContext, over = {}) {
+  const { maskedText } = mask('주말에 미안한데, 월요일 오전에 대표님 보고가 잡혀서요. 시간 날 때 가볍게 한번 봐주시면 좋을 것 같아요. 급한 건 아닙니다!');
+  return buildMockAnalysis(maskedText, {
+    job: '기획·PM/PO', level: '4~6년', counterpart: '직속상사', goal: '칼차단', tone: '보통맛',
+    hiddenContext, ...over,
+  }).replies.map((r) => r.text);
+}
+
+test('숨은 속사정을 적으면 답장이 달라진다', () => {
+  const without = repliesWith('');
+  const withIt = repliesWith(HIDDEN);
+  assert.notEqual(withIt[0], without[0], '1번 답장이 그대로다 — 속사정이 반영되지 않았다');
+  assert.notEqual(withIt[2], without[2], '3번 답장이 그대로다');
+});
+
+test('숨은 속사정을 그대로 옮겨 적지 않는다', () => {
+  for (const text of repliesWith(HIDDEN)) {
+    assert.ok(!text.includes('조카'), '적은 문장이 그대로 상대에게 나간다');
+    assert.ok(!text.includes('돌잔치'), '적은 문장이 그대로 상대에게 나간다');
+    assert.ok(!text.includes('가족 행사'), '적은 문장이 그대로 상대에게 나간다');
+  }
+});
+
+test('수용하는 목적(관계보존)에는 거절 근거를 붙이지 않는다', () => {
+  // 받아들이기로 한 답장에 "선약이 있습니다"가 붙으면 앞뒤가 맞지 않는다.
+  const [first] = repliesWith(HIDDEN, { goal: '관계보존' });
+  assert.ok(!/선약|개인 일정|조율이 어려운/.test(first), '수용 답장에 거절 근거가 들어갔다');
+});
+
+/**
+ * 답장 3종은 **고를 이유가 서로 다른 세 선택지**다.
+ * 셋이 비슷하면 선택지가 하나인 것과 같다.
+ */
+test('답장 3종은 첫 문장이 서로 다르다', () => {
+  for (const goal of GOALS) {
+    for (const tone of ['순한맛', '보통맛', '매운맛']) {
+      const { maskedText } = mask('주말에 미안한데, 월요일 오전에 대표님 보고가 잡혀서요. 시간 날 때 가볍게 한번 봐주시면 좋을 것 같아요.');
+      const texts = buildMockAnalysis(maskedText, {
+        job: '기획·PM/PO', level: '4~6년', counterpart: '직속상사', goal, tone,
+      }).replies.map((r) => r.text.split('. ')[0]);
+      assert.equal(new Set(texts).size, 3, `${goal}/${tone}: 첫 문장이 겹친다 — ${texts.join(' | ')}`);
+    }
+  }
+});
+
+test('2번 답장만 번호 매긴 항목을 요구한다 (셋의 역할이 다르다)', () => {
+  const [one, two, three] = repliesWith('');
+  assert.match(two, /\(1\).*\(2\).*\(3\)/s, '2번이 빈칸을 목록으로 요구하지 않는다');
+  assert.ok(!/\(1\)/.test(one), '1번이 2번과 같은 일을 한다');
+  assert.ok(!/\(1\)/.test(three), '3번이 2번과 같은 일을 한다');
+});

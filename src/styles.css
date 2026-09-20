@@ -1343,6 +1343,15 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   width: 100%; max-width: 560px;
   display: flex; flex-direction: column; gap: 22px;
 }
+/* 네 장 내내 같은 자리를 지키는 서비스명. 진행 표시 바로 위라 "지금 어디"와
+   "무엇에 관한 이야기인지"가 한 덩어리로 읽힌다. */
+.intro-brandbar { display: flex; align-items: center; gap: 7px; margin-bottom: 12px; }
+.intro-brandbar-logo { width: 18px; height: 18px; flex-shrink: 0; }
+.intro-brandbar-name {
+  font-family: var(--mono); font-size: 11.5px; font-weight: 700;
+  letter-spacing: .18em; color: var(--text-faint);
+}
+
 .intro-progress { display: flex; gap: 6px; }
 .intro-progress span {
   height: 3px; flex: 1; border-radius: 2px;
@@ -1442,12 +1451,6 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 .busy-note-title { margin: 0; font-size: 13.5px; font-weight: 700; color: var(--text); }
 .busy-note-body { margin: 5px 0 0; font-size: 12.5px; line-height: 1.65; color: var(--text-dim); white-space: pre-line; }
 
-/* 진입 스토리 3장에서 서비스명을 드러내는 자리. 헤드라인 안에 들어가지만
-   제품명이라 본문 한글과 구분되게 트래킹을 준다. */
-.intro-brand {
-  display: inline-block; margin-bottom: 4px;
-  color: var(--accent); font-weight: 800; letter-spacing: .06em;
-}
 
 /* ── 의견 보내기 (푸터 버튼 → 모달) ─────────────────────────────
    예전에는 페이지 하단 고정 섹션이었다. 늘 펼쳐져 있으면 쓰지 않는

@@ -81,6 +81,38 @@ function hasBatchim(word) {
 const josaI = (w) => (hasBatchim(w) ? '이' : '가');
 const josaEul = (w) => (hasBatchim(w) ? '을' : '를');
 
+/**
+ * 숨은 속사정을 답장의 **근거 한 문장**으로 바꾼다.
+ *
+ * 이 값은 ctx 에 담겨만 있고 어디서도 쓰이지 않았다. 사용자가 "주말엔 가족
+ * 행사로 외지에 있음"이라고 적어도 답장은 한 글자도 달라지지 않았다는 뜻이다.
+ * 적은 것이 결과에 나타나지 않으면 그 칸은 없는 것과 같다.
+ *
+ * 다만 **적은 문장을 그대로 옮기지는 않는다.** 상대에게 내 사생활을 알릴
+ * 이유는 없고, 그래서 화면에서도 "숨은" 속사정이라 부른다. 거절·지연에
+ * 무게를 싣는 일반화된 근거로만 쓴다(prompt.js 의 LIVE 지시와 같은 규칙이다).
+ */
+function groundsFor(ctx) {
+  if (!ctx.hiddenContext) return '';
+  if (ctx.tone === '매운맛') return '조율이 어려운 일정이 이미 잡혀 있습니다.';
+  if (ctx.tone === '순한맛') return '사실 미리 잡아둔 개인 일정이 있어서요.';
+  return '조정이 어려운 선약이 이미 잡혀 있습니다.';
+}
+
+/**
+ * 근거를 **첫 문장 뒤**에 끼운다.
+ *
+ * 앞에 붙였더니 "이번 주말에는 선약이 있습니다. 주말에는 대응이 어렵습니다."
+ * 처럼 같은 말이 두 번 나왔다. 답장의 첫 문장은 결론(수용·거절)이고 근거는
+ * 그 뒤에 오는 게 한국어 업무 메시지의 순서이기도 하다.
+ */
+function withGrounds(text, grounds) {
+  if (!grounds) return text;
+  const at = text.indexOf('. ');
+  if (at < 0) return `${text} ${grounds}`;
+  return `${text.slice(0, at + 1)} ${grounds}${text.slice(at + 1)}`;
+}
+
 function replyTemplates(ctx, maskedText, urgency, ambiguity) {
   const focus = ambiguityFocus(ambiguity);
   const focusI = focus + josaI(focus); // 예: "담당 범위가", "마감 기한이"
@@ -140,7 +172,10 @@ function replyTemplates(ctx, maskedText, urgency, ambiguity) {
   // **사용자가 자기 자신에게 답장을 쓰는 꼴**이 됐다. 제품의 핵심 산출물이
   // 틀리는 버그라 호칭을 아예 뺀다 — 발신자 이름은 입력 어디에도 없으므로
   // 지어낼 수도 없고, 한국어 비즈니스 답장은 호칭 없이 시작해도 자연스럽다.
-  const first = tone.greet + (defense[ctx.goal] || defense['관계보존']) + tone.close;
+  // 속사정이 있으면 거절·지연의 근거로 한 문장 앞세운다. 목적이 '관계보존'
+  // (수용하는 쪽)일 때는 거절 근거가 필요 없어 붙이지 않는다.
+  const grounds = ctx.goal === '관계보존' ? '' : groundsFor(ctx);
+  const first = tone.greet + withGrounds(defense[ctx.goal] || defense['관계보존'], grounds) + tone.close;
 
   const agenda = spicy
     ? `진행 전에 네 가지를 확정해 주십시오. (1) 최종 산출물, (2) 확인 범위, (3) 마감 시각, (4) 담당 주체. 정해지면 일정을 회신하겠습니다.`
@@ -154,10 +189,18 @@ function replyTemplates(ctx, maskedText, urgency, ambiguity) {
       ? `이번 요청, ${focusI} 아직 정해지지 않아서 저도 어디서부터 시작해야 할지 조금 막막했어요. 편하실 때 ${focus}만 살짝 알려주시면 그 안에서 최대한 맞춰서 진행해볼게요.`
       : `이번 요청은 ${focusI} 정해지지 않은 채로 왔습니다. 이대로 진행하면 나중에 다시 손봐야 할 가능성이 커서, 서로 시간을 아끼는 차원에서 ${focus}부터 여쭤봅니다. 알려주시면 그 안에서 정확히 처리하겠습니다.`;
 
+  // 3번은 "나에게 생기는 부담"을 말하는 자리라, 속사정이 있으면 그게 왜
+  // 부담인지가 여기 들어가는 게 맞다. 1번과 다른 문장을 쓴다.
+  const burden = ctx.hiddenContext
+    ? (urgency === '주말 침범'
+        ? ' 이번 주말은 이미 개인 일정이 잡혀 있어, 그 일정을 취소해야 가능한 요청입니다.'
+        : ' 지금 일정이 이미 차 있어, 이 건을 받으면 다른 약속을 미뤄야 합니다.')
+    : '';
+
   return [
     { label: '목적 맞춤형 정밀 방어', text: first },
     { label: '선제적 아젠다 요구', text: agenda },
-    { label: '속마음 분노 세탁 버전', text: laundered },
+    { label: '속마음 분노 세탁 버전', text: laundered + burden },
   ];
 }
 
