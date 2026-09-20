@@ -751,8 +751,9 @@ function zoneProgress() {
     me: count('job', 'level') / 2,
     them: (count('counterpart') + (hasMessage ? 1 : 0)) / 2,
     reply: count('goal', 'tone') / 2,
-    // 실행 조건은 메시지와 관계 두 가지다(관계는 점수를 움직이므로 필수).
-    run: ((hasMessage ? 1 : 0) + (state.counterpart ? 1 : 0)) / 2,
+    // 실행 조건 네 가지. 관계는 점수를, 대응 방향·말투 세기는 답장을 바꾼다
+    // — 넷 다 사용자가 골라야 하는 값이라 진행바도 같은 기준으로 센다.
+    run: ((hasMessage ? 1 : 0) + count('counterpart', 'goal', 'tone')) / 4,
   };
 }
 
@@ -824,11 +825,15 @@ async function run() {
     showError('분석할 내용을 먼저 입력해 주세요. 상황 카드는 예시일 뿐, 직접 입력해야 분석됩니다.');
     return;
   }
-  // counterpart 는 점수를 움직이는 유일한 컨텍스트라 비어 있으면 임의값으로
-  // 채우지 않고 물어본다. 나머지는 없어도 판정이 달라지지 않는다.
-  if (!state.counterpart) {
-    showError('상대방과의 관계를 먼저 골라 주세요. 이 선택이 위험 지수의 권력 비대칭을 결정합니다.');
-    document.querySelector('.selector[data-field="counterpart"]')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  // 버튼이 잠겨 있으면 여기까지 오지 않는다. 그래도 남겨 두는 건 키보드·
+  // 스크립트로 들어오는 경로가 있기 때문이고, **임의값으로 채우지 않기**
+  // 위해서다 — 안 고른 대응 방향을 '관계보존'(수용)으로 메우면 사용자가
+  // 고른 적 없는 입장이 답장에 실린다.
+  const missing = requiredMissing();
+  if (missing.length) {
+    showError(`${missing.join(' · ')}을(를) 먼저 채워 주세요.`);
+    const field = !state.counterpart ? 'counterpart' : !state.goal ? 'goal' : 'tone';
+    document.querySelector(`.selector[data-field="${field}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
     return;
   }
   if (text.length > MAX_CHARS) {
@@ -1653,32 +1658,54 @@ function setHint(msg) {
  * 다른 곳에서 버튼을 건드리면, 쿨다운이 끝나는 순간 필수 입력이 비었는데도
  * 버튼이 살아나는 식으로 어긋난다.
  */
+/**
+ * 실행에 반드시 필요한 것 — **폼에 보이는 순서대로** 돌려준다.
+ *
+ * 처음에는 "점수를 움직이는가"로 필수를 갈랐다. 그 기준이면 관계와 메시지만
+ * 남는다(대응 방향·말투 세기는 점수에 들어가지 않는다). 틀린 기준이었다.
+ * 이 버튼의 이름은 "분석하고 **답장 만들기**"이고, 산출물의 절반이 답장이다.
+ *
+ * 안 고르면 어떻게 되는지가 문제의 핵심이었다. 기본값이 '관계보존'인데,
+ * 그 뜻은 "요구는 수용하되 범위와 기한을 좁혀 재정의한다"다 — **수용**이다.
+ *
+ *   안 고름  → "확인하겠습니다. 현재 일정상 핵심 항목을 우선 확인해…"
+ *   칼차단   → "주말 업무는 받지 않습니다. 월요일 업무 시작 후 처리하겠습니다."
+ *
+ * 거절하려고 들어온 사람에게 **자기가 고른 적 없는 수용 답장**이 나갔다.
+ * 게다가 이 둘은 prefs 에 저장되지 않아(PREF_FIELDS 는 job·level 뿐) 방문할
+ * 때마다 같은 일이 반복된다. 고르게 해야 한다.
+ *
+ * 직군·연차는 필수로 두지 않는다. 판정에도 답장에도 들어가지 않고(영수증
+ * 표기와 이직 링크의 연차 필터에만 쓰인다), prefs 에 저장돼 다시 오면 이미
+ * 채워져 있다.
+ */
 function requiredMissing() {
   const text = el.message.value.trim();
-  return {
-    counterpart: !state.counterpart,
-    message: !text,
-    tooLong: text.length > MAX_CHARS,
-    length: text.length,
-  };
+  return [
+    !state.counterpart && '상대방과의 관계',
+    !text && '받은 메시지',
+    !state.goal && '대응 방향',
+    !state.tone && '말투 세기',
+  ].filter(Boolean);
 }
 
 function syncRunButton() {
-  const need = requiredMissing();
+  const missing = requiredMissing();
+  const length = el.message.value.trim().length;
+  const tooLong = length > MAX_CHARS;
   const cooling = Date.now() < cooldownUntil;
-  el.run.disabled = busy || cooling || need.counterpart || need.message || need.tooLong;
+  el.run.disabled = busy || cooling || missing.length > 0 || tooLong;
 
   // 바쁨·쿨다운일 때의 문구는 각자(setBusy·startCooldownTimer)가 쓴다.
   if (busy || cooling) return;
 
-  if (need.tooLong) {
-    setHint(`메시지는 ${MAX_CHARS}자까지 분석합니다. 현재 ${need.length}자입니다.`);
-  } else if (need.counterpart && need.message) {
-    setHint('상대방과의 관계를 고르고 받은 메시지를 넣으면 실행할 수 있어요.');
-  } else if (need.counterpart) {
-    setHint('상대방과의 관계를 고르면 실행할 수 있어요.');
-  } else if (need.message) {
-    setHint('받은 메시지를 넣으면 실행할 수 있어요.');
+  if (tooLong) {
+    setHint(`메시지는 ${MAX_CHARS}자까지 분석합니다. 현재 ${length}자입니다.`);
+  } else if (missing.length === 1) {
+    // "~ 하나만 더" 로 맺으면 조사를 따지지 않아도 네 항목 모두 자연스럽다.
+    setHint(`${missing[0]} 하나만 더 채우면 실행할 수 있어요.`);
+  } else if (missing.length > 1) {
+    setHint(`실행하려면 ${missing.length}가지가 더 필요해요 — ${missing.join(' · ')}`);
   } else {
     setHint('');
   }

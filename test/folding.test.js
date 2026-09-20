@@ -141,21 +141,37 @@ test('실행 버튼의 disabled 를 건드리는 곳은 한 군데뿐이다', ()
   assert.match(mainJs, /function syncRunButton\(\)/);
 });
 
-test('필수는 상대방과의 관계·받은 메시지 둘뿐이다', () => {
-  // 직군·연차·대응 방향·말투는 없어도 판정이 달라지지 않는다. 필수로
-  // 묶으면 채울 것만 늘고 첫 실행까지의 거리가 멀어진다.
+test('필수는 답장을 바꾸는 네 가지다 — 직군·연차는 아니다', () => {
+  // 처음에는 "점수를 움직이는가"로 갈라 관계와 메시지만 필수로 뒀다.
+  // 틀린 기준이었다. 이 버튼은 "분석하고 **답장 만들기**"이고, 대응 방향과
+  // 말투 세기는 답장을 통째로 바꾼다. 안 고르면 '관계보존'(= 수용)이
+  // 조용히 적용돼, 거절하러 온 사람에게 수용 답장이 나갔다.
   const fn = mainJs.slice(mainJs.indexOf('function requiredMissing()'), mainJs.indexOf('function syncRunButton()'));
-  assert.match(fn, /counterpart: !state\.counterpart/);
-  assert.match(fn, /message: !text/);
-  for (const optional of ['state.job', 'state.level', 'state.goal', 'state.tone'])
+  for (const required of ['state.counterpart', '!text', 'state.goal', 'state.tone'])
+    assert.ok(fn.includes(required), `${required} 이 필수에서 빠져 있다`);
+  // 직군·연차는 판정에도 답장에도 들어가지 않고 prefs 에 저장된다.
+  for (const optional of ['state.job', 'state.level'])
     assert.ok(!fn.includes(optional), `${optional} 이 필수로 들어가 있다`);
+});
+
+test('안 고른 대응 방향을 기본값으로 메우지 않는다', () => {
+  // 규칙 엔진·LIVE 양쪽에 '관계보존' 기본값이 살아 있다(프로그램 경로 방어용).
+  // 그 기본값이 사용자에게 보이는 경로로 새지 않게 하는 것이 이 잠금의 목적이다.
+  const guard = mainJs.slice(mainJs.indexOf('async function run()'), mainJs.indexOf('async function postAnalyze('));
+  assert.match(guard, /const missing = requiredMissing\(\)/, 'run() 이 같은 필수 목록을 쓰지 않는다');
+  assert.match(guard, /if \(missing\.length\)/);
 });
 
 test('무엇이 비었는지를 누르기 전에 말한다', () => {
   const fn = mainJs.slice(mainJs.indexOf('function syncRunButton()'));
-  assert.match(fn, /상대방과의 관계를 고르고 받은 메시지를 넣으면/);
-  assert.match(fn, /상대방과의 관계를 고르면 실행할 수 있어요/);
-  assert.match(fn, /받은 메시지를 넣으면 실행할 수 있어요/);
+  assert.match(fn, /하나만 더 채우면 실행할 수 있어요/);
+  assert.match(fn, /실행하려면 \$\{missing\.length\}가지가 더 필요해요/);
+});
+
+test('단계 진행바가 실행 조건과 같은 것을 센다', () => {
+  // 진행바가 100%인데 버튼이 잠겨 있으면, 둘 중 하나는 거짓말을 하는 것이다.
+  const fn = mainJs.slice(mainJs.indexOf('function zoneProgress()'), mainJs.indexOf('function renderStepBars()'));
+  assert.match(fn, /run: \(\(hasMessage \? 1 : 0\) \+ count\('counterpart', 'goal', 'tone'\)\) \/ 4/);
 });
 
 test('선택·입력·초기화·블록 해제가 모두 버튼 상태를 다시 맞춘다', () => {
