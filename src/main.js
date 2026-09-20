@@ -262,6 +262,9 @@ const el = {
   installBannerSub: $('install-banner-sub'),
   installAccept: $('install-accept'),
   installDismiss: $('install-dismiss'),
+  installOpen: $('install-open'),
+  receiptWantedLink: $('receipt-wanted-link'),
+  receiptWantedText: $('receipt-wanted-text'),
   xray: $('xray'),
   alertHeader: $('alert-header'),
   modeBadge: $('mode-badge'),
@@ -1493,6 +1496,10 @@ function openReceiptModal() {
   el.rcHp.textContent = `+${data.mentalHp} HP`;
   el.rcRisk.textContent = `${data.politicalRiskPercent}% (${data.politicalRiskNote})`;
   el.rcCount.textContent = String(count);
+  // 카드 안의 "원티드 커리어 세이프"는 이미지라 누를 수 없다. 아래 링크가
+  // 그 제안을 실제로 눌러지게 하고, 주소는 케어 블록과 같은 규칙(연차·직군)으로 맞춘다.
+  el.receiptWantedLink.href = wantedUrl(context);
+  el.receiptWantedText.textContent = `${context?.level || ''} 경력으로 열려 있는 채용 보기`.trim();
 
   el.receiptStatus.textContent = '';
   openModal(el.receiptModal);
@@ -1779,22 +1786,38 @@ maybeShowIntro();
    그 자체가 이 도구에 대한 인상이 된다.
 */
 const INSTALL_DISMISSED_KEY = 'ofw_install_dismissed_v1';
+const INSTALL_DONE_KEY = 'ofw_installed_v1';
 
-function installDismissed() {
+/**
+ * "닫았다"와 "설치했다"는 다른 상태다.
+ *
+ * 예전에는 설치가 끝났을 때도 닫힘 키를 함께 세웠다. 그래서 한 번 설치하고 나면
+ * 그 브라우저에서는 배너가 **영영 다시 뜨지 않았다.** 앱을 지우고 다시 깔고
+ * 싶어도, 배너가 왜 안 나오는지 알 방법조차 없었다. 두 상태를 나눠 둔다.
+ *
+ * 설치 여부는 beforeinstallprompt 가 알려 준다 — 이 이벤트는 "지금 설치할 수
+ * 있다"는 뜻이라, 이벤트가 왔다는 건 설치돼 있지 않다는 뜻이다. 그때 설치 키를
+ * 지워 상태를 사실에 맞춘다.
+ */
+function flag(key) {
   try {
-    return localStorage.getItem(INSTALL_DISMISSED_KEY) === '1';
+    return localStorage.getItem(key) === '1';
   } catch {
     return false;
   }
 }
 
-function markInstallDismissed() {
+function setFlag(key, on) {
   try {
-    localStorage.setItem(INSTALL_DISMISSED_KEY, '1');
+    if (on) localStorage.setItem(key, '1');
+    else localStorage.removeItem(key);
   } catch {
-    // 프라이빗 브라우징이면 이번 세션에만 닫힌다 — 배너를 막을 이유는 아니다.
+    // 프라이빗 브라우징이면 이번 세션에만 유지된다 — 배너를 막을 이유는 아니다.
   }
 }
+
+const installDismissed = () => flag(INSTALL_DISMISSED_KEY);
+const markInstallDismissed = () => setFlag(INSTALL_DISMISSED_KEY, true);
 
 /** 이미 홈 화면에서 실행 중인가. iOS 는 표준 matchMedia 대신 navigator.standalone 을 쓴다. */
 function isInstalled() {
@@ -1819,8 +1842,10 @@ let installPrompt = null;
  */
 let pendingInstall = null;
 
-function showInstallBanner({ ios }) {
-  if (installDismissed() || isInstalled()) return;
+function showInstallBanner({ ios, force = false }) {
+  // force 는 푸터에서 직접 부른 경우다 — 이미 닫았더라도 열어 준다.
+  if (!force && (installDismissed() || flag(INSTALL_DONE_KEY))) return;
+  if (isInstalled()) return;
   if (!el.intro.hidden) {
     pendingInstall = { ios };
     return;
@@ -1851,6 +1876,9 @@ window.addEventListener('beforeinstallprompt', (e) => {
   // 기본 미니 인포바를 막고, 우리 배너의 버튼에 시점을 넘긴다.
   e.preventDefault();
   installPrompt = e;
+  // 이 이벤트가 왔다는 건 지금 설치할 수 있다는 뜻이다 = 설치돼 있지 않다.
+  setFlag(INSTALL_DONE_KEY, false);
+  el.installOpen.hidden = false; // 배너를 닫아도 푸터로 다시 들어올 수 있게
   showInstallBanner({ ios: false });
 });
 
@@ -1882,7 +1910,7 @@ function showInstalledNote() {
 
 window.addEventListener('appinstalled', () => {
   installPrompt = null;
-  markInstallDismissed();
+  setFlag(INSTALL_DONE_KEY, true);
   showInstalledNote();
 });
 
@@ -1900,8 +1928,27 @@ el.installDismiss.addEventListener('click', () => {
   hideInstallBanner();
 });
 
+/**
+ * 푸터의 "앱으로 설치" — 배너를 닫았거나 못 본 사람에게 남는 입구.
+ *
+ * 이게 없으면 배너를 한 번 닫은 순간 설치할 방법이 화면에서 사라진다(브라우저
+ * 메뉴를 아는 사람만 설치할 수 있게 된다). force 로 열어 닫힘 기록을 무시한다.
+ */
+el.installOpen.addEventListener('click', () => {
+  if (isInstalled()) {
+    showInstalledNote();
+    return;
+  }
+  setFlag(INSTALL_DISMISSED_KEY, false);
+  showInstallBanner({ ios: isIosSafari, force: true });
+  el.installBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+
 // iOS 는 이벤트가 오지 않으므로 직접 판단해서 띄운다.
-if (isIosSafari) showInstallBanner({ ios: true });
+if (isIosSafari) {
+  el.installOpen.hidden = false;
+  showInstallBanner({ ios: true });
+}
 
 /**
  * 서비스 워커 등록.

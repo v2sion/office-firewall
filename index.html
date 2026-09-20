@@ -369,7 +369,7 @@
               <span class="care-link-sub">정신건강 상담전화 · 24시간 · 무료</span>
             </a>
 
-            <a class="care-link" href="https://gabjil119.com" target="_blank" rel="noopener noreferrer">
+            <a class="care-link" href="https://gabjil119.campaignus.me/" target="_blank" rel="noopener noreferrer">
               <span class="care-tag">누구나</span>
               <span class="care-link-text">직장갑질119 무료 제보·상담</span>
               <span class="care-link-sub">노무사·변호사가 답변하는 민간 단체</span>
@@ -482,6 +482,10 @@
     <span>원문은 서버에 저장되지 않습니다</span>
     <span class="dot">·</span>
     <button type="button" class="footer-feedback" id="feedback-open">의견 보내기</button>
+    <span class="dot">·</span>
+    <!-- 상단 배너를 닫았거나 애초에 못 본 사람에게 남는 유일한 입구.
+         설치가 불가능한 환경이면 main.js 가 이 버튼을 숨긴다. -->
+    <button type="button" class="footer-feedback" id="install-open" hidden>앱으로 설치</button>
   </footer>
 
   <button type="button" class="float-btn float-feedback" id="feedback-float" aria-label="의견 보내기" title="의견 보내기">
@@ -610,13 +614,21 @@
         <button type="button" class="receipt-action" id="receipt-copy">이미지 복사하기</button>
       </div>
       <!--
-        상담·채용 바로가기는 여기에 두지 않는다.
+        카드 안의 "원티드 커리어 세이프"는 이미지라 누를 수 없다. 그래서 같은
+        제안을 실제로 누를 수 있는 링크로 한 번 더 둔다.
 
-        모달 맨 아래는 작은 화면에서 카드에 밀려 잘리거나, 잘리지 않아도 시선이
-        닿지 않는 자리다(영수증 카드 자체가 세로로 길다). 같은 링크를 결과 화면
-        본문의 '도움받을 수 있는 곳'에 제대로 된 크기로 뒀다 — 영수증 발급 버튼
-        바로 위라 이미 지나온 자리다.
+        자리는 **동작 버튼과 같은 줄 바로 아래**다. 예전에는 이 영역을 카드보다
+        한참 아래, 모달 맨 끝에 뒀는데 영수증 카드가 세로로 길어서 작은 화면에서는
+        스크롤을 끝까지 내려야 보였다. 저장·복사 버튼 바로 밑이면 카드를 본
+        직후의 시선이 그대로 닿는다.
+
+        상담 창구는 여기로 되돌리지 않는다 — 조건·대상 설명이 함께 있어야 해서
+        본문의 '도움받을 수 있는 곳'이 맞는 자리다.
       -->
+      <a class="receipt-wanted" id="receipt-wanted-link" href="https://www.wanted.co.kr/wdlist" target="_blank" rel="noopener noreferrer">
+        <span class="receipt-wanted-text" id="receipt-wanted-text">내 연차로 열려 있는 채용 보기</span>
+        <span class="receipt-wanted-arrow" aria-hidden="true">↗</span>
+      </a>
       <p class="receipt-status" id="receipt-status" aria-live="polite"></p>
     </div>
   </div>
