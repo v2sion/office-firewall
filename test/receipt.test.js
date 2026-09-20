@@ -2,8 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-  villainType, defenseModeLabel, hoursSaved, mentalHpSaved,
-  politicalRisk, formatIssuedAt, buildReceiptData,
+  villainType, defenseModeLabel, formatIssuedAt, buildReceiptData,
 } from '../src/lib/receipt.js';
 
 test('빌런 유형: 골든 ① 주말 침범 → "주말 도둑형 상사" (가이드 §3.3 예시와 일치)', () => {
@@ -49,43 +48,6 @@ test('방어 모드 라벨: 4목적 × 3톤 = 12개 조합이 전부 다르다',
   assert.equal(labels.size, 12);
 });
 
-test('절약 시간: 가이드 예시(주말 침범, 점수 92) 근방에서 4.5h대가 나온다', () => {
-  const h = hoursSaved(92, '주말 침범');
-  assert.ok(h >= 4 && h <= 6, `${h}h 가 기대 범위(4~6h) 밖`);
-});
-
-test('절약 시간: 점수 0 이어도 최소 0.5h 은 보장한다 (0으로 안 떨어짐)', () => {
-  assert.equal(hoursSaved(0, '없음'), 0.5);
-});
-
-test('절약 시간: 긴급도가 강할수록(주말>당일>야간>없음) 절약 시간도 크다 (같은 점수 기준)', () => {
-  const score = 80;
-  const weekend = hoursSaved(score, '주말 침범');
-  const deadline = hoursSaved(score, '당일 마감');
-  const night = hoursSaved(score, '야간 침범');
-  const none = hoursSaved(score, '없음');
-  assert.ok(weekend > deadline);
-  assert.ok(deadline > night);
-  assert.ok(night > none);
-});
-
-test('멘탈 HP: 가이드 예시 그대로 score=92 → 85 (계수를 예시에 맞춰 검증)', () => {
-  assert.equal(mentalHpSaved(92), 85);
-});
-
-test('멘탈 HP: 0~100 점수 전 구간에서 10~99 범위를 벗어나지 않는다', () => {
-  for (let s = 0; s <= 100; s += 5) {
-    const hp = mentalHpSaved(s);
-    assert.ok(hp >= 10 && hp <= 99, `score=${s} → hp=${hp}`);
-  }
-});
-
-test('사내 정치 리스크: 매운맛만 위험을 인정한다 — 앱 자체의 "관계 비용 경고"와 같은 맥락', () => {
-  assert.equal(politicalRisk('매운맛').percent, 15);
-  assert.equal(politicalRisk('순한맛').percent, 0);
-  assert.equal(politicalRisk('보통맛').percent, 5);
-});
-
 test('ISSUED AT 포맷: YYYY-MM-DD HH:mm:ss', () => {
   const d = new Date(2026, 8, 12, 17, 5, 9); // 월은 0-index → 9월
   assert.equal(formatIssuedAt(d), '2026-09-12 17:05:09');
@@ -102,9 +64,30 @@ test('buildReceiptData: 골든 ①(주말 침범, 점수 92) 조합으로 가이
   assert.equal(r.villain, '주말 도둑형 상사');
   assert.equal(r.score, 92);
   assert.equal(r.defenseMode, '🛑 여지없는 칼차단');
-  assert.ok(r.hoursSaved >= 4 && r.hoursSaved <= 6);
-  assert.equal(r.mentalHp, 85);
-  assert.equal(r.politicalRiskPercent, 15); // 매운맛이라 앱과 같은 맥락의 긴장도를 인정
+});
+
+/**
+ * 카드에는 근거를 댈 수 있는 값만 남긴다.
+ *
+ * "막아낸 야근 / 지킨 멘탈 / 사내 정치 리스크"가 여기 있었다. 결정론적이긴
+ * 했지만 근거가 화면 어디에도 없었고, 무엇보다 **답장과 무관했다** — 실제로
+ * 답장을 보냈는지, 셋 중 무엇을 골랐는지와 관계없이 점수와 말투만으로 나와서
+ * 아무것도 하지 않아도 "+5.5 Hours"가 찍혔다.
+ *
+ * "계산 과정을 그대로 펼쳐 보여준다"가 이 서비스의 주장인데 저 숫자만 그
+ * 규칙 밖에 있었다. 공유되는 이미지라 더 그렇다. 다시 들어오지 않게 고정한다.
+ */
+test('영수증 값에 근거 없는 환산 지표가 없다', () => {
+  const r = buildReceiptData(
+    { urgencyType: '주말 침범' },
+    { score: 92, label: '심각' },
+    { job: '기획·PM/PO', level: '주니어', counterpart: '직속상사', goal: '칼차단', tone: '매운맛' },
+  );
+  for (const key of ['hoursSaved', 'mentalHp', 'politicalRiskPercent', 'politicalRiskNote']) {
+    assert.ok(!(key in r), `${key} 가 되살아났다`);
+  }
+  // 남는 건 전부 화면 어딘가에 근거가 있는 값이다.
+  assert.deepEqual(Object.keys(r).sort(), ['defenseMode', 'issuedAt', 'job', 'score', 'scoreLabel', 'villain']);
 });
 
 test('buildReceiptData: xray/context 가 비어 있어도 죽지 않는다(방어적 기본값)', () => {

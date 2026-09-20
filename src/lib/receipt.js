@@ -5,14 +5,12 @@
  * 않는다. 여기서 다루는 건 카테고리(직군·연차·빌런 유형·방어 모드)와 이미
  * score.js 가 계산해 둔 위험 지수뿐이다.
  *
- * "절약한 야근 시간 / 보존한 멘탈 에너지 / 사내 정치 리스크"는 실측치가 아니라
- * "심리적 체감 지표"다 — 방어 행동을 취한 뒤 체감할 수 있는 정도를 참고로
- * 환산한 값이라는 뜻이다("재미로 보는 지표"보다 EAP 심리상담 링크가 함께
- * 붙는 이 카드의 맥락에 더 맞는 표현으로 다듬었다). 감으로 매번 다르게
- * 부르는 게 아니라 risk.score·xray·context 로부터 결정론적으로 계산해,
- * 같은 입력이면 항상 같은 값이 나오게 했다("측정하지 않은 숫자를 약속하지
- * 않는다"는 원칙에 최대한 맞추기 위한 절충 — 카드에도 "심리적 체감 지표"
- * 라는 프레이밍을 섹션 라벨과 하단 문구로 함께 표시한다).
+ * 한때 "막아낸 야근 / 지킨 멘탈 / 사내 정치 리스크"를 함께 계산했다. 결정론적
+ * 이긴 했지만 **근거가 화면 어디에도 없었고**, 무엇보다 답장과 무관했다 —
+ * 실제로 답장을 보냈는지, 셋 중 무엇을 골랐는지와 관계없이 점수와 말투만으로
+ * 나오는 값이라 아무것도 하지 않아도 "+5.5 Hours"가 찍혔다. "계산 과정을 그대로
+ * 펼쳐 보여준다"는 이 서비스의 주장과 정면으로 어긋나서 카드에서 걷어냈다.
+ * 면책 문구를 달아야 했다는 것 자체가 신호였다.
  */
 
 const WHO_LABEL = {
@@ -58,40 +56,6 @@ export function defenseModeLabel(goal, tone) {
   return `${emoji} ${adj} ${goal || '방어'}`;
 }
 
-function clamp(n, min, max) {
-  return Math.max(min, Math.min(max, n));
-}
-
-/** 긴급도 유형별 "기본 절약 시간" — 침범 강도가 클수록 크다. */
-const BASE_HOURS_BY_URGENCY = {
-  '주말 침범': 6,
-  '야간 침범': 3,
-  '당일 마감': 4,
-  '없음': 1.5,
-};
-
-/** "절약한 주말 야근 시간" — 위험 지수가 높을수록(=막았을 때 이득이 클수록) 늘어난다. */
-export function hoursSaved(score, urgencyType) {
-  const base = BASE_HOURS_BY_URGENCY[urgencyType] ?? BASE_HOURS_BY_URGENCY['없음'];
-  const hours = base * (clamp(score, 0, 100) / 100);
-  return Math.max(0.5, Math.round(hours * 10) / 10);
-}
-
-/** "보존한 멘탈 에너지" — score=92 대입 시 가이드 예시(+85 HP)와 일치하도록 계수를 맞췄다. */
-export function mentalHpSaved(score) {
-  return clamp(Math.round(30 + 0.6 * clamp(score, 0, 100)), 10, 99);
-}
-
-/**
- * "사내 정치 리스크" — 매운맛은 앱이 자체적으로 경고하는 "관계 비용"과
- * 같은 맥락이라, 그 신호를 그대로 재사용한다(새로 지어낸 숫자가 아니다).
- */
-export function politicalRisk(tone) {
-  if (tone === '매운맛') return { percent: 15, note: '약간의 긴장 감수' };
-  if (tone === '순한맛') return { percent: 0, note: '평판 유지' };
-  return { percent: 5, note: '평판 유지' };
-}
-
 /** ISSUED AT 타임스탬프 포맷 (로컬 타임존 기준). */
 export function formatIssuedAt(date = new Date()) {
   const pad = (n) => String(n).padStart(2, '0');
@@ -109,7 +73,6 @@ export function formatIssuedAt(date = new Date()) {
  * @param {Date} [now]
  */
 export function buildReceiptData(xray, risk, context, now = new Date()) {
-  const risk_ = politicalRisk(context?.tone);
   return {
     issuedAt: formatIssuedAt(now),
     job: `${context?.job || '-'} (${context?.level || '-'})`,
@@ -117,9 +80,5 @@ export function buildReceiptData(xray, risk, context, now = new Date()) {
     score: risk?.score ?? 0,
     scoreLabel: risk?.label || '',
     defenseMode: defenseModeLabel(context?.goal, context?.tone),
-    hoursSaved: hoursSaved(risk?.score ?? 0, xray?.urgencyType),
-    mentalHp: mentalHpSaved(risk?.score ?? 0),
-    politicalRiskPercent: risk_.percent,
-    politicalRiskNote: risk_.note,
   };
 }

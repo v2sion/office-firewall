@@ -292,9 +292,6 @@ const el = {
   rcScore: $('rc-score'),
   rcScoreLabel: $('rc-score-label'),
   rcMode: $('rc-mode'),
-  rcHours: $('rc-hours'),
-  rcHp: $('rc-hp'),
-  rcRisk: $('rc-risk'),
   rcCount: $('rc-count'),
   historyOpen: $('history-open'),
   historyBadge: $('history-badge'),
@@ -1492,9 +1489,6 @@ function openReceiptModal() {
   el.rcScore.textContent = String(data.score);
   el.rcScoreLabel.textContent = data.scoreLabel;
   el.rcMode.textContent = data.defenseMode;
-  el.rcHours.textContent = `+${data.hoursSaved} Hours`;
-  el.rcHp.textContent = `+${data.mentalHp} HP`;
-  el.rcRisk.textContent = `${data.politicalRiskPercent}% (${data.politicalRiskNote})`;
   el.rcCount.textContent = String(count);
   // 카드 안의 "원티드 커리어 세이프"는 이미지라 누를 수 없다. 아래 링크가
   // 그 제안을 실제로 눌러지게 하고, 주소는 케어 블록과 같은 규칙(연차·직군)으로 맞춘다.

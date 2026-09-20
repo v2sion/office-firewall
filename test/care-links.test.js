@@ -78,14 +78,17 @@ test('영수증 모달에는 채용 링크만 두고 상담 창구는 본문에 
   assert.ok(!/comwel|gabjil|tel:/.test(modal), '모달에 상담 창구가 들어와 있다');
 });
 
-test('영수증의 채용 링크는 저장·복사 버튼 아래에 있다 (모달 맨 끝이 아니라)', () => {
+test('영수증의 채용 링크는 카드 바로 아래, 저장·복사보다 위에 있다', () => {
+  // 아래에 두면 화면이 짧을 때 가장 먼저 잘려 나가고, 카드 안의
+  // "원티드 커리어 세이프" 문구가 바로 위에서 끝나므로 흐름도 여기가 맞다.
+  // 저장·복사는 모달을 열기 전부터 하려던 일이라 조금 내려가도 찾는다.
   const modal = html.slice(html.indexOf('<div class="receipt-modal"'), html.indexOf('<div class="history-modal"'));
-  const actions = modal.indexOf('class="receipt-actions"');
+  const card = modal.indexOf('id="receipt-card"');
   const link = modal.indexOf('id="receipt-wanted-link"');
-  const status = modal.indexOf('id="receipt-status"');
-  assert.ok(actions >= 0 && link >= 0 && status >= 0, '모달 구조를 찾지 못했다');
-  assert.ok(actions < link, '링크가 동작 버튼보다 위에 있다');
-  assert.ok(link < status, '링크가 상태 문구보다 아래로 밀렸다');
+  const actions = modal.indexOf('class="receipt-actions"');
+  assert.ok(card >= 0 && link >= 0 && actions >= 0, '모달 구조를 찾지 못했다');
+  assert.ok(card < link, '링크가 카드보다 위에 있다');
+  assert.ok(link < actions, '링크가 저장·복사 버튼 아래로 내려갔다');
 });
 
 test('영수증의 채용 링크는 새 창으로 열린다', () => {
