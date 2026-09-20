@@ -1985,3 +1985,20 @@ body.is-loading .standby { min-height: 0; justify-content: flex-start; padding-t
     to { opacity: 1; transform: none; }
   }
 }
+
+/* ── 배점 근거(법령) ─────────────────────────────────────────
+   "가중치는 결국 주관 아닌가"에 답하는 자리. 근거 표는 판정 근거 안에
+   한 겹 더 접어 둔다 — 매번 읽을 내용은 아니고, 묻는 사람에게만 필요하다. */
+.evidence-basis { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.evidence-basis > summary {
+  cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--text-dim);
+  list-style: none;
+}
+.evidence-basis > summary::-webkit-details-marker { display: none; }
+.evidence-basis > summary::before { content: '▸ '; color: var(--text-faint); }
+.evidence-basis[open] > summary::before { content: '▾ '; }
+.evidence-basis > summary:hover { color: var(--text); }
+.evidence-basis .evidence-table { margin-top: 10px; }
+.evidence-basis .evidence-table td:nth-child(2) { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.evidence-quote { color: var(--text-faint); word-break: keep-all; }
+.evidence-disclaimer { margin-top: 10px; text-wrap: pretty; }

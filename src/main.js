@@ -14,6 +14,7 @@ import { matchSituationId } from './lib/situation-match.js';
 import { entryFromResult, addEntry, getHistory, clearHistory, removeEntries, summarize } from './lib/history.js';
 import { loadPrefs, savePrefs } from './lib/prefs.js';
 import { substanceGap, GREEN_CAP } from './lib/score.js';
+import { LEGAL_BASIS, LEGAL_DISCLAIMER } from './lib/legal-basis.js';
 import golden from './data/golden.json';
 import presetWeekend from './data/presets/weekend.json';
 import presetAislop from './data/presets/aislop.json';
@@ -1394,6 +1395,36 @@ function renderEvidence(xray, risk) {
         : ''
     }
     <p class="evidence-formula">이 점수는 AI가 아니라 코드가 계산합니다. 같은 입력이면 항상 같은 값이 나옵니다.</p>
+    ${legalBasisTable()}
+  `;
+}
+
+/**
+ * 배점이 어디서 왔는지 — 네 축의 근거 조문.
+ *
+ * "가중치는 결국 주관 아닌가"에 답할 수 있는 유일한 자리다. 설계 문서에만
+ * 적어 두면 아무도 못 보므로, 점수를 계산한 바로 그 화면에서 조문을 편다.
+ * 마지막 줄에서 **우리가 하지 않는 일**(괴롭힘 성립 여부 판단)도 함께 밝힌다.
+ */
+function legalBasisTable() {
+  const rows = Object.values(LEGAL_BASIS)
+    .map(
+      (b) => `<tr>
+        <td>${escapeHtml(b.axis)}</td>
+        <td>${b.max}점</td>
+        <td><b>${escapeHtml(b.source)}</b><br><span class="evidence-quote">“${escapeHtml(b.quote)}”</span></td>
+      </tr>`,
+    )
+    .join('');
+  return `
+    <details class="evidence-basis">
+      <summary>이 배점은 어디서 왔나 (법령·행정 기준)</summary>
+      <table class="evidence-table">
+        <thead><tr><th>축</th><th>배점</th><th>근거</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <p class="evidence-formula evidence-disclaimer">${escapeHtml(LEGAL_DISCLAIMER)}</p>
+    </details>
   `;
 }
 

@@ -3,6 +3,8 @@
  * 여기서 나온 신호를 score.js 가 Social Risk Index 로 환산한다.
  */
 
+import { NIGHT_START_HOUR, NIGHT_END_HOUR } from './legal-basis.js';
+
 export const CLICHES = [
   '시간 될 때', '시간 날 때', '가볍게', '간단히', '빠르게',
   '급한 건 아니', '잠깐만', '조율해서', '챙겨주세요',
@@ -114,10 +116,60 @@ export function avoidsDecision(text, signals) {
   return DECISION_AVOIDANCE_WEAK.some((p) => t.includes(toJamo(p)));
 }
 
-/** 요청 시점의 긴급성 유형 (규칙 기반) */
+/**
+ * 본문에 적힌 시각을 24시간제로 모은다.
+ *
+ * 예전에는 "22시"와 "23시"만 문자열로 찾았다. 그래서 **법이 야간근로라고
+ * 정한 구간의 대부분을 놓쳤다** — "오후 10시", "밤 11시", "새벽 2시",
+ * "00:30" 이 전부 통과했다. 근로기준법 제56조 제3항이 오후 10시부터 다음 날
+ * 오전 6시까지를 야간근로로 정의하고 있으므로, 그 구간을 실제로 덮는다.
+ *
+ * **확실할 때만 센다.** "9시"처럼 오전·오후 표시가 없는 시각은 넣지 않는다 —
+ * 추측해서 야간으로 몰면 정상 업무 메시지에 경보가 붙는다.
+ */
+const CLOCK_RE = /(오전|오후|새벽|밤|아침|저녁|정오)?\s*(\d{1,2})\s*(?::\s*\d{2}|시)/g;
+
+export function clockHours(text) {
+  const out = [];
+  CLOCK_RE.lastIndex = 0;
+  let m;
+  while ((m = CLOCK_RE.exec(text))) {
+    const marker = m[1];
+    const n = Number(m[2]);
+    if (n > 24) continue;
+    // 표시가 없어도 24시간제로만 읽히는 표기는 센다: "23:30" 의 콜론 형식과
+    // 13 이상의 숫자("22시" 는 오전·오후를 따질 것도 없이 밤 10시다).
+    const explicit24 = !marker && (/:/.test(m[0]) || (n >= 13 && n <= 24));
+    if (marker === '오전' || marker === '아침') out.push(n === 12 ? 0 : n);
+    else if (marker === '새벽') out.push(n === 12 ? 0 : n);
+    else if (marker === '오후' || marker === '저녁') out.push(n === 12 ? 12 : (n % 12) + 12);
+    else if (marker === '밤') out.push(n === 12 ? 0 : n >= 9 ? n + 12 : n);
+    else if (explicit24) out.push(n === 24 ? 0 : n);
+    // 표시가 없는 "9시" 는 오전인지 오후인지 알 수 없으므로 세지 않는다.
+  }
+  return out.filter((h) => h >= 0 && h < 24);
+}
+
+/** 근로기준법 제56조 제3항의 야간근로 시간대에 드는가 (22:00~05:59) */
+export function isLegalNightHour(hour) {
+  return hour >= NIGHT_START_HOUR || hour < NIGHT_END_HOUR;
+}
+
+/**
+ * 요청 시점의 긴급성 유형 (규칙 기반).
+ *
+ * 세 값의 근거는 전부 근로기준법이다(src/lib/legal-basis.js 참고).
+ *   · 주말 침범 — 제55조(휴일). 유급휴일에 대응을 요구한다.
+ *   · 야간 침범 — 제56조 제3항. 오후 10시~다음 날 오전 6시.
+ *   · 당일 마감 — 제50조·제53조. 24시간 안의 결과물 요구는 정규 근로시간
+ *     안에서 소화할 수 없어 연장근로를 전제한다.
+ */
 export function detectUrgency(t) {
   if (/(주말|토요일|일요일|토욜|일욜)/.test(t)) return '주말 침범';
-  if (/(새벽|밤\s*\d|퇴근\s*후|야근|자정|23시|22시|늦은\s*시간)/.test(t)) return '야간 침범';
+  // 어휘로 드러나는 야간 신호
+  if (/(새벽|퇴근\s*후|야근|자정|늦은\s*시간)/.test(t)) return '야간 침범';
+  // 시각으로 드러나는 야간 신호 — 법정 구간(22:00~05:59)에 드는 시각이 있으면
+  if (clockHours(t).some(isLegalNightHour)) return '야간 침범';
   if (/(오늘\s*중|오늘까지|내일까지|당일|금일\s*중|퇴근\s*전까지)/.test(t)) return '당일 마감';
   return '없음';
 }
