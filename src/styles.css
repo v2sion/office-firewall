@@ -1398,6 +1398,8 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   width: 100%; max-width: 560px;
   display: flex; flex-direction: column; gap: 22px;
 }
+/* 큰 모니터에서는 560px 카드 하나가 빈 화면에 떠 있는 것처럼 보인다. */
+@media (min-width: 1600px) { .intro-panel { max-width: 720px; } }
 /* 네 장 내내 같은 자리를 지키는 서비스명. 진행 표시 바로 위라 "지금 어디"와
    "무엇에 관한 이야기인지"가 한 덩어리로 읽힌다. */
 .intro-brandbar { display: flex; align-items: center; gap: 7px; margin-bottom: 12px; }
