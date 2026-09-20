@@ -315,69 +315,107 @@ let lastReceiptSource = null;
 
 /* ── 다 고른 영역은 접는다 ─────────────────────────────
 
-   입력 폼이 세로로 길다. 칩 그리드만 네 벌(직군 9 · 연차 5 · 관계 9 ·
+   입력 폼이 세로로 길다. 칩 그리드만 다섯 벌(직군 9 · 연차 5 · 관계 9 ·
    대응 방향 4 · 말투 3)이라, 다 고르고 나서도 그 자리가 그대로 남아 있으면
-   "내가 지금 뭘 하고 있는 거지"가 된다. 고른 값은 이미 정해진 것이라 계속
-   펼쳐 둘 이유가 없다.
+   "내가 지금 뭘 하고 있는 거지"가 된다. 줄이는 건 선택지가 아니라 **이미
+   끝난 일이 차지하는 자리**다.
 
-   그래서 **한 블록의 항목을 다 고르면 그 블록을 한 줄 요약으로 접는다.**
-   줄이는 건 선택지가 아니라 이미 끝난 일이 차지하는 자리다.
+   규칙은 하나뿐이다. **접힘 ⟺ 그 블록을 다 골랐다.**
 
-   접는 단위를 블록으로 잡은 이유가 있다. 구역(zone) 단위로 접으면 2구역이
-   통째로 사라지는데, 거기엔 메시지 입력칸이 들어 있다. 반대로 셀렉터 하나
-   단위로 접으면 "내 직군"과 "내 연차"가 따로 접혔다 펴져 산만하다. 블록은
-   화면에서 한 덩어리로 읽히는 단위라 여기가 맞다.
+   처음에는 "변경"을 누르면 펼친 채로 고정했었다(pinned). 그러면 중간에 세
+   번째 상태가 생긴다 — 다 골랐는데 펼쳐져 있는 블록. 화면만 보고는 아직
+   고르는 중인지 이미 정한 건지 구분이 안 되고, 마지막에 전체를 훑는 경험도
+   깨진다. 그래서 고정을 없애고, **"변경"은 그 블록의 선택을 지운다.** 지우면
+   당연히 미완성이라 펼쳐지고, 다시 고르면 다시 접힌다. 상태가 둘뿐이라
+   화면이 곧 진행 상황이다.
 
-   입력칸(textarea·input)이 있는 블록은 접지 않는다 — 메시지와 속사정은
-   "고르는" 값이 아니라 쓰는 값이고, 접으면 쓰던 글이 숨는다.
+   한 덩어리로 묶는 단위도 이 규칙을 따른다. "관계"와 "상황 카드"는 관계를
+   골라야 카드가 걸러지므로 순서가 있는 한 동작이고, "대응 방향"과 "말투
+   세기"는 4×3 조합이 함께 답장을 가르는 한 쌍이다. 따로 접히면 반쪽만
+   정해진 상태가 화면에 남는다.
 */
+const FOLD_SPECS = {
+  me: { title: '내 정보', fields: ['job', 'level'] },
+  // 상황 카드는 필수가 아니다. 직접 쓰는 사람도 있어서, **메시지가 채워졌을
+  // 때** 이 구역에서 할 일이 끝난 것으로 본다. 카드를 고른 것만으로 접으면
+  // 안 된다 — 카드를 누른 직후 "그대로 적용하기"를 누르기 전에 갤러리가
+  // 사라져 버린다. 카드의 목적은 메시지를 만드는 것이고, 메시지가 생겼다는
+  // 건 그 목적이 달성됐다는 뜻이다.
+  them: {
+    title: '상대방',
+    fields: ['counterpart'],
+    done: () => el.message.value.trim().length > 0,
+    extra: () => (activePreset ? activePreset.label : '직접 입력'),
+    reset: () => clearPresetSelection(),
+  },
+  reply: { title: '답장 설정', fields: ['goal', 'tone'] },
+};
+
 let foldables = [];
 
 function initFolding() {
-  foldables = [...document.querySelectorAll('.zone .block')]
-    .filter((b) => b.querySelector('.selector[data-field]') && !b.querySelector('textarea, input'))
-    .map((block) => {
-      const fields = [...block.querySelectorAll('.selector[data-field]')].map((sel) => sel.dataset.field);
-      // 접힌 줄에 쓸 제목: 블록 제목이 있으면 그것, 없으면 각 셀렉터의 라벨.
-      const title =
-        block.querySelector('.block-title')?.childNodes[0]?.textContent.trim() ||
-        [...block.querySelectorAll('.selector-label')].map((n) => n.textContent.trim()).join(' · ');
+  foldables = Object.entries(FOLD_SPECS).flatMap(([key, spec]) => {
+    const block = document.querySelector(`.block[data-fold="${key}"]`);
+    if (!block) return [];
 
-      const summary = document.createElement('button');
-      summary.type = 'button';
-      summary.className = 'block-folded';
-      summary.hidden = true;
-      summary.addEventListener('click', () => unfold(block));
-      block.prepend(summary);
+    const summary = document.createElement('button');
+    summary.type = 'button';
+    summary.className = 'block-folded';
+    summary.hidden = true;
+    summary.addEventListener('click', () => resetBlock(key));
+    block.prepend(summary);
 
-      return { block, fields, title, summary, pinned: false };
-    });
+    return [{ key, spec, block, summary }];
+  });
 }
 
-/** 사용자가 직접 펼친 블록은 다시 채워져도 자동으로 접지 않는다. */
-function unfold(block) {
-  const f = foldables.find((x) => x.block === block);
-  if (!f) return;
-  f.pinned = true;
-  f.block.classList.remove('is-folded');
-  f.summary.hidden = true;
+/** 접힌 블록의 "변경" — 선택을 지워 처음 고르는 상태로 되돌린다. */
+function resetBlock(key) {
+  const f = foldables.find((x) => x.key === key);
+  if (!f || busy) return;
+
+  for (const field of f.spec.fields) state[field] = '';
+  f.spec.reset?.();
+
+  // 지운 칩의 선택 표시를 실제로 떼어낸다.
+  for (const field of f.spec.fields) {
+    document
+      .querySelectorAll(`.selector[data-field="${field}"] .chip`)
+      .forEach((c) => c.setAttribute('aria-checked', 'false'));
+  }
+
+  // 관계가 비면 상황 카드 목록과 입력칸 안내도 함께 되돌아가야 한다.
+  if (f.spec.fields.includes('counterpart')) {
+    presetsExpanded = false;
+    updateSituationSuggestion();
+    applyPresetFilter();
+    updatePlaceholders();
+  }
+  if (f.spec.fields.includes('goal') || f.spec.fields.includes('tone')) {
+    updateChoiceNotes();
+    el.toneWarning.hidden = true;
+  }
+
+  renderStepBars();
+  syncFolding();
+  savePrefs(state);
+  resetResult();
   f.block.querySelector('.chip')?.focus({ preventScroll: true });
 }
 
 function syncFolding() {
   for (const f of foldables) {
-    const done = f.fields.every((k) => state[k]);
-    // 다 고르지 못한 상태로 돌아오면 다시 접을 수 있게 고정을 푼다.
-    if (!done) f.pinned = false;
-    const fold = done && !f.pinned;
+    const fold = f.spec.fields.every((k) => state[k]) && (f.spec.done?.() ?? true);
     f.block.classList.toggle('is-folded', fold);
     f.summary.hidden = !fold;
-    if (fold) {
-      f.summary.innerHTML = `<span class="block-folded-title">${escapeHtml(f.title)}</span>`
-        + `<span class="block-folded-value">${escapeHtml(f.fields.map((k) => strip(state[k])).join(' · '))}</span>`
-        + '<span class="block-folded-edit" aria-hidden="true">변경</span>';
-      f.summary.setAttribute('aria-label', `${f.title}: ${f.fields.map((k) => strip(state[k])).join(', ')}. 눌러서 다시 고르기`);
-    }
+    if (!fold) continue;
+
+    const values = [...f.spec.fields.map((k) => strip(state[k])), f.spec.extra?.()].filter(Boolean);
+    f.summary.innerHTML =
+      `<span class="block-folded-title">${escapeHtml(f.spec.title)}</span>`
+      + `<span class="block-folded-value">${escapeHtml(values.join(' · '))}</span>`
+      + '<span class="block-folded-edit" aria-hidden="true">변경</span>';
+    f.summary.setAttribute('aria-label', `${f.spec.title}: ${values.join(', ')}. 눌러서 다시 고르기`);
   }
 }
 
@@ -706,6 +744,9 @@ function onInput() {
   counter.classList.toggle('over', len > MAX_CHARS);
   el.threadWarning.hidden = !looksLikeMultiTurnThread(el.message.value);
   renderStepBars();
+  // 2구역은 메시지가 채워졌을 때 접힌다(FOLD_SPECS.them). 입력이 바뀌면
+  // 접힘 여부도 같이 따라가야 한다.
+  syncFolding();
   resetResult();
   if (!el.maskPreview.hidden) updateMaskPreview();
   clearTimeout(suggestTimer);

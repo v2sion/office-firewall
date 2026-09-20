@@ -286,6 +286,10 @@ html, body {
 .block.is-folded > :not(.block-folded) { display: none; }
 .block.is-folded { margin-bottom: 10px; }
 
+/* 한 블록 안에서 두 번째 항목을 앞엣것과 구분해 준다(관계 → 상황,
+   대응 방향 → 말투 세기). 같은 덩어리지만 순서가 있는 두 단계다. */
+.block-sub { margin-top: 16px; }
+
 .block-folded {
   display: flex; align-items: center; gap: 8px;
   width: 100%;
