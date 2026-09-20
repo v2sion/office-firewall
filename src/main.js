@@ -336,15 +336,19 @@ let lastReceiptSource = null;
 */
 const FOLD_SPECS = {
   me: { title: '내 정보', fields: ['job', 'level'] },
-  // 상황 카드는 필수가 아니다. 직접 쓰는 사람도 있어서, **메시지가 채워졌을
-  // 때** 이 구역에서 할 일이 끝난 것으로 본다. 카드를 고른 것만으로 접으면
-  // 안 된다 — 카드를 누른 직후 "그대로 적용하기"를 누르기 전에 갤러리가
-  // 사라져 버린다. 카드의 목적은 메시지를 만드는 것이고, 메시지가 생겼다는
-  // 건 그 목적이 달성됐다는 뜻이다.
+  // 상황 카드를 고르면 **그 자리에서** 접는다. 관계와 상황을 다 골랐으면 이
+  // 구역에서 정할 것은 끝난 것이고, 메시지를 다 채울 때까지 기다렸다 접으면
+  // 한참 뒤에 화면이 접혀 어색하다.
+  //
+  // 그래서 "그대로 적용하기" 버튼은 이 블록 밖에 뒀다(index.html 참고).
+  // 안에 있으면 카드를 누른 순간 버튼도 같이 접혀 누를 기회가 없다.
+  //
+  // 상황 카드는 필수가 아니다. 직접 쓰는 사람도 있어서, 카드를 안 골랐더라도
+  // 메시지를 채웠으면 같은 시점으로 본다.
   them: {
     title: '상대방',
     fields: ['counterpart'],
-    done: () => el.message.value.trim().length > 0,
+    done: () => Boolean(activePreset) || el.message.value.trim().length > 0,
     extra: () => (activePreset ? activePreset.label : '직접 입력'),
     reset: () => clearPresetSelection(),
   },
@@ -656,6 +660,8 @@ function applyPreset(p, btn) {
   activePreset = p;
   el.presetRun.hidden = false;
   el.presetRun.textContent = `“${p.label}” 예시 메시지 그대로 적용하기`;
+  // 관계와 상황을 다 골랐으므로 이 구역은 여기서 접힌다.
+  syncFolding();
 }
 
 /**

@@ -74,11 +74,36 @@ test('선택 항목(숨은 속사정)은 고르는 것들 아래에 있다', () 
   assert.ok(html.indexOf('data-field="tone"') < html.indexOf('나의 숨은 속사정'), '속사정이 말투 세기보다 위에 있다');
 });
 
-test('2구역은 카드를 누른 것만으로 접히지 않는다 (메시지가 채워져야 한다)', () => {
-  // 카드를 누른 직후 "그대로 적용하기"를 누르기 전에 갤러리가 사라지면 안 된다.
+/**
+ * 2구역은 관계와 상황을 고른 **그 자리에서** 접는다.
+ *
+ * 한때 메시지가 채워질 때까지 기다렸다 접었는데, 카드를 고르고 한참 지난 뒤에
+ * 화면이 접혀서 어색했다. 관계와 상황을 다 골랐으면 이 구역에서 정할 것은
+ * 끝난 것이다.
+ *
+ * 대신 조건이 하나 붙는다. **"그대로 적용하기" 버튼이 이 블록 밖에 있어야
+ * 한다.** 안에 있으면 카드를 누른 순간 버튼도 같이 접혀 누를 기회가 없다.
+ * 둘은 한 몸이라 따로 고쳐서는 안 된다.
+ */
+test('2구역은 카드를 고른 그 자리에서 접힌다', () => {
   const at = mainJs.indexOf('them: {');
   const spec = mainJs.slice(at, mainJs.indexOf('},', at));
-  assert.match(spec, /done: \(\) => el\.message\.value\.trim\(\)\.length > 0/, '메시지 여부로 판단하지 않는다');
+  assert.match(spec, /done: \(\) => Boolean\(activePreset\)/, '카드 선택으로 접지 않는다');
+  // 카드를 안 고르고 직접 쓰는 사람도 같은 시점에 접혀야 한다.
+  assert.match(spec, /el\.message\.value\.trim\(\)\.length > 0/, '직접 입력하면 영영 안 접힌다');
+  assert.match(bodyOf('applyPreset'), /syncFolding\(\)/, '카드를 골라도 접힘이 갱신되지 않는다');
+});
+
+test('"그대로 적용하기"는 접히는 블록 밖에 있다', () => {
+  const at = html.indexOf('data-fold="them"');
+  const block = html.slice(at, html.indexOf('<!-- 받은 메시지 -->', at));
+  const foldEnd = block.indexOf('\n        </div>');
+  assert.ok(foldEnd > 0, '블록의 끝을 찾지 못했다');
+  assert.ok(
+    !block.slice(0, foldEnd).includes('id="preset-run"'),
+    '적용 버튼이 블록 안에 있다 — 카드를 누르는 순간 같이 접혀 누를 수 없다',
+  );
+  assert.ok(block.includes('id="preset-run"'), '적용 버튼이 2구역에서 사라졌다');
 });
 
 test('메시지를 고치면 접힘 여부도 따라간다', () => {

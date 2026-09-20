@@ -231,9 +231,18 @@
             <h2 class="block-title">이런 상황인가요? <span class="optional" id="preset-hint">비슷한 걸 누르면 입력칸에 미리보기가 떠요</span></h2>
             <div class="preset-grid" id="preset-grid"></div>
             <button type="button" class="preset-toggle" id="preset-toggle" hidden></button>
-            <button type="button" class="preset-run" id="preset-run" hidden></button>
           </div>
         </div>
+
+        <!--
+          "그대로 적용하기"는 접히는 블록 **밖**에 둔다.
+
+          카드를 고르는 순간 블록이 접히는데, 이 버튼이 그 안에 있으면 누를
+          기회도 없이 같이 사라진다. 밖에 두면 접힌 요약("상대방 · 직속상사 ·
+          주말 업무 요청") 바로 아래에 남아서, 무엇을 골랐는지 보면서 적용할지
+          말지 정할 수 있다.
+        -->
+        <button type="button" class="preset-run" id="preset-run" hidden></button>
 
         <!-- 받은 메시지 -->
         <div class="block">
