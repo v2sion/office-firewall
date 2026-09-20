@@ -286,9 +286,10 @@ const el = {
   receiptSave: $('receipt-save'),
   receiptCopy: $('receipt-copy'),
   receiptStatus: $('receipt-status'),
-  rcIssued: $('rc-issued'),
   rcJob: $('rc-job'),
   rcVillain: $('rc-villain'),
+  rcHook: $('rc-hook'),
+  rcBar: $('rc-bar'),
   rcScore: $('rc-score'),
   rcScoreLabel: $('rc-score-label'),
   rcMode: $('rc-mode'),
@@ -1476,17 +1477,37 @@ function bumpMonthlyReceiptCount() {
   return store[monthKey];
 }
 
+/**
+ * 공유 카드의 첫 줄.
+ *
+ * 카드에서 가장 큰 글자가 점수가 아니라 이 문장이다. 받는 사람이 0.5초 안에
+ * 읽는 건 숫자가 아니라 문장이고, 이 도구가 주는 감정적 값어치는 "내가 겪은
+ * 게 기분 탓이 아니었다"는 확인이기 때문이다.
+ *
+ * **메시지 원문에서 만들지 않는다.** 카드에 원문이 들어가지 않는다는 원칙은
+ * 그대로라, 후킹은 이미 계산된 위험 등급에서만 끌어온다.
+ */
+function receiptHook(risk) {
+  const level = risk?.level || 'green';
+  if (level === 'red') return '이건 참을 일이 아니었습니다';
+  if (level === 'orange') return '혼자 판단하지 않아도 됩니다';
+  if (level === 'amber') return '넘기기 전에 한 번 짚고 갈 일이었습니다';
+  if (level === 'lime') return '예민한 게 아니라 애매한 요청이었습니다';
+  return '이번 건은 정상 범위였습니다';
+}
+
 function openReceiptModal() {
   if (!lastReceiptSource) return;
   const { xray, risk, context } = lastReceiptSource;
   const data = buildReceiptData(xray, risk, context);
   const count = bumpMonthlyReceiptCount();
 
-  el.rcIssued.textContent = data.issuedAt;
   el.rcJob.textContent = data.job;
   el.rcVillain.textContent = data.villain;
   el.rcScore.textContent = String(data.score);
   el.rcScoreLabel.textContent = data.scoreLabel;
+  el.rcHook.textContent = receiptHook(risk);
+  el.rcBar.style.width = `${Math.max(4, data.score)}%`;
   el.rcMode.textContent = data.defenseMode;
   el.rcCount.textContent = String(count);
   // 카드 안의 "원티드 커리어 세이프"는 이미지라 누를 수 없다. 아래 링크가
@@ -1510,7 +1531,7 @@ function closeReceiptModal() {
  * 거기로 비치면 카드가 잘못 잘린 것처럼 보인다. 카드와 같은 색으로 칠해
  * 투명 픽셀 자체를 없앤다.
  */
-const RECEIPT_BG = '#f6f1e4';
+const RECEIPT_BG = '#0a1020';
 
 async function captureReceiptPng() {
   // 폰트 로딩 등으로 인한 첫 캡처 오차를 줄이기 위해 한 프레임 양보한다.
@@ -1820,8 +1841,37 @@ function setFlag(key, on) {
   }
 }
 
-const installDismissed = () => flag(INSTALL_DISMISSED_KEY);
-const markInstallDismissed = () => setFlag(INSTALL_DISMISSED_KEY, true);
+/**
+ * 닫힘은 **만료된다.**
+ *
+ * 예전에는 ✕ 를 한 번 누르면 그 브라우저에서 배너가 영영 돌아오지 않았다.
+ * "성가시게 하지 않는다"는 의도였지만, 처음엔 관심이 없다가 나중에 자주 쓰게
+ * 되는 게 이 도구의 자연스러운 흐름이라 영구 차단은 과했다. 실제로 "배너가
+ * 안 뜬다"는 제보의 원인이 이것이었다.
+ *
+ * 7일이 지나면 한 번 더 묻는다. 값으로 시각을 저장하므로, 예전에 '1' 이
+ * 저장된 브라우저는 1ms 에포크로 읽혀 곧바로 만료된 것으로 처리된다
+ * (배너가 다시 돌아온다는 뜻이다).
+ */
+const INSTALL_DISMISS_DAYS = 7;
+
+function installDismissed() {
+  try {
+    const at = Number(localStorage.getItem(INSTALL_DISMISSED_KEY));
+    if (!at) return false;
+    return Date.now() - at < INSTALL_DISMISS_DAYS * 24 * 60 * 60 * 1000;
+  } catch {
+    return false;
+  }
+}
+
+function markInstallDismissed() {
+  try {
+    localStorage.setItem(INSTALL_DISMISSED_KEY, String(Date.now()));
+  } catch {
+    // 프라이빗 브라우징이면 이번 세션에만 닫힌다 — 배너를 막을 이유는 아니다.
+  }
+}
 
 /** 이미 홈 화면에서 실행 중인가. iOS 는 표준 matchMedia 대신 navigator.standalone 을 쓴다. */
 function isInstalled() {

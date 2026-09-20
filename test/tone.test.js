@@ -60,3 +60,67 @@ test('12개 조합(목적4 × 톤3) 모두 서로 다른 첫 번째 답장을 �
   }
   assert.equal(seen.size, 12, `중복된 조합이 있다 — 실제 서로 다른 문구는 ${seen.size}/12개`);
 });
+
+/**
+ * 말투 세기가 **눈에 띄게** 갈리는가.
+ *
+ * 세 톤이 각자 규칙을 지켜도 결과가 비슷하면 이 선택지는 있으나 마나다.
+ * 실제로 "매운맛을 골라도 보통맛과 차이가 없다"는 제보를 받았고, 재보니
+ * 칼차단에서 매운맛(126자)이 보통맛(100자)보다 **길었다.** 단호함이 아니라
+ * 장황함이 되어 있었다.
+ *
+ * 단호함은 말을 더 얹어서가 아니라 덜어내서 나온다. 그래서 세기를 길이와
+ * 쿠션어 수로 잰다. 둘 다 세면 되는 값이라 "느낌상 강하다"로 넘어갈 수 없다.
+ *
+ * 무례함과는 구분한다. 실제로 보낼 메시지라 세 톤 모두 존댓말과 비즈니스
+ * 매너 안에 있어야 하고, 아래 마지막 테스트가 그 선을 지킨다.
+ */
+const HEDGES = ['혹시', '죄송', '것 같', '면 감사', '부탁드립니다', '괜찮으', '조금만', '가능하시'];
+const countHedges = (t) => HEDGES.reduce((n, h) => n + (t.split(h).length - 1), 0);
+const GOALS = ['칼차단', '시간벌기', '공넘기기', '관계보존'];
+
+function replyFor(goal, tone) {
+  const { maskedText } = mask('주말에 미안한데, 월요일 오전에 대표님 보고가 잡혀서요. 시간 날 때 가볍게 한번 봐주시면 좋을 것 같아요. 급한 건 아닙니다!');
+  const out = buildMockAnalysis(maskedText, {
+    job: '기획·PM/PO', level: '4~6년', counterpart: '직속상사', goal, tone,
+  });
+  return out.replies[0].text;
+}
+
+test('세기가 올라갈수록 답장이 짧아진다 (순한맛 > 보통맛 > 매운맛)', () => {
+  for (const goal of GOALS) {
+    const mild = replyFor(goal, '순한맛').length;
+    const plain = replyFor(goal, '보통맛').length;
+    const spicy = replyFor(goal, '매운맛').length;
+    assert.ok(mild > plain, `${goal}: 순한맛(${mild}) 이 보통맛(${plain}) 보다 길어야 한다`);
+    assert.ok(plain > spicy, `${goal}: 보통맛(${plain}) 이 매운맛(${spicy}) 보다 길어야 한다`);
+  }
+});
+
+test('매운맛에는 쿠션어가 없고, 순한맛에는 있다', () => {
+  for (const goal of GOALS) {
+    assert.equal(countHedges(replyFor(goal, '매운맛')), 0, `${goal}: 매운맛에 쿠션어가 있다`);
+    assert.ok(countHedges(replyFor(goal, '순한맛')) >= 1, `${goal}: 순한맛에 쿠션어가 없다`);
+  }
+});
+
+test('매운맛은 문장을 짧게 끊는다 (평균 문장 길이가 보통맛보다 짧다)', () => {
+  const avg = (t) => t.length / t.split(/(?<=[.!?])\s+/).filter(Boolean).length;
+  for (const goal of GOALS) {
+    assert.ok(
+      avg(replyFor(goal, '매운맛')) < avg(replyFor(goal, '보통맛')),
+      `${goal}: 매운맛 문장이 보통맛보다 길다`,
+    );
+  }
+});
+
+test('세기를 올려도 존댓말과 비즈니스 매너를 벗어나지 않는다', () => {
+  // 강한 것과 무례한 것은 다르다. 실제로 보낼 메시지라 이 선은 지켜야 한다.
+  const RUDE = /(님이|당신|어이|말이 되|황당|어처구니|제정신|웃기|짜증|어이없)/;
+  for (const goal of GOALS) {
+    const t = replyFor(goal, '매운맛');
+    assert.ok(/(습니다|십시오|합니다)/.test(t), `${goal}: 매운맛이 존댓말이 아니다`);
+    assert.ok(!RUDE.test(t), `${goal}: 매운맛에 무례한 표현이 있다`);
+    assert.ok(!/[!]{1,}/.test(t), `${goal}: 매운맛에 느낌표가 있다`);
+  }
+});

@@ -836,17 +836,24 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 .hiw-panel h3 { font-size: 21px; font-weight: 700; margin: 0 0 10px; letter-spacing: -.01em; }
 .hiw-panel > p { font-size: 14px; color: var(--text-dim); line-height: 1.7; margin: 0 0 18px; }
 
-.hiw-tips { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
-.hiw-tips li {
-  display: flex; align-items: baseline; gap: 12px;
-  padding: 12px 2px; border-bottom: 1px solid var(--line);
+/* 한때 "Tip 1 / Tip 2 / Tip 3" 라벨을 달고 있었다. 그런데 실제 내용은
+   요령이 아니라 **설명과 안내**다("원문 자체는 서버에 저장되지 않습니다",
+   "정상·경미·주의·경계·심각 5단계로 색이 나뉩니다"). 라벨이 내용의 성격을
+   잘못 알리고 있어서, 번호를 떼고 불릿 목록으로 바꿨다. */
+.hiw-notes { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.hiw-notes li {
+  position: relative;
+  padding: 12px 2px 12px 18px;
+  border-bottom: 1px solid var(--line);
   font-size: 13.5px;
+  color: var(--text-dim);
 }
-.hiw-tips b {
-  flex-shrink: 0; font-family: var(--mono); font-size: 12px; font-weight: 700;
-  color: var(--accent); letter-spacing: .04em;
+.hiw-notes li::before {
+  content: '';
+  position: absolute; left: 3px; top: 1.15em;
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--accent);
 }
-.hiw-tips span { color: var(--text-dim); }
 
 @media (max-width: 640px) {
   .hiw-tabbar { justify-content: flex-start; overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -940,72 +947,73 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 .receipt-close:active { transform: scale(.92); }
 
 /* ── 영수증 카드 (실제 캡처 대상) — 종이 영수증 느낌으로 앱과 다른 결을 준다 ── */
-/* 아래쪽 톱니(clip-path)를 뺐다.
+/* ── 공유 카드 ─────────────────────────────
+   대표 이미지와 같은 결. 어두운 배경 + 주황 강조로 대화방에서 눈에 띄고,
+   가장 큰 글자는 점수가 아니라 **판정에서 끌어온 한 줄**이다. 받는 사람이
+   0.5초 안에 읽을 것은 숫자가 아니라 문장이기 때문이다.
 
-   화면에서는 영수증이 뜯긴 모양으로 읽혔지만, **이미지로 내보내면 톱니 사이가
-   투명해진다.** 공유받은 쪽의 대화방 배경(밝은 테마면 흰색, 어두운 테마면
-   검정)이 그 사이로 비치면서 카드가 뜯긴 게 아니라 **잘못 잘린 것처럼** 보였다.
-   받는 사람은 이게 디자인인지 오류인지 알 수 없다.
-
-   영수증다움은 톱니가 아니라 크림색 용지·점선 구분선·mono 숫자가 이미 만들고
-   있어서, 톱니를 빼도 성격은 그대로다. 내보낼 때 배경색을 함께 칠해
-   (captureReceiptPng) 투명 영역 자체를 없앴다. */
+   메시지 원문은 여기 들어오지 않는다. 후킹은 위험 등급에서만 만든다. */
 .receipt-card {
   width: 100%;
-  background: #f6f1e4;
-  color: #2a2620;
-  border-radius: 10px;
+  border-radius: 16px;
+  background: #0a1020;
+  color: #fff;
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
 }
-/* 카드 전체를 mono 로 두던 자리다. --mono 는 라틴 전용 스택이라 한글만
-   시스템 글꼴로 떨어지면서, 같은 행 안에서 "주말 도둑형 상사"와 "+5.5 Hours"의
-   결이 서로 달랐다(본문 전반에서 세 번 잡았던 것과 같은 버그다). 공유되는
-   이미지에서 이 불일치가 카드를 싸구려로 보이게 하는 가장 큰 원인이었다.
-   본문은 --font 로 통일하고, mono 는 아래에서 라틴·숫자 전용 자리에만 남긴다.
-   영수증 특유의 결은 tabular-nums 와 자간이 대신 맡는다. */
-.receipt-card-inner {
-  padding: 22px 22px 24px;
-  font-family: var(--font);
-  font-variant-numeric: tabular-nums;
-}
-.receipt-brand { font-family: var(--mono); font-weight: 700; letter-spacing: 0.12em; font-size: 16px; text-align: center; }
-.receipt-brand-sub { font-family: var(--mono); text-align: center; font-size: 10px; letter-spacing: 0.08em; color: #6b6455; margin-top: 2px; }
-.receipt-issued { font-family: var(--mono); text-align: center; font-size: 10.5px; color: #6b6455; margin-top: 10px; }
-.receipt-rule { border-top: 1px dashed #8a8272; margin: 14px 0; }
-.receipt-rule-light { border-top-color: #c9c2ae; }
-.receipt-row {
-  display: flex; justify-content: space-between; gap: 10px;
-  font-size: 13px; line-height: 1.9;
+.receipt-card-inner { padding: 26px 24px 20px; font-family: var(--font); }
+
+.receipt-top { display: flex; align-items: center; gap: 8px; }
+.receipt-logo { width: 22px; height: 22px; flex-shrink: 0; }
+.receipt-wordmark {
+  font-family: var(--mono); font-size: 12px; font-weight: 700;
+  letter-spacing: .22em; color: #76839b;
 }
 
-/* 위험 지수를 카드의 단일 초점으로 세운다. */
-.receipt-hero { text-align: center; padding: 2px 0 4px; }
-.receipt-hero-label { font-size: 10.5px; letter-spacing: 0.08em; color: #8a8272; }
-.receipt-hero-score {
-  display: flex; align-items: baseline; justify-content: center; gap: 6px;
-  margin-top: 2px;
+.receipt-hook {
+  margin: 20px 0 0;
+  font-size: 30px; font-weight: 900; line-height: 1.25;
+  letter-spacing: -.035em; color: #fff;
+  word-break: keep-all; text-wrap: balance;
 }
-.receipt-hero-score b {
-  font-family: var(--mono);
-  font-size: 54px;
-  font-weight: 700;
-  line-height: 1.05;
-  letter-spacing: -0.02em;
+
+.receipt-gauge { margin-top: 22px; }
+.receipt-gauge-num { display: flex; align-items: baseline; gap: 6px; }
+.receipt-gauge-num b {
+  font-family: var(--mono); font-size: 46px; font-weight: 700;
+  line-height: 1; letter-spacing: -.03em; color: #ff5e00;
 }
-.receipt-hero-score span { font-family: var(--mono); font-size: 13px; color: #8a8272; }
-.receipt-hero-verdict { font-size: 12.5px; font-weight: 700; margin-top: 2px; }
-.receipt-row span { color: #6b6455; }
-.receipt-row b { font-weight: 700; text-align: right; }
-.receipt-nudge-title { font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; margin-bottom: 6px; }
-.receipt-nudge-body { font-size: 12px; line-height: 1.7; margin: 0; color: #3a352c; }
-.receipt-eap { font-size: 11px; line-height: 1.7; color: #6b6455; margin: 0; }
+.receipt-gauge-num span { font-family: var(--mono); font-size: 13px; color: #55617a; }
+.receipt-gauge-bar {
+  margin-top: 10px; height: 6px; border-radius: 999px;
+  background: #1c2740; overflow: hidden;
+}
+.receipt-gauge-bar i { display: block; height: 100%; border-radius: 999px; background: #ff5e00; }
+.receipt-gauge-label { margin-top: 8px; font-size: 12.5px; font-weight: 600; color: #8d9ab4; }
+.receipt-gauge-label span { color: #fff; }
+
+.receipt-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 18px; }
+.receipt-tag {
+  padding: 6px 11px; border-radius: 999px;
+  border: 1px solid #2b3550;
+  font-size: 12.5px; font-weight: 600; color: #c6cfdf;
+  word-break: keep-all;
+}
+.receipt-tag-villain { border-color: #ff5e0066; color: #ff9a5c; }
+
+.receipt-foot { margin-top: 22px; padding-top: 14px; border-top: 1px solid #1c2740; }
+.receipt-foot-line { margin: 0; font-size: 11.5px; line-height: 1.7; color: #6d7a93; word-break: keep-all; }
+.receipt-foot-line b { color: #8d9ab4; }
+.receipt-foot-care { color: #55617a; }
 .receipt-url {
-  font-family: var(--mono);
-  text-align: center;
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
-  color: #8a8272;
-  margin-top: 12px;
+  margin: 8px 0 0; font-family: var(--mono);
+  font-size: 11px; letter-spacing: .08em; color: #55617a;
+}
+
+@media (max-width: 460px) {
+  .receipt-card-inner { padding: 22px 18px 18px; }
+  .receipt-hook { font-size: 26px; }
+  .receipt-gauge-num b { font-size: 40px; }
 }
 
 .receipt-actions { display: flex; gap: 8px; width: 100%; }
@@ -1459,7 +1467,7 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   .hiw-panel h3 { font-size: 16px; }
   .hiw-panel > p { font-size: 13px; margin-bottom: 14px; }
   .hiw-panel-eyebrow { font-size: 11.5px; margin-bottom: 6px; }
-  .hiw-tips li { padding: 10px 0; font-size: 12.5px; }
+  .hiw-notes li { padding: 10px 0 10px 16px; font-size: 12.5px; }
 }
 
 /* ── 입체감 · 인터랙션 ─────────────────────────────
@@ -1680,7 +1688,7 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 .restored-note-body,
 .busy-note-body,
 .hiw-panel p,
-.hiw-tips span,
+.hiw-notes li,
 .reply-text,
 .subtext {
   text-wrap: pretty;

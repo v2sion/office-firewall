@@ -100,10 +100,11 @@ test('영수증의 채용 링크는 새 창으로 열린다', () => {
 });
 
 test('공유되는 영수증 카드의 상담 안내도 조건 없는 창구다', () => {
-  const card = html.slice(html.indexOf('class="receipt-eap"'), html.indexOf('receipt-disclaimer'));
+  // 카드는 이미지라 링크가 동작하지 않는다. 그래서 주소가 아니라 번호를 적고,
+  // 대상이 정해진 EAP 대신 누구나 걸 수 있는 번호만 남긴다.
+  const card = html.slice(html.indexOf('id="receipt-card"'), html.indexOf('class="receipt-actions"'));
   assert.ok(!/comwel|EAP/.test(card), '이미지에 조건부 창구가 남아 있다');
-  assert.match(card, /1350/);
-  assert.match(card, /1577-0199/);
+  assert.match(card, /1350/, '조건 없는 상담 번호가 없다');
 });
 
 
