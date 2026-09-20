@@ -1809,3 +1809,50 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 .install-banner-title {
   text-wrap: balance;
 }
+
+
+/* ── "이 결과, 어떻게 나왔나요?" ─────────────────────────────
+   본문에서 처리 방식을 설명하던 자리를 여기로 옮겼다. 배지를 눌러야 열리므로
+   궁금하지 않은 사람의 화면은 그만큼 짧아진다. */
+.mode-badge { cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+.mode-badge-mark {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 1px solid currentColor;
+  font-size: 9.5px; font-weight: 700; line-height: 1;
+  opacity: .75;
+}
+.mode-badge:hover .mode-badge-mark { opacity: 1; }
+
+.how-now {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--bg-soft);
+  font-size: 12.5px; font-weight: 600; color: var(--text-dim);
+  word-break: keep-all; text-wrap: pretty;
+}
+
+.how-steps { margin: 0; padding: 0; list-style: none; counter-reset: how; }
+.how-steps li {
+  position: relative;
+  counter-increment: how;
+  padding: 0 0 16px 30px;
+  border-left: 1px solid var(--line);
+  margin-left: 11px;
+}
+.how-steps li:last-child { border-left-color: transparent; padding-bottom: 0; }
+.how-steps li::before {
+  content: counter(how);
+  position: absolute; left: -11px; top: 0;
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: var(--accent); color: #fff;
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+}
+.how-steps b { display: block; font-size: 13.5px; color: var(--text); margin-bottom: 3px; }
+.how-steps span {
+  display: block; font-size: 12.5px; line-height: 1.65; color: var(--text-dim);
+  word-break: keep-all; text-wrap: pretty;
+}

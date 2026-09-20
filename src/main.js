@@ -268,6 +268,10 @@ const el = {
   xray: $('xray'),
   alertHeader: $('alert-header'),
   modeBadge: $('mode-badge'),
+  howModal: $('how-modal'),
+  howBackdrop: $('how-backdrop'),
+  howClose: $('how-close'),
+  howNow: $('how-now'),
   scoreValue: $('score-value'),
   scoreLabel: $('score-label'),
   scoreAction: $('score-action'),
@@ -315,6 +319,9 @@ const el = {
 
 /** 마지막으로 렌더링된 결과 — 영수증은 이 스냅샷에서만 값을 읽는다(원문 재접근 없음). */
 let lastReceiptSource = null;
+
+/** 마지막 결과가 어느 경로로 나왔는지. 배지 설명(how-modal)이 읽는다. */
+let lastMode = 'mock';
 
 /* ── 셀렉터 / 프리셋 렌더 ───────────────────────────── */
 
@@ -1209,7 +1216,9 @@ function render(result, elapsedMs, context, { restored = false, restoredAt = nul
   // 예전엔 LIVE/MOCK/LOCAL 을 그대로 노출했는데, MOCK 은 정상 폴백인데도
   // "아직 안 만들어진 데모"로 읽히고 LIVE 는 생방송으로 읽힐 소지가 있었다.
   // 상세(모델명·비용·폴백 사유)는 title 툴팁에 그대로 남는다.
-  el.modeBadge.textContent = MODE_BADGE[meta.mode] || meta.mode;
+  lastMode = meta.mode;
+  // 배지는 버튼이라 안에 물음표 표시가 함께 있다 — 통째로 갈아끼우면 사라진다.
+  el.modeBadge.firstChild.textContent = MODE_BADGE[meta.mode] || meta.mode;
   el.modeBadge.title = meta.note || `model: ${meta.model}`;
 
   animateScore(risk.score);
@@ -1361,9 +1370,15 @@ function renderEvidence(xray, risk) {
 }
 
 /**
- * LIVE(실제 LLM 호출) 가 아니면 답장이 메시지 내용을 깊이 읽고 쓴 게 아니라
- * 목적×말투 세기로 갈라지는 규칙 기반 근사치라는 걸 명시한다. 이 설명이 없으면
- * "답장이 왜 내 메시지를 다르게 표현한 것처럼 느껴지지" 하고 오해하기 쉽다.
+ * 답장 위의 한 줄.
+ *
+ * 예전에는 여기서 처리 경로를 설명했다("규칙 기반 예시 답장입니다(모델
+ * 미연동). 목적·말투에 따라 갈라지긴 하지만 메시지 내용을 세세히 읽고 쓰진
+ * 않아요."). 사실이긴 한데 **사용자가 그 문장으로 할 수 있는 일이 없다.**
+ * 모델이 붙었는지는 우리 사정이지 답장을 쓰는 사람의 관심사가 아니다.
+ *
+ * 그래서 본문에는 **행동으로 옮길 수 있는 것만** 남긴다. 처리 방식이 궁금한
+ * 사람은 배지를 눌러 자세히 볼 수 있다(how-modal).
  */
 function renderRepliesModeNote(mode) {
   if (mode === 'live') {
@@ -1371,9 +1386,21 @@ function renderRepliesModeNote(mode) {
     return;
   }
   el.repliesModeNote.hidden = false;
-  el.repliesModeNote.textContent = mode === 'cached'
-    ? 'ℹ️ 캐시된 예시 답장입니다.\n상황 카드 원본 그대로일 때만 나오는 미리 준비된 결과예요.'
-    : 'ℹ️ 지금은 규칙 기반 예시 답장입니다(모델 미연동).\n목적·말투에 따라 갈라지긴 하지만 메시지 내용을 세세히 읽고 쓰진 않아요.\n그대로 보내기보다 초안으로 참고해 다듬어 주세요.';
+  el.repliesModeNote.textContent =
+    'ℹ️ 지금은 예시 답장이에요. 그대로 보내기보다 내 상황에 맞게 한 번 고쳐서 쓰시는 걸 권합니다.';
+}
+
+/** 배지를 눌렀을 때 여는 설명. "지금 결과"가 어느 경로였는지만 갈아끼운다. */
+const HOW_NOW = {
+  live: 'AI가 사실을 뽑고, 코드가 점수를 계산했습니다.',
+  mock: '지금은 AI 대신 규칙 엔진이 답장을 만들었습니다. 점수 계산은 평소와 같습니다.',
+  local: '서버에 닿지 못해 브라우저 안에서 계산했습니다. 점수 계산은 평소와 같습니다.',
+  cached: '상황 카드 예시라 미리 준비해 둔 결과를 그대로 보여드렸습니다.',
+};
+
+function openHowModal() {
+  el.howNow.textContent = HOW_NOW[lastMode] || HOW_NOW.mock;
+  openModal(el.howModal);
 }
 
 function renderReplies(replies) {
@@ -1578,7 +1605,7 @@ function closeModal(modal) {
 /** 열려 있는 모달 안에 Tab 순환을 가둔다. */
 function trapTabInModal(e) {
   if (e.key !== 'Tab') return;
-  const modal = [el.intro, el.receiptModal, el.historyModal, el.feedbackModal].find((m) => !m.hidden);
+  const modal = [el.intro, el.receiptModal, el.historyModal, el.feedbackModal, el.howModal].find((m) => !m.hidden);
   if (!modal) return;
   const items = focusablesIn(modal);
   if (!items.length) return;
@@ -1949,6 +1976,9 @@ el.historyFilter.addEventListener('change', () => {
   historySelected.clear();
   renderHistory();
 });
+el.modeBadge.addEventListener('click', openHowModal);
+el.howClose.addEventListener('click', () => closeModal(el.howModal));
+el.howBackdrop.addEventListener('click', () => closeModal(el.howModal));
 el.historySelect.addEventListener('click', () => setHistoryMode(true));
 el.historyCancel.addEventListener('click', () => setHistoryMode(false));
 el.historyDelete.addEventListener('click', onDeleteSelected);
@@ -2020,6 +2050,7 @@ document.addEventListener('keydown', (e) => {
   if (!el.feedbackModal.hidden) closeFeedbackModal();
   if (!el.receiptModal.hidden) closeReceiptModal();
   if (!el.historyModal.hidden) closeHistoryModal();
+  if (!el.howModal.hidden) closeModal(el.howModal);
 });
 onInput();
 // 재방문자는 첫 화면에서 바로 쌓인 기록 수를 본다.

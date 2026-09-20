@@ -370,7 +370,9 @@
         <article class="xray" id="xray">
           <div class="xray-head">
             <span class="alert-header" id="alert-header">고위험 독박 경보</span>
-            <span class="mode-badge" id="mode-badge">규칙 분석</span>
+            <!-- 배지를 누르면 "이 결과가 어떻게 나왔는지"를 연다. 본문에서
+                 처리 방식을 일일이 설명하는 대신, 궁금한 사람만 열어 보게 한다. -->
+            <button type="button" class="mode-badge" id="mode-badge" aria-haspopup="dialog">규칙 분석<span class="mode-badge-mark" aria-hidden="true">?</span></button>
           </div>
 
           <div class="score-row">
@@ -712,6 +714,44 @@
   </div>
 
   <!-- 나의 방어 기록 모달 -->
+  <!--
+    "이 결과, 어떻게 나왔나요?"
+
+    본문에 처리 방식을 늘어놓으면 읽어야 할 것이 늘기만 한다. AI 가 하는 일과
+    코드가 하는 일의 구분은 **궁금해진 사람에게만** 필요한 설명이라, 배지를
+    눌렀을 때 열리는 자리로 옮겼다. 본문은 사용자가 쓸 수 있는 것만 남긴다.
+  -->
+  <div class="history-modal how-modal" id="how-modal" hidden>
+    <div class="history-modal-backdrop" id="how-backdrop"></div>
+    <div class="history-modal-panel" role="dialog" aria-modal="true" aria-labelledby="how-title">
+      <div class="history-head">
+        <h2 id="how-title">이 결과, 어떻게 나왔나요?</h2>
+        <button type="button" class="receipt-close" id="how-close" aria-label="닫기">✕</button>
+      </div>
+
+      <p class="how-now" id="how-now"></p>
+
+      <ol class="how-steps">
+        <li>
+          <b>이름과 연락처를 먼저 가립니다</b>
+          <span>서버로 떠나기 전에 브라우저에서 바꿔치기합니다. 원문은 어디에도 저장하지 않습니다.</span>
+        </li>
+        <li>
+          <b>AI가 사실만 뽑습니다</b>
+          <span>"주말에 답을 요구하나?", "기한이 적혀 있나?" 같은 것만 골라냅니다. AI는 점수를 매기지 않습니다.</span>
+        </li>
+        <li>
+          <b>위험 지수는 코드가 계산합니다</b>
+          <span>뽑아낸 항목을 정해진 식에 넣어 더합니다. 그래서 같은 메시지면 늘 같은 점수가 나오고, 계산 과정을 '판정 근거 보기'에서 그대로 펼쳐 볼 수 있습니다.</span>
+        </li>
+        <li>
+          <b>답장은 AI가 씁니다</b>
+          <span>고르신 대응 방향과 말투 세기에 맞춰 세 가지를 만듭니다. 보내기 전에 한 번 읽어 보시고 고쳐 쓰셔도 됩니다.</span>
+        </li>
+      </ol>
+    </div>
+  </div>
+
   <div class="history-modal" id="history-modal" hidden>
     <div class="history-modal-backdrop" id="history-backdrop"></div>
     <div class="history-modal-panel" role="dialog" aria-modal="true" aria-label="나의 방어 기록">
