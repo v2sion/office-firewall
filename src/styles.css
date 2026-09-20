@@ -841,18 +841,24 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
    "정상·경미·주의·경계·심각 5단계로 색이 나뉩니다"). 라벨이 내용의 성격을
    잘못 알리고 있어서, 번호를 떼고 불릿 목록으로 바꿨다. */
 .hiw-notes { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+/* 불릿을 position:absolute + top:1.15em 으로 찍었더니 글자 크기·줄높이가
+   달라지는 구간마다 첫 줄과 어긋나 보였다. flex 로 바꾸고 불릿에 첫 줄과 같은
+   line-height 를 줘서, 크기가 변해도 불릿이 첫 줄의 광학 중앙에 따라오게 한다. */
 .hiw-notes li {
-  position: relative;
-  padding: 12px 2px 12px 18px;
+  display: flex;
+  gap: 9px;
+  padding: 12px 2px;
   border-bottom: 1px solid var(--line);
   font-size: 13.5px;
+  line-height: 1.65;
   color: var(--text-dim);
 }
 .hiw-notes li::before {
-  content: '';
-  position: absolute; left: 3px; top: 1.15em;
-  width: 5px; height: 5px; border-radius: 50%;
-  background: var(--accent);
+  content: '•';
+  flex-shrink: 0;
+  line-height: inherit;
+  color: var(--accent);
+  font-weight: 700;
 }
 
 @media (max-width: 640px) {
@@ -948,17 +954,22 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 
 /* ── 영수증 카드 (실제 캡처 대상) — 종이 영수증 느낌으로 앱과 다른 결을 준다 ── */
 /* ── 공유 카드 ─────────────────────────────
-   대표 이미지와 같은 결. 어두운 배경 + 주황 강조로 대화방에서 눈에 띄고,
-   가장 큰 글자는 점수가 아니라 **판정에서 끌어온 한 줄**이다. 받는 사람이
-   0.5초 안에 읽을 것은 숫자가 아니라 문장이기 때문이다.
+   서비스 화면과 같은 팔레트를 쓴다. 한때 대표 이미지의 남색+주황을 그대로
+   가져왔는데, 카드만 다른 브랜드처럼 보였다. 공유된 이미지를 보고 들어온
+   사람이 만나는 첫 화면이 이 카드와 이어져야 한다.
+
+   밝은 톤이라 대화방에서 묻힐 수 있으니, 대비는 색이 아니라 **크기**로 준다.
+   가장 큰 글자는 점수가 아니라 판정에서 끌어온 한 줄이다. 받는 사람이 0.5초
+   안에 읽는 건 숫자가 아니라 문장이기 때문이다.
 
    메시지 원문은 여기 들어오지 않는다. 후킹은 위험 등급에서만 만든다. */
 .receipt-card {
   width: 100%;
   border-radius: 16px;
-  background: #0a1020;
-  color: #fff;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  color: var(--text);
+  box-shadow: 0 18px 40px rgba(16, 24, 40, 0.22);
   overflow: hidden;
 }
 .receipt-card-inner { padding: 26px 24px 20px; font-family: var(--font); }
@@ -967,13 +978,13 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 .receipt-logo { width: 22px; height: 22px; flex-shrink: 0; }
 .receipt-wordmark {
   font-family: var(--mono); font-size: 12px; font-weight: 700;
-  letter-spacing: .22em; color: #76839b;
+  letter-spacing: .22em; color: var(--text-faint);
 }
 
 .receipt-hook {
   margin: 20px 0 0;
   font-size: 30px; font-weight: 900; line-height: 1.25;
-  letter-spacing: -.035em; color: #fff;
+  letter-spacing: -.035em; color: var(--text);
   word-break: keep-all; text-wrap: balance;
 }
 
@@ -981,33 +992,37 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
 .receipt-gauge-num { display: flex; align-items: baseline; gap: 6px; }
 .receipt-gauge-num b {
   font-family: var(--mono); font-size: 46px; font-weight: 700;
-  line-height: 1; letter-spacing: -.03em; color: #ff5e00;
+  line-height: 1; letter-spacing: -.03em; color: var(--accent);
 }
-.receipt-gauge-num span { font-family: var(--mono); font-size: 13px; color: #55617a; }
+.receipt-gauge-num span { font-family: var(--mono); font-size: 13px; color: var(--text-faint); }
 .receipt-gauge-bar {
   margin-top: 10px; height: 6px; border-radius: 999px;
-  background: #1c2740; overflow: hidden;
+  background: var(--bg-soft); overflow: hidden;
 }
-.receipt-gauge-bar i { display: block; height: 100%; border-radius: 999px; background: #ff5e00; }
-.receipt-gauge-label { margin-top: 8px; font-size: 12.5px; font-weight: 600; color: #8d9ab4; }
-.receipt-gauge-label span { color: #fff; }
+.receipt-gauge-bar i { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
+.receipt-gauge-label { margin-top: 8px; font-size: 12.5px; font-weight: 600; color: var(--text-faint); }
+.receipt-gauge-label span { color: var(--text); }
 
 .receipt-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 18px; }
 .receipt-tag {
   padding: 6px 11px; border-radius: 999px;
-  border: 1px solid #2b3550;
-  font-size: 12.5px; font-weight: 600; color: #c6cfdf;
+  border: 1px solid var(--line); background: var(--bg-soft);
+  font-size: 12.5px; font-weight: 600; color: var(--text-dim);
   word-break: keep-all;
 }
-.receipt-tag-villain { border-color: #ff5e0066; color: #ff9a5c; }
+/* 빌런 유형만 강조색을 쓴다 — 카드에서 사람들이 캡처해 옮기는 값이다. */
+.receipt-tag-villain {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+  background: color-mix(in srgb, var(--accent) 7%, var(--bg-panel));
+  color: var(--accent-dim);
+}
 
-.receipt-foot { margin-top: 22px; padding-top: 14px; border-top: 1px solid #1c2740; }
-.receipt-foot-line { margin: 0; font-size: 11.5px; line-height: 1.7; color: #6d7a93; word-break: keep-all; }
-.receipt-foot-line b { color: #8d9ab4; }
-.receipt-foot-care { color: #55617a; }
+.receipt-foot { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line); }
+.receipt-foot-line { margin: 0; font-size: 11.5px; line-height: 1.7; color: var(--text-faint); word-break: keep-all; }
+.receipt-foot-line b { color: var(--text-dim); }
 .receipt-url {
   margin: 8px 0 0; font-family: var(--mono);
-  font-size: 11px; letter-spacing: .08em; color: #55617a;
+  font-size: 11px; letter-spacing: .08em; color: var(--text-faint);
 }
 
 @media (max-width: 460px) {
@@ -1467,7 +1482,7 @@ textarea::placeholder, input::placeholder { color: var(--text-faint); }
   .hiw-panel h3 { font-size: 16px; }
   .hiw-panel > p { font-size: 13px; margin-bottom: 14px; }
   .hiw-panel-eyebrow { font-size: 11.5px; margin-bottom: 6px; }
-  .hiw-notes li { padding: 10px 0 10px 16px; font-size: 12.5px; }
+  .hiw-notes li { padding: 10px 0; font-size: 12.5px; }
 }
 
 /* ── 입체감 · 인터랙션 ─────────────────────────────

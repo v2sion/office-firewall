@@ -507,6 +507,21 @@ function clearPresetSelection() {
   el.presetRun.hidden = true;
 }
 
+/**
+ * 입력칸의 내용이 **예시를 그대로 적용한 것**인지 판별한다.
+ *
+ * 카드를 바꿨을 때 이전 예시 문장이 그대로 남아 있으면, 화면의 선택(새 카드)과
+ * 입력칸의 내용(옛 카드)이 어긋난다. 그렇다고 무조건 비우면 직접 쓰던 글을
+ * 말없이 지우게 된다. 그래서 "예시에서 온 문장일 때만" 비운다.
+ *
+ * 어느 관계 변형에서 왔는지 모르므로 모든 변형과 대조한다.
+ */
+function isPresetText(value) {
+  const v = String(value || '').trim();
+  if (!v) return false;
+  return PRESETS.some((p) => [p.text, ...Object.values(p.byCounterpart || {})].some((t) => t.trim() === v));
+}
+
 function applyPreset(p, btn) {
   el.presetGrid.querySelectorAll('.preset').forEach((b) => {
     b.classList.toggle('selected', b === btn);
@@ -515,7 +530,16 @@ function applyPreset(p, btn) {
 
   el.message.placeholder = presetText(p);
 
-  el.message.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // 다른 카드로 옮겼는데 입력칸에 옛 예시가 남아 있으면 선택과 내용이 어긋난다.
+  // 예시에서 온 문장일 때만 비우고, 직접 쓴 글은 건드리지 않는다.
+  if (isPresetText(el.message.value)) {
+    el.message.value = '';
+    onInput();
+  }
+
+  // 스크롤을 옮기지 않는다. 카드를 훑어보는 중인 사람을 입력칸으로 끌어내리면
+  // 다음 카드를 보려고 다시 올라와야 한다. 카드를 눌렀을 때 실제로 바뀌는 건
+  // 아래 안내 문구와 적용 버튼이고, 둘 다 카드 바로 밑에 있다.
   el.message.classList.remove('just-filled');
   // 리플로우를 강제해 같은 카드를 연속 클릭해도 애니메이션이 다시 재생되게 한다.
   void el.message.offsetWidth;
@@ -1531,7 +1555,7 @@ function closeReceiptModal() {
  * 거기로 비치면 카드가 잘못 잘린 것처럼 보인다. 카드와 같은 색으로 칠해
  * 투명 픽셀 자체를 없앤다.
  */
-const RECEIPT_BG = '#0a1020';
+const RECEIPT_BG = '#ffffff';
 
 async function captureReceiptPng() {
   // 폰트 로딩 등으로 인한 첫 캡처 오차를 줄이기 위해 한 프레임 양보한다.

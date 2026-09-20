@@ -53,3 +53,45 @@ test('예시 문구에 실명·줄표가 들어가지 않는다', () => {
     }
   }
 });
+
+/**
+ * 카드를 고르는 동작과 예시를 적용하는 동작은 다르다.
+ *
+ * 카드를 고르는 건 **훑어보는 중**이다. 여기서 입력칸으로 스크롤을 끌어내리면
+ * 다음 카드를 보려고 다시 올라와야 한다. 반대로 "그대로 적용하기"는 사용자가
+ * 명시적으로 요청한 동작이라, 채워진 입력칸으로 데려가는 게 맞다.
+ *
+ * 둘이 섞이기 쉬운 자리라 소스에서 고정한다.
+ */
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const mainJs = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'src/main.js'), 'utf8');
+const bodyOf = (name) => {
+  const at = mainJs.indexOf(`function ${name}(`);
+  return mainJs.slice(at, mainJs.indexOf('\n}', at));
+};
+
+test('카드를 고를 때는 스크롤을 옮기지 않는다', () => {
+  assert.ok(!/scrollIntoView/.test(bodyOf('applyPreset')), 'applyPreset 이 스크롤을 옮긴다');
+});
+
+test('"그대로 적용하기"는 채워진 입력칸으로 데려간다', () => {
+  assert.match(bodyOf('applyPresetMessage'), /scrollIntoView/, '적용 후 입력칸으로 가지 않는다');
+});
+
+/**
+ * 카드를 바꿨는데 입력칸에 옛 예시가 남아 있으면, 화면의 선택(새 카드)과
+ * 내용(옛 카드)이 어긋난다. 그렇다고 무조건 비우면 직접 쓰던 글을 말없이
+ * 지우게 된다. 예시에서 온 문장일 때만 비운다.
+ */
+test('예시 문장인지 판별할 때 관계별 변형까지 본다', () => {
+  const body = bodyOf('isPresetText');
+  assert.match(body, /byCounterpart/, '변형을 보지 않으면 변형 예시가 안 지워진다');
+  assert.match(body, /PRESETS\.some/, '카드 전체와 대조하지 않는다');
+});
+
+test('카드를 바꿀 때 예시 문장만 비운다', () => {
+  assert.match(bodyOf('applyPreset'), /isPresetText\(el\.message\.value\)/, '예시 여부를 확인하지 않고 비운다');
+});
