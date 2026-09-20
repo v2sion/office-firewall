@@ -1,0 +1,50 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<!--
+  공유 카드(og:image) 원본 — 1200×630.
+
+  대표 이미지(thumbnail-dark.html)와 같은 시각 언어를 쓰되 비율이 다르다.
+  1920×1080(16:9)을 그대로 쓰면 카카오톡·슬랙처럼 카드를 1.91:1 로 자르는
+  곳에서 위아래가 잘린다. 세로를 줄이는 대신 가로로 펼쳐 다시 잡았다.
+
+  카카오톡 대화방에서는 이 카드가 아주 작게 뜬다. 그래서 담는 건 딱 하나,
+  "하.. 답장하기 싫다..." 한 줄이다. 기능 설명이나 스크린샷은 그 크기에서
+  읽히지 않는다.
+
+  PNG 로 굽기: node scripts/make-og.mjs
+-->
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{width:1200px;height:630px;overflow:hidden;background:#0a1020;position:relative;
+    font-family:'Pretendard Variable','Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif}
+  .glow{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);
+    width:1100px;height:620px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,94,0,.15),transparent 62%)}
+  .row{position:absolute;left:0;right:0;top:78px;display:flex;align-items:center;
+    justify-content:center;gap:54px}
+  .bubble{position:relative;width:498px;padding:34px 38px 40px;border-radius:26px;
+    background:#141d33;border:4px solid #33415c}
+  .bubble::after{content:'';position:absolute;left:56px;bottom:-24px;
+    border:14px solid transparent;border-top-color:#33415c;border-bottom:0}
+  .bubble p{color:#8d9ab4;font-size:33px;font-weight:500;line-height:1.42;word-break:keep-all}
+  .bubble b{display:block;margin-top:16px;color:#ff7a29;font-size:37px;font-weight:900}
+  .key{position:absolute;left:64px;right:64px;bottom:132px;text-align:center;
+    font-size:88px;font-weight:900;color:#fff;letter-spacing:-.04em;line-height:1}
+  .brand{position:absolute;left:0;right:0;bottom:62px;text-align:center;
+    font-size:23px;font-weight:700;letter-spacing:.3em;color:#76839b}
+</style></head><body>
+<div class="glow"></div>
+<div class="row">
+  <div class="bubble"><p>시간 될 때 가볍게<br>한번만 봐주세요.<b>급한 건 아닙니다!</b></p></div>
+  <svg width="246" height="286" viewBox="0 0 308 366">
+    <path d="M154 0l150 53v118c0 92-60 172-150 195C64 343 4 263 4 171V53z" fill="#ff5e00"/>
+    <path d="M154 0l150 53v118c0 92-60 172-150 195C64 343 4 263 4 171V53z" fill="none" stroke="#0a1020" stroke-width="16"/>
+    <g fill="#0a1020">
+      <rect x="48" y="118" width="86" height="36" rx="9"/><rect x="152" y="118" width="104" height="36" rx="9"/>
+      <rect x="48" y="176" width="126" height="36" rx="9"/><rect x="192" y="176" width="64" height="36" rx="9"/>
+      <rect x="48" y="234" width="58" height="36" rx="9"/><rect x="124" y="234" width="132" height="36" rx="9"/>
+    </g>
+  </svg>
+</div>
+<div class="key">하.. 답장하기 싫다...</div>
+<div class="brand">OFFICE FIREWALL</div>
+</body></html>

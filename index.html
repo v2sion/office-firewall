@@ -15,6 +15,47 @@
        이 링크가 실패해도 아래 폴백 체인이 그대로 받으므로 회귀는 없다. -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+
+  <!-- ── 공유 카드 (Open Graph) ───────────────────────────────────────────
+       og:image 는 **반드시 절대 URL** 이다. 카카오톡·슬랙의 크롤러는 상대
+       경로를 자기 도메인 기준으로 풀지 못해 이미지를 통째로 버린다.
+
+       또 이 크롤러들은 JavaScript 를 실행하지 않는다. 그래서 아래 태그는
+       전부 정적 HTML 안에 있어야 하고, 런타임에 채워 넣으면 안 된다
+       (Vite 는 이 파일을 그대로 dist 로 내보내므로 조건을 만족한다).
+
+       카카오톡은 URL 별로 OG 결과를 캐시한다. 이미지를 바꿔도 예전 카드가
+       한동안 그대로 뜨므로, 배포 후 카카오 개발자 도구의 캐시 초기화를
+       한 번 돌려야 한다(README 참고). -->
+  <link rel="canonical" href="https://office-firewall.vercel.app/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="OFFICE FIREWALL" />
+  <meta property="og:url" content="https://office-firewall.vercel.app/" />
+  <meta property="og:locale" content="ko_KR" />
+  <meta property="og:title" content="하.. 답장하기 싫다... | OFFICE FIREWALL" />
+  <meta property="og:description" content="애매한 업무 메시지를 붙여넣으면 위험도를 근거와 함께 판정하고, 바로 보낼 수 있는 답장 3개를 만들어 드립니다." />
+  <meta property="og:image" content="https://office-firewall.vercel.app/og.png" />
+  <meta property="og:image:secure_url" content="https://office-firewall.vercel.app/og.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="말풍선 속 '시간 될 때 가볍게 한번만 봐주세요. 급한 건 아닙니다!' 옆에 방패 로고, 아래에 '하.. 답장하기 싫다...'" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="하.. 답장하기 싫다... | OFFICE FIREWALL" />
+  <meta name="twitter:description" content="애매한 업무 메시지를 붙여넣으면 위험도를 근거와 함께 판정하고, 바로 보낼 수 있는 답장 3개를 만들어 드립니다." />
+  <meta name="twitter:image" content="https://office-firewall.vercel.app/og.png" />
+
+  <!-- ── 홈 화면에 추가 (PWA) ─────────────────────────────────────────────
+       안드로이드/크롬은 manifest + fetch 핸들러가 있는 서비스 워커가 모두
+       있어야 설치를 제안한다. iOS 사파리는 설치 프롬프트 API 자체가 없어서
+       아래 apple-* 태그로 아이콘·표시 방식만 맞추고, 안내는 화면에서 한다. -->
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="theme-color" content="#0b0d12" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="방화벽" />
+
   <link rel="stylesheet" href="/src/styles.css" />
 </head>
 <body>
@@ -105,6 +146,26 @@
       <div class="brand-claim">이 메시지, 혼자 해석하지 마세요</div>
     </div>
   </header>
+
+  <!--
+    홈 화면에 추가 배너.
+
+    기본은 숨김이고, 설치가 실제로 가능할 때만 main.js 가 연다. 안드로이드/크롬은
+    beforeinstallprompt 가 왔을 때, iOS 사파리는 설치 프롬프트 API 가 없어서
+    직접 안내 문구를 띄운다(문구는 main.js 가 갈아끼운다).
+
+    상단바 바로 아래에 두는 이유: 우하단은 이미 '맨 위로'와 '의견 보내기'
+    플로팅 버튼이 쓰고 있어서, 배너를 거기 두면 실행 버튼까지 세 겹으로 겹친다.
+  -->
+  <div class="install-banner" id="install-banner" hidden>
+    <img class="install-banner-icon" src="/icon-192.png" alt="" width="34" height="34" />
+    <div class="install-banner-body">
+      <p class="install-banner-title">앱처럼 홈 화면에 두고 쓰세요</p>
+      <p class="install-banner-sub" id="install-banner-sub">설치해도 용량을 거의 쓰지 않습니다.</p>
+    </div>
+    <button type="button" class="install-banner-cta" id="install-accept">설치</button>
+    <button type="button" class="install-banner-close" id="install-dismiss" aria-label="설치 안내 닫기">✕</button>
+  </div>
 
   <main class="layout">
     <!-- ─────────────────  좌: 입력 패널  ───────────────── -->

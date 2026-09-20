@@ -256,6 +256,10 @@ const el = {
   restoredNote: $('restored-note'),
   restoredNoteBody: $('restored-note-body'),
   restoredExit: $('restored-exit'),
+  installBanner: $('install-banner'),
+  installBannerSub: $('install-banner-sub'),
+  installAccept: $('install-accept'),
+  installDismiss: $('install-dismiss'),
   xray: $('xray'),
   alertHeader: $('alert-header'),
   modeBadge: $('mode-badge'),
@@ -1015,6 +1019,8 @@ function closeIntro() {
   el.intro.hidden = true;
   document.body.style.overflow = '';
   markIntroSeen();
+  // 스토리에 가려 밀어 뒀던 설치 제안이 있으면 이제 띄운다.
+  flushPendingInstall();
 }
 
 function maybeShowIntro() {
@@ -1756,3 +1762,127 @@ onInput();
 // 재방문자는 첫 화면에서 바로 쌓인 기록 수를 본다.
 renderHistoryBadge();
 maybeShowIntro();
+
+
+/* ── 홈 화면에 추가 (PWA) ─────────────────────────────
+
+   설치 경로는 플랫폼마다 다르다.
+
+   - 안드로이드/크롬: manifest + fetch 핸들러가 있는 서비스 워커가 갖춰지면
+     브라우저가 beforeinstallprompt 를 던진다. 그 이벤트를 잡아 뒀다가
+     사용자가 버튼을 눌렀을 때 prompt() 를 부른다. 이벤트 없이 prompt 를
+     띄울 방법은 없다.
+   - iOS 사파리: 설치 프롬프트 API 자체가 없다. 공유 시트에서 직접
+     "홈 화면에 추가"를 눌러야 해서, 버튼 대신 그 경로를 문장으로 알려 준다.
+   - 이미 설치해서 열었으면(standalone) 배너를 띄우지 않는다.
+
+   한 번 닫으면 다시 띄우지 않는다. 설치 배너는 거절당한 뒤에도 계속 뜨면
+   그 자체가 이 도구에 대한 인상이 된다.
+*/
+const INSTALL_DISMISSED_KEY = 'ofw_install_dismissed_v1';
+
+function installDismissed() {
+  try {
+    return localStorage.getItem(INSTALL_DISMISSED_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function markInstallDismissed() {
+  try {
+    localStorage.setItem(INSTALL_DISMISSED_KEY, '1');
+  } catch {
+    // 프라이빗 브라우징이면 이번 세션에만 닫힌다 — 배너를 막을 이유는 아니다.
+  }
+}
+
+/** 이미 홈 화면에서 실행 중인가. iOS 는 표준 matchMedia 대신 navigator.standalone 을 쓴다. */
+function isInstalled() {
+  return window.matchMedia?.('(display-mode: standalone)').matches === true || navigator.standalone === true;
+}
+
+const isIosSafari =
+  /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+  !/CriOS|FxiOS|EdgiOS/.test(navigator.userAgent);
+
+let installPrompt = null;
+
+/**
+ * 진입 스토리가 열려 있는 동안 밀어 둔 설치 제안.
+ *
+ * 첫 방문자는 스토리 모달을 먼저 본다. 그 뒤에 배너를 띄우면 모달에 가려
+ * 보이지도 않고(실측), 무엇보다 **순서가 틀렸다.** 이 도구가 뭘 해주는지
+ * 보기도 전에 설치부터 권하는 꼴이다. 스토리를 닫은 뒤로 미룬다.
+ *
+ * 크롬의 beforeinstallprompt 는 이른 시점에 한 번만 오지만, 이벤트를 들고
+ * 있으면 나중에 prompt() 를 부를 수 있어서 미뤄도 잃는 게 없다.
+ */
+let pendingInstall = null;
+
+function showInstallBanner({ ios }) {
+  if (installDismissed() || isInstalled()) return;
+  if (!el.intro.hidden) {
+    pendingInstall = { ios };
+    return;
+  }
+  pendingInstall = null;
+  // iOS 는 누를 버튼이 없다. 버튼을 남겨 두면 눌러도 아무 일이 없는 버튼이 된다.
+  el.installAccept.hidden = ios;
+  el.installBannerSub.textContent = ios
+    ? '아래 공유 버튼을 누르고 "홈 화면에 추가"를 선택하세요.'
+    : '설치해도 용량을 거의 쓰지 않습니다.';
+  el.installBanner.hidden = false;
+}
+
+/** 진입 스토리를 닫는 순간 호출된다 (closeIntro). */
+function flushPendingInstall() {
+  if (pendingInstall) showInstallBanner(pendingInstall);
+}
+
+function hideInstallBanner() {
+  el.installBanner.hidden = true;
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  // 기본 미니 인포바를 막고, 우리 배너의 버튼에 시점을 넘긴다.
+  e.preventDefault();
+  installPrompt = e;
+  showInstallBanner({ ios: false });
+});
+
+window.addEventListener('appinstalled', () => {
+  installPrompt = null;
+  markInstallDismissed();
+  hideInstallBanner();
+});
+
+el.installAccept.addEventListener('click', async () => {
+  if (!installPrompt) return;
+  hideInstallBanner();
+  installPrompt.prompt();
+  await installPrompt.userChoice;
+  // prompt 는 이벤트당 한 번만 쓸 수 있다. 결과와 무관하게 버린다.
+  installPrompt = null;
+});
+
+el.installDismiss.addEventListener('click', () => {
+  markInstallDismissed();
+  hideInstallBanner();
+});
+
+// iOS 는 이벤트가 오지 않으므로 직접 판단해서 띄운다.
+if (isIosSafari) showInstallBanner({ ios: true });
+
+/**
+ * 서비스 워커 등록.
+ *
+ * 등록 실패가 앱을 막으면 안 된다 — 서비스 워커는 설치 가능 조건일 뿐,
+ * 서비스 동작에 필요하지 않다. 그래서 실패는 조용히 넘긴다.
+ * 개발 서버(vite)에서는 /sw.js 가 없으므로 자연히 실패하고, 그대로 둔다.
+ */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
