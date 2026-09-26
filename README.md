@@ -9,8 +9,8 @@
 
 > **이 프로젝트에서 배운 것** — 운영 규칙은 [`CLAUDE.md`](CLAUDE.md),
 > 그 규칙이 생긴 사건과 수치는 [`docs/LESSONS.md`](docs/LESSONS.md) 에 있다.
-> 다음 프로젝트를 시작한다면 `CLAUDE.md` §1~§5 와
-> [`scripts/verify-template.mjs`](scripts/verify-template.mjs) 를 먼저 복사한다.
+> 다음 프로젝트를 시작한다면 [`starter/`](starter/) 폴더를 통째로 복사한다
+> — 재사용 가능한 규칙(§1~§5)과 검증 템플릿만 자립형으로 묶어 뒀다.
 
 ## 무엇을 푸는가
 
