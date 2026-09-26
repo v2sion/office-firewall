@@ -7,6 +7,11 @@
 
 ---
 
+> **이 프로젝트에서 배운 것** — 운영 규칙은 [`CLAUDE.md`](CLAUDE.md),
+> 그 규칙이 생긴 사건과 수치는 [`docs/LESSONS.md`](docs/LESSONS.md) 에 있다.
+> 다음 프로젝트를 시작한다면 `CLAUDE.md` §1~§5 와
+> [`scripts/verify-template.mjs`](scripts/verify-template.mjs) 를 먼저 복사한다.
+
 ## 무엇을 푸는가
 
 > "시간 될 때 가볍게 한번 봐주시면 좋을 것 같아요. 급한 건 아닙니다!"
